@@ -1,0 +1,62 @@
+name: CI
+
+# Bu pipeline, develop veya main dallarına yapılan her push ve
+# bu dallara açılan her Pull Request için otomatik çalışır.
+#
+# NOT: Backend (Görev 3.1) ve Frontend (Görev 9.1) projeleri henüz
+# oluşturulmadığı için şimdilik sadece "sanity check" (temel sağlık
+# kontrolü) yapılıyor. Backend/frontend projeleri kurulduğunda bu
+# dosyaya gerçek lint/test/build adımları eklenecek.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  sanity-check:
+    name: Temel Proje Kontrolü
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu çek
+        uses: actions/checkout@v4
+
+      - name: Node.js sürümünü oku ve kur
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: pnpm kur
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Node ve pnpm sürümlerini doğrula
+        run: |
+          echo "Node surumu:"
+          node -v
+          echo "pnpm surumu:"
+          pnpm -v
+
+      - name: Temel proje dosyalarının varlığını kontrol et
+        run: |
+          test -f package.json && echo "OK: package.json bulundu"
+          test -f pnpm-workspace.yaml && echo "OK: pnpm-workspace.yaml bulundu"
+          test -f docker-compose.yml && echo "OK: docker-compose.yml bulundu"
+          test -f .env.example && echo "OK: .env.example bulundu"
+
+  # ------------------------------------------------------------
+  # backend-ci:
+  #   Görev 3.1 (Backend proje iskeleti) tamamlanınca eklenecek:
+  #   pnpm --filter backend install
+  #   pnpm --filter backend run lint
+  #   pnpm --filter backend run test
+  #   pnpm --filter backend run build
+  #
+  # frontend-ci:
+  #   Görev 9.1 (Next.js proje kurulumu) tamamlanınca eklenecek:
+  #   pnpm --filter frontend install
+  #   pnpm --filter frontend run lint
+  #   pnpm --filter frontend run build
+  # ------------------------------------------------------------
