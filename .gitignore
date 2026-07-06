@@ -1,0 +1,31 @@
+# Bağımlılıklar
+node_modules/
+.pnpm-store/
+
+# Ortam değişkenleri
+.env
+.env.local
+.env.*.local
+
+# Build çıktıları
+.next/
+dist/
+build/
+out/
+
+# Log dosyaları
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+coverage/
+
+# Prisma (varsa lokal db dosyası)
+*.sqlite
