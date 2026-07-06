@@ -1,0 +1,45 @@
+# Özel Mesaj — Lokal Geliştirme Ortamı
+# Kullanım: docker compose up -d
+# Durdurmak için: docker compose down
+# Verileri de silmek için: docker compose down -v
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ozel-mesaj-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ozel_mesaj_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ozel-mesaj-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # NOT: backend servisi Görev 3.1'de (Backend proje iskeleti) buraya eklenecek.
+  # O zamana kadar backend, lokal makinede "pnpm run dev" ile ayrıca çalıştırılır
+  # ve yukarıdaki postgres/redis'e localhost üzerinden bağlanır.
+
+volumes:
+  postgres_data:
+  redis_data:
