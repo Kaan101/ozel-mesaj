@@ -29,8 +29,9 @@ jobs:
 
       - name: pnpm kur
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # NOT: version burada belirtilmiyor; sürüm bilgisi kök
+        # package.json'daki "packageManager" alanından otomatik okunur.
+        # İkisini birden belirtmek "Multiple versions of pnpm specified" hatasına yol açar.
 
       - name: Node ve pnpm sürümlerini doğrula
         run: |
