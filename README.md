@@ -50,3 +50,5 @@ PR'lar `develop`'a açılır, CI (lint + test + build) geçmeden merge edilmez.
 ## Durum
 
 🚧 Geliştirme aşamasında — görev takibi için `docs/gorev-yol-haritasi.xlsx`.
+ 
+Test: branching akisi calisiyor. 
