@@ -1,0 +1,15 @@
+// Prisma şema dosyası
+// Referans: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NOT: Tablolar (users, message_threads, messages, pool_entries) bu dosyaya
+// Görev 2.3 - 2.6'da sırayla eklenecek. Bu adımda (Görev 2.2) sadece
+// Prisma'nın kurulumu ve veritabanına bağlanabildiği doğrulanıyor.
