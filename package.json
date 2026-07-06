@@ -1,0 +1,14 @@
+{
+  "name": "ozel-mesaj",
+  "private": true,
+  "description": "Ozel Mesaj - iletisim baslatma platformu (monorepo kok paketi)",
+  "engines": {
+    "node": ">=20.11.0 <21.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.1.0",
+  "scripts": {
+    "dev:backend": "pnpm --filter backend run dev",
+    "dev:frontend": "pnpm --filter frontend run dev"
+  }
+}
