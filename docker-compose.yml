@@ -1,5 +1,3 @@
-version: "3.9"
-
 # Özel Mesaj — Lokal Geliştirme Ortamı
 # Kullanım: docker compose up -d
 # Durdurmak için: docker compose down
