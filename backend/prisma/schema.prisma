@@ -91,7 +91,10 @@ model Message {
   destroyAfterRead Boolean   @default(false) @map("destroy_after_read")
   createdAt        DateTime  @default(now()) @map("created_at")
 
+  @@index([threadId])
   @@map("messages")
+
+ 
 }
 
 // --------------------------------------------------------
@@ -120,5 +123,8 @@ model PoolEntry {
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([category])
   @@map("pool_entries")
+
+ 
 }
