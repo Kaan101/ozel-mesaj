@@ -31,6 +31,7 @@ model User {
   initiatedThreads MessageThread[] @relation("ThreadInitiator")
   receivedThreads  MessageThread[] @relation("ThreadRecipient")
   sentMessages     Message[]
+  poolEntries      PoolEntry[]
 
   @@map("users")
 }
@@ -91,4 +92,33 @@ model Message {
   createdAt        DateTime  @default(now()) @map("created_at")
 
   @@map("messages")
+}
+
+// --------------------------------------------------------
+// GÖREV 2.6 — pool_entries tablosu
+// --------------------------------------------------------
+
+enum PoolVisibility {
+  public
+  unlisted
+}
+
+model PoolEntry {
+  id String @id @default(uuid()) @db.Uuid
+
+  ownerUserId String @map("owner_user_id") @db.Uuid
+  owner       User   @relation(fields: [ownerUserId], references: [id])
+
+  title        String
+  questionText String @map("question_text")
+  answerHash   String @map("answer_hash")
+
+  category   String?        @map("category")
+  visibility PoolVisibility @default(public)
+
+  attemptCount Int @default(0) @map("attempt_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("pool_entries")
 }
