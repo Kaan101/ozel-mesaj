@@ -75,4 +75,33 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
+
+  // Gorev 3.5: Refresh token'i dogrular, gecerliyse yeni bir access
+  // token uretir. Kullanici tekrar SMS almadan oturumunu surdurebilir
+  // (Bolum 8, "Neden JWT + refresh token").
+  async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
+    let payload: { sub: string };
+    try {
+      payload = await this.jwt.verifyAsync(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+    } catch {
+      throw new UnauthorizedException("Refresh token gecersiz veya suresi dolmus.");
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user || user.status !== "active") {
+      throw new UnauthorizedException("Kullanici bulunamadi veya aktif degil.");
+    }
+
+    const accessToken = await this.jwt.signAsync(
+      { sub: user.id },
+      {
+        secret: process.env.JWT_ACCESS_SECRET,
+        expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? "15m",
+      }
+    );
+
+    return { accessToken };
+  }
 }
