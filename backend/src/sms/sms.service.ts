@@ -54,6 +54,10 @@ export class SmsService {
     const response = await fetch(url);
     const body = await response.text();
 
+    // GEÇİCİ DEBUG: İleti Merkezi'nin tam olarak ne döndürdüğünü görmek için.
+    // Sorun çözüldükten sonra bu satırı kaldıracağız.
+    this.logger.log(`Ileti Merkezi HTTP ${response.status} yaniti: ${body}`);
+
     if (!response.ok) {
       this.logger.error(`SMS gonderimi basarisiz: ${response.status} - ${body}`);
       throw new Error("SMS gonderimi basarisiz oldu.");
