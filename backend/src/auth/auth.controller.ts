@@ -1,8 +1,10 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { Request } from "express";
 import { AuthService } from "./auth.service";
 import { RequestOtpDto } from "./dto/request-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 
 @Controller("auth")
 export class AuthController {
@@ -38,5 +40,13 @@ export class AuthController {
     const { accessToken } = await this.authService.refreshAccessToken(dto.refreshToken);
 
     return { access_token: accessToken };
+  }
+
+  // Gorev 3.6 proof endpoint'i: JwtAuthGuard'in gercekten calistigini
+  // gostermek icin. Token'siz istek 401, gecerli token'li istek 200 doner.
+  @UseGuards(JwtAuthGuard)
+  @Get("whoami")
+  whoami(@Req() request: Request) {
+    return { userId: (request as any).user.sub };
   }
 }
