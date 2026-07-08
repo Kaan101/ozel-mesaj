@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { RedisService } from "../common/redis.service";
 import { PrismaService } from "../common/prisma.service";
@@ -18,11 +18,46 @@ export class AuthService {
     return `otp:${phoneHash}`;
   }
 
-  // Gorev 3.2 + 3.3: Telefon numarasini hash'ler, 4 haneli kod uretir,
-  // Redis'e TTL:5dk ile yazar, sonra SmsService uzerinden gonderir.
-  // Rate limiting Gorev 3.7'de eklenecek.
+  private rateLimitMinuteKey(phoneHash: string): string {
+    return `otp-rl-min:${phoneHash}`;
+  }
+
+  private rateLimitHourKey(phoneHash: string): string {
+    return `otp-rl-hour:${phoneHash}`;
+  }
+
+  // Gorev 3.7: Ayni numaraya dakikada N'den, saatte M'den fazla OTP
+  // istegi engellenir (Bolum 8 "Rate limiting", Bolum 10 spam/smishing
+  // onleme). Limit asilirsa 429 doner.
+  private async enforceRateLimit(phoneHash: string): Promise<void> {
+    const perMinuteLimit = Number(process.env.OTP_RATE_LIMIT_PER_MINUTE ?? 1);
+    const perHourLimit = Number(process.env.OTP_RATE_LIMIT_PER_HOUR ?? 5);
+
+    const minuteCount = await this.redis.incr(this.rateLimitMinuteKey(phoneHash), 60);
+    if (minuteCount > perMinuteLimit) {
+      throw new HttpException(
+        "Cok sik istek yapildi, lutfen bir dakika sonra tekrar deneyin.",
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
+
+    const hourCount = await this.redis.incr(this.rateLimitHourKey(phoneHash), 3600);
+    if (hourCount > perHourLimit) {
+      throw new HttpException(
+        "Saatlik istek limitine ulasildi, lutfen daha sonra tekrar deneyin.",
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
+  }
+
+  // Gorev 3.2 + 3.3 + 3.7: Telefon numarasini hash'ler, rate limit
+  // kontrolu yapar, 4 haneli kod uretir, Redis'e TTL:5dk ile yazar,
+  // sonra SmsService uzerinden gonderir.
   async requestOtp(phoneNumber: string): Promise<{ phoneHash: string; ttlSeconds: number }> {
     const phoneHash = hashPhoneNumber(phoneNumber);
+
+    await this.enforceRateLimit(phoneHash);
+
     const code = generateOtpCode(Number(process.env.OTP_LENGTH ?? 4));
     const ttlSeconds = Number(process.env.OTP_TTL_SECONDS ?? 300);
 
