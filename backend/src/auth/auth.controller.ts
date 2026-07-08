@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { RequestOtpDto } from "./dto/request-otp.dto";
+import { VerifyOtpDto } from "./dto/verify-otp.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -15,6 +16,19 @@ export class AuthController {
     return {
       message: "Dogrulama kodu gonderildi.",
       expiresInSeconds: ttlSeconds,
+    };
+  }
+
+  @Post("otp/verify")
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    const { accessToken, refreshToken } = await this.authService.verifyOtp(
+      dto.phoneNumber,
+      dto.code
+    );
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
     };
   }
 }
