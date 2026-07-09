@@ -47,6 +47,16 @@ export class ThreadAccessGuard implements CanActivate {
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
+    // Bu endpoint tek basina kullanildiginda (orn. GET /messages),
+    // Authorization: Bearer <thread_access_token> yeterli.
+    // JwtAuthGuard ile BIRLIKTE kullanildiginda (orn. POST /messages),
+    // Authorization header'i Katman 1 (access_token) icin ayrilir,
+    // thread_access_token ozel X-Thread-Access-Token header'indan okunur.
+    const customHeaderToken = request.headers["x-thread-access-token"];
+    if (typeof customHeaderToken === "string") {
+      return customHeaderToken;
+    }
+
     const [type, token] = request.headers.authorization?.split(" ") ?? [];
     return type === "Bearer" ? token : undefined;
   }

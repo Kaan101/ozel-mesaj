@@ -3,6 +3,7 @@ import { Request } from "express";
 import { ThreadService } from "./thread.service";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 import { UnlockThreadDto } from "./dto/unlock-thread.dto";
+import { SendMessageDto } from "./dto/send-message.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { ThreadAccessGuard } from "./guards/thread-access.guard";
 
@@ -38,5 +39,19 @@ export class ThreadController {
   @Get(":id/messages")
   async getMessages(@Param("id") id: string) {
     return this.threadService.getMessages(id);
+  }
+
+  // Gorev 5.5: Yanit gonderme. Iki guard birden: JwtAuthGuard (Katman 1
+  // - kimin gonderdigini bilmek icin) + ThreadAccessGuard (Katman 2 -
+  // dogru thread'e erisim). Ikisi de gecmeli (Bolum 9).
+  @UseGuards(JwtAuthGuard, ThreadAccessGuard)
+  @Post(":id/messages")
+  async sendMessage(
+    @Req() request: Request,
+    @Param("id") id: string,
+    @Body() dto: SendMessageDto
+  ) {
+    const senderUserId = (request as any).user.sub;
+    return this.threadService.sendMessage(id, senderUserId, dto.body, dto.isAnonymous);
   }
 }
