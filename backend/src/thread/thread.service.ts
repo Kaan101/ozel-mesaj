@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../common/prisma.service";
+import { RedisService } from "../common/redis.service";
 import { SmsService } from "../sms/sms.service";
 import { hashPhoneNumber } from "../common/hash.util";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
@@ -10,6 +11,7 @@ import { CreateThreadDto } from "./dto/create-thread.dto";
 export class ThreadService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     private readonly sms: SmsService,
     private readonly jwt: JwtService
   ) {}
@@ -59,13 +61,31 @@ export class ThreadService {
     return { threadId: thread.id };
   }
 
-  // Gorev 5.2: Katman 2 (Authorization) - "dogru kisi olmak" yetmez,
-  // "dogru bilgiyi bilmek" de gerekir (Bolum 8). Dogru parola/cevap
-  // girilirse, sadece bu thread'e ozel, kisa omurlu bir token uretilir.
+  private threadAttemptsKey(threadId: string): string {
+    return `thread-attempts:${threadId}`;
+  }
+
+  // Gorev 5.2 + 5.7: Katman 2 (Authorization) - "dogru kisi olmak" yetmez,
+  // "dogru bilgiyi bilmek" de gerekir (Bolum 8). Ayrica brute-force
+  // korumasi: 5 yanlis denemeden sonra thread 15 dakika kilitlenir
+  // (Bolum 8, 10). Deneme sayaci Redis'te TTL'li tutulur.
   async unlockThread(
     threadId: string,
     secret: string
   ): Promise<{ threadAccessToken: string }> {
+    const maxAttempts = 5;
+    const lockoutSeconds = 15 * 60;
+
+    const attemptsKey = this.threadAttemptsKey(threadId);
+    const currentAttempts = Number((await this.redis.get(attemptsKey)) ?? 0);
+
+    if (currentAttempts >= maxAttempts) {
+      throw new HttpException(
+        "Cok fazla yanlis deneme yapildi. Bu thread 15 dakika kilitlendi.",
+        423 // Locked
+      );
+    }
+
     const thread = await this.prisma.messageThread.findUnique({
       where: { id: threadId },
     });
@@ -76,8 +96,12 @@ export class ThreadService {
 
     const isMatch = await compareSecret(secret, thread.lockSecretHash);
     if (!isMatch) {
+      await this.redis.incr(attemptsKey, lockoutSeconds);
       throw new UnauthorizedException("Parola/cevap hatali.");
     }
+
+    // Basarili giris - deneme sayacini sifirla.
+    await this.redis.del(attemptsKey);
 
     const threadAccessToken = await this.jwt.signAsync(
       { threadId: thread.id },
