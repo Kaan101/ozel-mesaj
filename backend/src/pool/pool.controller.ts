@@ -4,15 +4,23 @@ import { PoolService } from "./pool.service";
 import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
 import { AttemptPoolEntryDto } from "./dto/attempt-pool-entry.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { POOL_CATEGORIES } from "./pool-categories.constant";
 
-@Controller("pool/entries")
+@Controller("pool")
 export class PoolController {
   constructor(private readonly poolService: PoolService) {}
+
+  // Gorev 6.5: Frontend'in dropdown/filtre icin kullanabilecegi sabit
+  // kategori listesi - auth gerektirmez.
+  @Get("categories")
+  getCategories() {
+    return { categories: POOL_CATEGORIES };
+  }
 
   // Katman 1 auth zorunlu (Bolum 9): sadece giris yapmis kullanicilar
   // soru birakabilir.
   @UseGuards(JwtAuthGuard)
-  @Post()
+  @Post("entries")
   async createEntry(@Req() request: Request, @Body() dto: CreatePoolEntryDto) {
     const ownerUserId = (request as any).user.sub;
     const result = await this.poolService.createEntry(ownerUserId, dto);
@@ -24,7 +32,7 @@ export class PoolController {
   }
 
   // Gorev 6.2: Herkese acik listeleme - auth gerektirmez (Bolum 4, 9).
-  @Get()
+  @Get("entries")
   async listEntries(
     @Query("category") category?: string,
     @Query("page") page?: string,
@@ -40,7 +48,7 @@ export class PoolController {
   // (attemptingUserId), basarili eslesmede olusacak thread'in
   // recipientUserId'si olarak kullanilacak (Bolum 4, 9).
   @UseGuards(JwtAuthGuard)
-  @Post(":id/attempt")
+  @Post("entries/:id/attempt")
   async attempt(
     @Req() request: Request,
     @Param("id") id: string,

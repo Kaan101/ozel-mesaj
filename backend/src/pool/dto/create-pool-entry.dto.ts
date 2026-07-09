@@ -1,4 +1,5 @@
 import { IsIn, IsOptional, IsString, MinLength } from "class-validator";
+import { POOL_CATEGORIES } from "../pool-categories.constant";
 
 export class CreatePoolEntryDto {
   @IsString()
@@ -14,7 +15,9 @@ export class CreatePoolEntryDto {
   answer: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn(POOL_CATEGORIES, {
+    message: `category su degerlerden biri olmali: ${POOL_CATEGORIES.join(", ")}`,
+  })
   category?: string;
 
   @IsIn(["public", "unlisted"])
