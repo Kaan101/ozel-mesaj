@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
 import { PoolService } from "./pool.service";
 import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
+import { AttemptPoolEntryDto } from "./dto/attempt-pool-entry.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Controller("pool/entries")
@@ -33,5 +34,19 @@ export class PoolController {
     const pageSizeNum = Math.min(50, Math.max(1, Number(pageSize) || 10));
 
     return this.poolService.listEntries(category, pageNum, pageSizeNum);
+  }
+
+  // Gorev 6.3: Katman 1 auth zorunlu - deneyen kisinin kimligi
+  // (attemptingUserId), basarili eslesmede olusacak thread'in
+  // recipientUserId'si olarak kullanilacak (Bolum 4, 9).
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/attempt")
+  async attempt(
+    @Req() request: Request,
+    @Param("id") id: string,
+    @Body() dto: AttemptPoolEntryDto
+  ) {
+    const attemptingUserId = (request as any).user.sub;
+    return this.poolService.attemptEntry(id, attemptingUserId, dto.answer);
   }
 }
