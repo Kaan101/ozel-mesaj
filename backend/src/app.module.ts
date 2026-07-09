@@ -8,6 +8,7 @@ import { ThreadModule } from "./thread/thread.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { PoolModule } from "./pool/pool.module";
 import { SafetyModule } from "./safety/safety.module";
+import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { SafetyModule } from "./safety/safety.module";
     JobsModule,
     PoolModule,
     SafetyModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [
