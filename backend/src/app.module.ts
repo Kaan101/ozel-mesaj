@@ -7,6 +7,7 @@ import { PrismaModule } from "./common/prisma.module";
 import { ThreadModule } from "./thread/thread.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { PoolModule } from "./pool/pool.module";
+import { SafetyModule } from "./safety/safety.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PoolModule } from "./pool/pool.module";
     ThreadModule,
     JobsModule,
     PoolModule,
+    SafetyModule,
   ],
   controllers: [AppController],
   providers: [

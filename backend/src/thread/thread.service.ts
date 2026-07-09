@@ -1,8 +1,9 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SmsService } from "../sms/sms.service";
+import { SafetyService } from "../safety/safety.service";
 import { hashPhoneNumber } from "../common/hash.util";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
@@ -13,6 +14,7 @@ export class ThreadService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly sms: SmsService,
+    private readonly safety: SafetyService,
     private readonly jwt: JwtService
   ) {}
 
@@ -30,6 +32,13 @@ export class ThreadService {
       update: {},
       create: { phoneNumberHash: recipientPhoneHash, status: "active" },
     });
+
+    // Gorev 7.2: Alici, gonderici tarafindan (initiator) daha once
+    // engellendiyse yeni thread olusturulmasi reddedilir (Bolum 10).
+    const isBlocked = await this.safety.isBlocked(recipient.id, initiatorUserId);
+    if (isBlocked) {
+      throw new ForbiddenException("Bu kullaniciya mesaj gonderemezsiniz.");
+    }
 
     const lockSecretHash = await hashSecret(dto.lockSecret);
 

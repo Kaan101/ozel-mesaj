@@ -10,6 +10,7 @@ import { ThreadService } from "./thread.service";
 import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SmsService } from "../sms/sms.service";
+import { SafetyService } from "../safety/safety.service";
 
 // Gorev 5.8: Senaryo A (dogrudan mesaj) akisinin tum backend adimlarini
 // (thread olusturma, unlock, mesaj listeleme/gonderme) kapsayan unit
@@ -40,6 +41,7 @@ describe("ThreadService", () => {
           useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn(), incr: jest.fn() },
         },
         { provide: SmsService, useValue: { send: jest.fn() } },
+        { provide: SafetyService, useValue: { isBlocked: jest.fn().mockResolvedValue(false) } },
         { provide: JwtService, useValue: { signAsync: jest.fn(), verifyAsync: jest.fn() } },
       ],
     }).compile();
