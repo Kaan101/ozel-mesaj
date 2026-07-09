@@ -11,4 +11,11 @@ export class AppController {
       timestamp: new Date().toISOString(),
     };
   }
+
+  // Gorev 7.5 proof endpoint'i: Sentry entegrasyonunu test etmek icin
+  // bilerek hata firlatir. Production'da kaldirilabilir/korunabilir.
+  @Get("debug-sentry")
+  getDebugSentry() {
+    throw new Error("Bu, Sentry entegrasyonunu test etmek icin bilerek firlatilan bir hatadir.");
+  }
 }
