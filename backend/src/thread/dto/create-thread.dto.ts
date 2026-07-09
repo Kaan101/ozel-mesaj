@@ -17,7 +17,7 @@ export class CreateThreadDto {
   // Parola modunda: kilit ifadesinin kendisi.
   // Soru modunda: dogru cevap.
   @IsString()
-  @MinLength(1)
+  @MinLength(4, { message: "lockSecret en az 4 karakter olmali (brute-force zorlugu icin)." })
   lockSecret: string;
 
   // Sadece lockType 'question' oldugunda zorunlu (Bolum 3, 7).

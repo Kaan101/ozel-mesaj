@@ -84,15 +84,30 @@ describe("AuthService", () => {
 
   describe("verifyOtp", () => {
     it("kod yanlissa UnauthorizedException firlatir", async () => {
-      redis.get.mockResolvedValue("1234");
+      redis.get.mockImplementation(async (key: string) =>
+        key.startsWith("otp-verify-attempts") ? null : "1234"
+      );
 
       await expect(service.verifyOtp("+905551234567", "9999")).rejects.toThrow(
         UnauthorizedException
       );
+      expect(redis.incr).toHaveBeenCalledTimes(1);
+    });
+
+    it("5 basarisiz denemeden sonra 423 firlatir", async () => {
+      redis.get.mockImplementation(async (key: string) =>
+        key.startsWith("otp-verify-attempts") ? "5" : "1234"
+      );
+
+      await expect(service.verifyOtp("+905551234567", "9999")).rejects.toThrow(
+        HttpException
+      );
     });
 
     it("kod dogruysa kullaniciyi upsert eder ve token doner", async () => {
-      redis.get.mockResolvedValue("1234");
+      redis.get.mockImplementation(async (key: string) =>
+        key.startsWith("otp-verify-attempts") ? null : "1234"
+      );
       prisma.user.upsert.mockResolvedValue({ id: "user-1", status: "active" });
       jwt.signAsync
         .mockResolvedValueOnce("access-token")
@@ -100,7 +115,7 @@ describe("AuthService", () => {
 
       const result = await service.verifyOtp("+905551234567", "1234");
 
-      expect(redis.del).toHaveBeenCalledTimes(1);
+      expect(redis.del).toHaveBeenCalledTimes(2); // otp kodu + deneme sayaci
       expect(prisma.user.upsert).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         accessToken: "access-token",

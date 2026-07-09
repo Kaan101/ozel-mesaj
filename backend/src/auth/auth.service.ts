@@ -69,22 +69,42 @@ export class AuthService {
     return { phoneHash, ttlSeconds };
   }
 
-  // Gorev 3.4: Redis'teki kodla karsilastirir, dogruysa kullaniciyi
-  // bulur/olusturur (upsert) ve JWT access + refresh token uretir
-  // (Bolum 8, Katman 1 - Kimlik Dogrulama).
+  private otpVerifyAttemptsKey(phoneHash: string): string {
+    return `otp-verify-attempts:${phoneHash}`;
+  }
+
+  // Gorev 7.6 (guvenlik bulgusu duzeltmesi): OTP dogrulamada deneme
+  // siniri yoktu - Bolum 3, Adim 3'teki "5 deneme sonrasi kilitleme"
+  // gereksinimini karsilamiyorduk. 5 yanlis denemeden sonra 15 dakika
+  // kilitleniyor (thread-unlock'taki ayni desen, Bolum 8, 10).
   async verifyOtp(
     phoneNumber: string,
     code: string
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const phoneHash = hashPhoneNumber(phoneNumber);
+    const maxAttempts = 5;
+    const lockoutSeconds = 15 * 60;
+
+    const attemptsKey = this.otpVerifyAttemptsKey(phoneHash);
+    const currentAttempts = Number((await this.redis.get(attemptsKey)) ?? 0);
+
+    if (currentAttempts >= maxAttempts) {
+      throw new HttpException(
+        "Cok fazla yanlis deneme yapildi. Lutfen 15 dakika sonra yeni bir kod isteyin.",
+        423 // Locked
+      );
+    }
+
     const storedCode = await this.redis.get(this.otpKey(phoneHash));
 
     if (!storedCode || storedCode !== code) {
+      await this.redis.incr(attemptsKey, lockoutSeconds);
       throw new UnauthorizedException("Kod hatali veya suresi dolmus.");
     }
 
-    // Kod bir kez kullanilir - dogrulandiktan sonra hemen silinir.
+    // Basarili girisde hem OTP kodu hem deneme sayaci temizlenir.
     await this.redis.del(this.otpKey(phoneHash));
+    await this.redis.del(attemptsKey);
 
     const user = await this.prisma.user.upsert({
       where: { phoneNumberHash: phoneHash },
