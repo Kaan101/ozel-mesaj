@@ -90,24 +90,32 @@ export class ThreadService {
     return { threadAccessToken };
   }
 
-  // Gorev 5.4: Thread'e ait mesajlari listeler. is_anonymous alanina
+  // Gorev 5.4 + 5.6: Thread'e ait mesajlari listeler ve okunmamis
+  // olanlarin read_at alanini isaretler (destroy_after_read job'inin
+  // "ne zaman okundu" bilgisine ihtiyaci var). is_anonymous alanina
   // gore filtreleme BACKEND seviyesinde yapilir - anonim mesajlarda
-  // senderUserId response'a hic eklenmez (undefined birakilir, JSON'da
-  // hic gorunmez). Bu bir UI gizleme degil, alan seviyesinde filtreleme
-  // (Bolum 8, "Anonimlik Modeli").
+  // senderUserId response'a hic eklenmez (Bolum 8, "Anonimlik Modeli").
   async getMessages(threadId: string) {
     const messages = await this.prisma.message.findMany({
       where: { threadId },
       orderBy: { createdAt: "asc" },
     });
 
+    const now = new Date();
+    const unreadIds = messages.filter((m) => m.readAt === null).map((m) => m.id);
+    if (unreadIds.length > 0) {
+      await this.prisma.message.updateMany({
+        where: { id: { in: unreadIds } },
+        data: { readAt: now },
+      });
+    }
+
     return messages.map((message) => ({
       id: message.id,
       body: message.body,
       isAnonymous: message.isAnonymous,
-      // Anonimse alan tamamen atlanir (undefined -> JSON.stringify onu siler).
       senderUserId: message.isAnonymous ? undefined : message.senderUserId,
-      readAt: message.readAt,
+      readAt: message.readAt ?? now,
       createdAt: message.createdAt,
     }));
   }
