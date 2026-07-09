@@ -11,7 +11,7 @@ export class CreatePoolEntryDto {
   question: string;
 
   @IsString()
-  @MinLength(1)
+  @MinLength(4, { message: "answer en az 4 karakter olmali (brute-force zorlugu icin)." })
   answer: string;
 
   @IsOptional()
