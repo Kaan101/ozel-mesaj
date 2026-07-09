@@ -32,12 +32,11 @@ export class ThreadController {
     return { thread_access_token: threadAccessToken };
   }
 
-  // Gorev 5.3 proof endpoint'i: ThreadAccessGuard'in gercekten
-  // calistigini gostermek icin. Bu endpoint Gorev 5.4'te
-  // GET /threads/:id/messages ile degistirilecek/genisletilecek.
+  // Gorev 5.4: Thread'e ait mesajlari listeler. Katman 2 (ThreadAccessGuard)
+  // korumasi altinda - sadece dogru parolayi/cevabi bilenler erisir.
   @UseGuards(ThreadAccessGuard)
-  @Get(":id/ping")
-  ping(@Param("id") id: string) {
-    return { threadId: id, message: "Bu thread'e erisim yetkin var." };
+  @Get(":id/messages")
+  async getMessages(@Param("id") id: string) {
+    return this.threadService.getMessages(id);
   }
 }
