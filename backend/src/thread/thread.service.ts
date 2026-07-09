@@ -111,4 +111,25 @@ export class ThreadService {
       createdAt: message.createdAt,
     }));
   }
+
+  // Gorev 5.5: Yanit gonderme. Hem Katman 1 (kimin gonderdigini bilmek
+  // icin, controller'da JwtAuthGuard ile saglanir) hem Katman 2 (dogru
+  // thread'e erisim, ThreadAccessGuard ile saglanir) gerektirir.
+  async sendMessage(threadId: string, senderUserId: string, body: string, isAnonymous: boolean) {
+    const message = await this.prisma.message.create({
+      data: {
+        threadId,
+        senderUserId,
+        body,
+        isAnonymous,
+      },
+    });
+
+    return {
+      id: message.id,
+      body: message.body,
+      isAnonymous: message.isAnonymous,
+      createdAt: message.createdAt,
+    };
+  }
 }
