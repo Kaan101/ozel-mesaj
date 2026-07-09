@@ -1,7 +1,8 @@
-import { Body, Controller, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
 import { ThreadService } from "./thread.service";
 import { CreateThreadDto } from "./dto/create-thread.dto";
+import { UnlockThreadDto } from "./dto/unlock-thread.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Controller("threads")
@@ -20,5 +21,13 @@ export class ThreadController {
       message: "Mesaj olusturuldu ve aliciya bildirim gonderildi.",
       threadId: result.threadId,
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/unlock")
+  async unlock(@Param("id") id: string, @Body() dto: UnlockThreadDto) {
+    const { threadAccessToken } = await this.threadService.unlockThread(id, dto.secret);
+
+    return { thread_access_token: threadAccessToken };
   }
 }

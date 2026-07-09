@@ -1,15 +1,17 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../common/prisma.service";
 import { SmsService } from "../sms/sms.service";
 import { hashPhoneNumber } from "../common/hash.util";
-import { hashSecret } from "../common/bcrypt.util";
+import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 
 @Injectable()
 export class ThreadService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly sms: SmsService
+    private readonly sms: SmsService,
+    private readonly jwt: JwtService
   ) {}
 
   // Gorev 5.1: Alici telefonu + mesaj + kilit tipi alir, thread ve ilk
@@ -55,5 +57,36 @@ export class ThreadService {
     await this.sms.send(dto.recipientPhone, text);
 
     return { threadId: thread.id };
+  }
+
+  // Gorev 5.2: Katman 2 (Authorization) - "dogru kisi olmak" yetmez,
+  // "dogru bilgiyi bilmek" de gerekir (Bolum 8). Dogru parola/cevap
+  // girilirse, sadece bu thread'e ozel, kisa omurlu bir token uretilir.
+  async unlockThread(
+    threadId: string,
+    secret: string
+  ): Promise<{ threadAccessToken: string }> {
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: threadId },
+    });
+
+    if (!thread) {
+      throw new NotFoundException("Thread bulunamadi.");
+    }
+
+    const isMatch = await compareSecret(secret, thread.lockSecretHash);
+    if (!isMatch) {
+      throw new UnauthorizedException("Parola/cevap hatali.");
+    }
+
+    const threadAccessToken = await this.jwt.signAsync(
+      { threadId: thread.id },
+      {
+        secret: process.env.JWT_THREAD_ACCESS_SECRET,
+        expiresIn: process.env.JWT_THREAD_ACCESS_EXPIRES_IN ?? "10m",
+      }
+    );
+
+    return { threadAccessToken };
   }
 }
