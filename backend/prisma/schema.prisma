@@ -39,6 +39,7 @@ model User {
   poolEntries      PoolEntry[]
   blockedUsers     Block[]         @relation("Blocker")
   blockedByUsers   Block[]         @relation("Blocked")
+  reports          Report[]
 
   @@map("users")
 }
@@ -77,6 +78,7 @@ model MessageThread {
   expiresAt DateTime? @map("expires_at")
 
   messages Message[]
+  reports  Report[]
 
   @@map("message_threads")
 }
@@ -156,6 +158,33 @@ model Block {
   // Ayni kisi ayni numarayi birden fazla kez engelleyemez.
   @@unique([blockerUserId, blockedUserId])
   @@map("blocks")
+}
+
+// --------------------------------------------------------
+// GÖREV 7.3 — reports tablosu (şikayet / moderasyon kuyruğu)
+// --------------------------------------------------------
+
+enum ReportStatus {
+  pending
+  reviewed
+  dismissed
+}
+
+model Report {
+  id String @id @default(uuid()) @db.Uuid
+
+  reporterUserId String @map("reporter_user_id") @db.Uuid
+  reporter       User   @relation(fields: [reporterUserId], references: [id])
+
+  threadId String        @map("thread_id") @db.Uuid
+  thread   MessageThread @relation(fields: [threadId], references: [id])
+
+  reason String?
+  status ReportStatus @default(pending)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("reports")
 }
 
 
