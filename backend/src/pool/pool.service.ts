@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../common/prisma.service";
+import { RedisService } from "../common/redis.service";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
 
@@ -8,6 +9,7 @@ import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
 export class PoolService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     private readonly jwt: JwtService
   ) {}
 
@@ -59,11 +61,25 @@ export class PoolService {
     return { items, page, pageSize, total };
   }
 
-  // Gorev 6.3: Cevap denemesi. Dogru cevap -> soru sahibiyle anlik
-  // bir thread olusturulur (origin_type='pool') ve deneyen kisiye
-  // hem threadId hem de (unlock'a gerek kalmadan) bir thread_access_token
-  // doner - cunku dogru cevabi zaten kanitlamis oldu (Bolum 4, Adim 3).
+  private attemptRateLimitKey(poolEntryId: string): string {
+    return `pool-attempt-rl:${poolEntryId}`;
+  }
+
+  // Gorev 6.3 + 6.4: Cevap denemesi + dakikalik rate limit (brute-force
+  // onleme, Bolum 10). Dogru cevap -> soru sahibiyle anlik bir thread
+  // olusturulur (origin_type='pool') ve deneyen kisiye hem threadId hem
+  // de (unlock'a gerek kalmadan) bir thread_access_token doner - cunku
+  // dogru cevabi zaten kanitlamis oldu (Bolum 4, Adim 3).
   async attemptEntry(poolEntryId: string, attemptingUserId: string, answer: string) {
+    const limit = Number(process.env.POOL_ATTEMPT_RATE_LIMIT_PER_MINUTE ?? 5);
+    const attemptCount = await this.redis.incr(this.attemptRateLimitKey(poolEntryId), 60);
+    if (attemptCount > limit) {
+      throw new HttpException(
+        "Bu soruya cok fazla deneme yapildi. Lutfen bir dakika sonra tekrar deneyin.",
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
+
     const entry = await this.prisma.poolEntry.findUnique({
       where: { id: poolEntryId },
     });
@@ -72,8 +88,7 @@ export class PoolService {
       throw new NotFoundException("Soru bulunamadi.");
     }
 
-    // Deneme sayaci her denemede artar (basarili/basarisiz fark etmez) -
-    // Gorev 6.4'te buna rate-limit kontrolu eklenecek.
+    // Kalici deneme sayaci (veritabaninda) - istatistik/izleme amacli.
     await this.prisma.poolEntry.update({
       where: { id: poolEntryId },
       data: { attemptCount: { increment: 1 } },
