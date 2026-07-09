@@ -43,4 +43,34 @@ export class SafetyService {
     });
     return block !== null;
   }
+
+  // Gorev 7.3: Mesaj/thread icin sikayet kaydi olusturur - moderasyon
+  // kuyruguna eklenir (Bolum 10).
+  async reportThread(reporterUserId: string, threadId: string, reason?: string) {
+    const report = await this.prisma.report.create({
+      data: {
+        reporterUserId,
+        threadId,
+        reason: reason ?? null,
+      },
+    });
+
+    return { reportId: report.id };
+  }
+
+  // Moderasyon kuyrugu: bekleyen (henuz incelenmemis) sikayetleri listeler.
+  async listPendingReports() {
+    return this.prisma.report.findMany({
+      where: { status: "pending" },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        threadId: true,
+        reporterUserId: true,
+        reason: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+  }
 }
