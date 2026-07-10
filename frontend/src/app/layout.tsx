@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Baloo_2, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-service-worker";
+import { AuthProvider } from "@/lib/auth-context";
 
 const baloo = Baloo_2({
   subsets: ["latin"],
@@ -43,8 +44,10 @@ export default function RootLayout({
   return (
     <html lang="tr" className={`${baloo.variable} ${inter.variable} ${plexMono.variable}`}>
       <body className="font-body bg-mint text-slate">
-        {children}
-        <RegisterServiceWorker />
+        <AuthProvider>
+          {children}
+          <RegisterServiceWorker />
+        </AuthProvider>
       </body>
     </html>
   );
