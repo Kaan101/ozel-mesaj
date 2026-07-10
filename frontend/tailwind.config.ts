@@ -7,6 +7,20 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
+    // Gorev 9.6: Mobil-oncelikli breakpoint stratejisi. Tailwind'in
+    // varsayilan yaklasimini (unprefixed = mobil taban, prefixli =
+    // buyuk ekranlara ozel override) koruyoruz, sadece kucuk telefonlar
+    // (orn. iPhone SE, 360-375px) icin ekstra bir 'xs' kirilma noktasi
+    // ekliyoruz - cunku SMS'ten gelen linke tiklayan kullanicilarin
+    // cogu dar ekranli telefonlarda olacak (Bolum 6, "PWA/mobil oncelikli").
+    screens: {
+      xs: "375px", // kucuk telefonlar (iPhone SE vb.)
+      sm: "640px", // buyuk telefonlar (yatay) / kucuk tabletler
+      md: "768px", // tabletler
+      lg: "1024px", // kucuk laptoplar
+      xl: "1280px", // masaustu
+      "2xl": "1536px", // genis masaustu
+    },
     extend: {
       colors: {
         sky: {
