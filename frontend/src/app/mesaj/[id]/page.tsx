@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Toggle } from "@/components/ui/Toggle";
 
 interface ThreadMeta {
   id: string;
@@ -44,6 +45,14 @@ export default function MesajGosterPage() {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [threadToken, setThreadToken] = useState<string | null>(null);
 
+  // Gorev 13.1 + 13.2: Yanit yazma + kimlik gosterme anahtari.
+  const [replyBody, setReplyBody] = useState("");
+  const [replyAnonymous, setReplyAnonymous] = useState(true);
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
+  // Gorev 13.3: Engelle/Sikayet Et.
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+
   // Katman 1 kontrolu - girisi yoksa, geri donebilmesi icin `next`
   // parametresiyle /giris'e yonlendir.
   useEffect(() => {
@@ -66,6 +75,53 @@ export default function MesajGosterPage() {
         setView("error");
       });
   }, [isAuthenticated, threadId]);
+
+  async function refreshMessages(token: string) {
+    const msgs = await apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`, {
+      skipAuth: true,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setMessages(msgs);
+  }
+
+  async function handleReply() {
+    if (!threadToken) return;
+    setReplyError(null);
+    setIsReplying(true);
+    try {
+      await apiFetch(`/threads/${threadId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ body: replyBody, isAnonymous: replyAnonymous }),
+        headers: { "X-Thread-Access-Token": threadToken },
+      });
+      setReplyBody("");
+      await refreshMessages(threadToken);
+    } catch {
+      setReplyError("Yanıt gönderilemedi. Lütfen tekrar dene.");
+    } finally {
+      setIsReplying(false);
+    }
+  }
+
+  // Gorev 13.3: Numarayi/kullaniciyi engelleme. Bunun icin karsi
+  // tarafin telefon numarasina degil, bu ekranda dogrudan kullanici
+  // ID'sine ihtiyacimiz var - ama biz numarayi bilmiyoruz (Bolum 8,
+  // "numara asla client'a sizmaz"). O yuzden backend'in block
+  // endpoint'i telefon numarasi bekliyor; bu ekrandan sadece "bu
+  // konusmayi sikayet et" akisini tetikleyip, engellemeyi Ayarlar'a
+  // birakiyoruz (Gorev 13.4/13.5 ile birlikte netlesecek).
+  async function handleReport() {
+    setActionMessage(null);
+    try {
+      await apiFetch(`/safety/threads/${threadId}/report`, {
+        method: "POST",
+        body: JSON.stringify({ reason: "Kullanıcı bu konuşmayı şikayet etti." }),
+      });
+      setActionMessage("Şikayetin alındı. İnceleyeceğiz.");
+    } catch {
+      setActionMessage("Şikayet gönderilemedi. Lütfen tekrar dene.");
+    }
+  }
 
   function describeError(err: unknown): string {
     if (err instanceof ApiError) {
@@ -116,12 +172,25 @@ export default function MesajGosterPage() {
     );
   }
 
-  // Gorev 11.6: Mesaj gosterim ekrani.
+  // Gorev 11.6 + 13.1 + 13.2 + 13.3: Mesaj gosterim ekrani + yanit
+  // formu (kimlik gosterme anahtariyla) + sikayet butonu.
   if (view === "messages") {
     return (
       <main className="min-h-screen bg-mint px-4 py-12">
         <div className="mx-auto max-w-md space-y-4">
-          <h1 className="font-display text-2xl font-bold text-slate">Sana Bir Mesaj Var</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="font-display text-2xl font-bold text-slate">Sana Bir Mesaj Var</h1>
+            <button
+              type="button"
+              onClick={handleReport}
+              className="font-body text-xs text-coral underline underline-offset-2"
+            >
+              Şikayet Et
+            </button>
+          </div>
+
+          {actionMessage && <p className="font-body text-sm text-meadow-hover">{actionMessage}</p>}
+
           {messages.map((msg) => (
             <Card key={msg.id}>
               <p className="font-body text-slate">{msg.body}</p>
@@ -132,6 +201,26 @@ export default function MesajGosterPage() {
               </p>
             </Card>
           ))}
+
+          {/* Gorev 13.1 + 13.2: Yanit formu + kimlik gosterme anahtari */}
+          <Card lifted className="space-y-3">
+            <Input
+              label="Yanıtın"
+              value={replyBody}
+              onChange={(e) => setReplyBody(e.target.value)}
+              placeholder="Merhaba, ben de..."
+            />
+            <Toggle
+              id="reply-anon-toggle"
+              checked={replyAnonymous}
+              onChange={setReplyAnonymous}
+              label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
+            />
+            {replyError && <p className="font-body text-sm text-coral">{replyError}</p>}
+            <Button className="w-full" onClick={handleReply} disabled={isReplying || !replyBody}>
+              {isReplying ? "Gönderiliyor..." : "Yanıtla"}
+            </Button>
+          </Card>
         </div>
       </main>
     );

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Toggle } from "@/components/ui/Toggle";
 
 interface PoolEntryDetail {
   id: string;
@@ -39,6 +40,12 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [matchedThreadId, setMatchedThreadId] = useState<string | null>(null);
+  const [matchedThreadToken, setMatchedThreadToken] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState("");
+  const [replyAnonymous, setReplyAnonymous] = useState(true);
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<PoolEntryDetail>(`/pool/entries/${entryId}`, { skipAuth: true })
@@ -87,10 +94,37 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
         headers: { Authorization: `Bearer ${data.threadAccessToken}` },
       });
       setMessages(msgs);
+      setMatchedThreadId(data.threadId ?? null);
+      setMatchedThreadToken(data.threadAccessToken ?? null);
       setView("matched");
     } catch (err) {
       setError(describeError(err));
       setView("question");
+    }
+  }
+
+  // Gorev 13.1 + 13.2: Havuzda eslesen konusmada da yanit yazabilmek
+  // (Kategori 11'deki thread konusma ekraniyla tutarli olsun diye).
+  async function handleReply() {
+    if (!matchedThreadToken || !matchedThreadId) return;
+    setReplyError(null);
+    setIsReplying(true);
+    try {
+      await apiFetch(`/threads/${matchedThreadId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ body: replyBody, isAnonymous: replyAnonymous }),
+        headers: { "X-Thread-Access-Token": matchedThreadToken },
+      });
+      setReplyBody("");
+      const msgs = await apiFetch<DisplayMessage[]>(`/threads/${matchedThreadId}/messages`, {
+        skipAuth: true,
+        headers: { Authorization: `Bearer ${matchedThreadToken}` },
+      });
+      setMessages(msgs);
+    } catch {
+      setReplyError("Yanıt gönderilemedi. Lütfen tekrar dene.");
+    } finally {
+      setIsReplying(false);
     }
   }
 
@@ -127,6 +161,26 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
               </p>
             </Card>
           ))}
+
+          {/* Gorev 13.1 + 13.2: Yanit formu + kimlik gosterme anahtari */}
+          <Card lifted className="space-y-3">
+            <Input
+              label="Yanıtın"
+              value={replyBody}
+              onChange={(e) => setReplyBody(e.target.value)}
+              placeholder="Merhaba, ben de..."
+            />
+            <Toggle
+              id="havuz-reply-anon-toggle"
+              checked={replyAnonymous}
+              onChange={setReplyAnonymous}
+              label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
+            />
+            {replyError && <p className="font-body text-sm text-coral">{replyError}</p>}
+            <Button className="w-full" onClick={handleReply} disabled={isReplying || !replyBody}>
+              {isReplying ? "Gönderiliyor..." : "Yanıtla"}
+            </Button>
+          </Card>
         </div>
       </main>
     );
