@@ -18,9 +18,9 @@ export function ConnectionIllustration({ className = "" }: { className?: string 
       <circle cx="410" cy="60" r="34" fill="#FFD166" />
 
       {/* Ucusan yapraklar */}
-      <ellipse cx="70" cy="70" rx="12" ry="7" fill="#45B78C" transform="rotate(-20 70 70)" />
-      <ellipse cx="120" cy="45" rx="10" ry="6" fill="#3E8EDE" transform="rotate(15 120 45)" />
-      <ellipse cx="340" cy="140" rx="10" ry="6" fill="#45B78C" transform="rotate(30 340 140)" />
+      <ellipse cx="70" cy="70" rx="12" ry="7" fill="#45B78C" transform="rotate(-20 70 70)" className="animate-gentle-float" style={{ transformOrigin: "70px 70px" }} />
+      <ellipse cx="120" cy="45" rx="10" ry="6" fill="#3E8EDE" transform="rotate(15 120 45)" className="animate-gentle-float" style={{ transformOrigin: "120px 45px", animationDelay: "0.7s" }} />
+      <ellipse cx="340" cy="140" rx="10" ry="6" fill="#45B78C" transform="rotate(30 340 140)" className="animate-gentle-float" style={{ transformOrigin: "340px 140px", animationDelay: "1.4s" }} />
 
       {/* Kadin figuru (solda) */}
       <g>
