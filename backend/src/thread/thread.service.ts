@@ -123,6 +123,29 @@ export class ThreadService {
     return { threadAccessToken };
   }
 
+  // Gorev 11.5 icin gerekli kucuk ek: alicinin "parola mi soru mu, soru
+  // ise ne soruluyor" bilgisini gormesi lazim (unlock denemeden once).
+  // Hicbir sir (lockSecretHash) dis dunyaya donmez - sadece guvenli
+  // metadata (Bolum 3, Adim 3).
+  async getThreadMeta(threadId: string) {
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: threadId },
+      select: {
+        id: true,
+        originType: true,
+        lockType: true,
+        questionText: true,
+        createdAt: true,
+      },
+    });
+
+    if (!thread) {
+      throw new NotFoundException("Thread bulunamadi.");
+    }
+
+    return thread;
+  }
+
   // Gorev 5.4 + 5.6: Thread'e ait mesajlari listeler ve okunmamis
   // olanlarin read_at alanini isaretler (destroy_after_read job'inin
   // "ne zaman okundu" bilgisine ihtiyaci var). is_anonymous alanina

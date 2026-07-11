@@ -33,6 +33,15 @@ export class ThreadController {
     return { thread_access_token: threadAccessToken };
   }
 
+  // Gorev 11.5 icin gerekli ek: alici, unlock denemeden once kilit
+  // tipini (parola/soru) ve soru metnini gormeli. Sadece Katman 1
+  // yeterli - hicbir sir donmuyor.
+  @UseGuards(JwtAuthGuard)
+  @Get(":id")
+  async getThreadMeta(@Param("id") id: string) {
+    return this.threadService.getThreadMeta(id);
+  }
+
   // Gorev 5.4: Thread'e ait mesajlari listeler. Katman 2 (ThreadAccessGuard)
   // korumasi altinda - sadece dogru parolayi/cevabi bilenler erisir.
   @UseGuards(ThreadAccessGuard)
