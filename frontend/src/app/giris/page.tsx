@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
@@ -15,8 +15,9 @@ const RESEND_COOLDOWN_SECONDS = 60;
 
 // Gorev 10.1 + 10.2 + 10.3: Telefon numarasi girisi + OTP dogrulama
 // ekrani, geri sayimli "yeniden gonder" ve hata durumlari ile.
-export default function GirisPage() {
+function GirisFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
 
   const [step, setStep] = useState<Step>("phone");
@@ -100,7 +101,8 @@ export default function GirisPage() {
         }
       );
       login(data.access_token, data.refresh_token);
-      router.push("/");
+      const next = searchParams.get("next") ?? "/";
+      router.push(next);
     } catch (err) {
       setError(describeError(err));
     } finally {
@@ -198,5 +200,15 @@ export default function GirisPage() {
         </Card>
       </div>
     </main>
+  );
+}
+
+// useSearchParams, Next.js App Router'da bir Suspense siniri
+// gerektirir - aksi halde build sirasinda hata verebilir.
+export default function GirisPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-mint" />}>
+      <GirisFormContent />
+    </Suspense>
   );
 }
