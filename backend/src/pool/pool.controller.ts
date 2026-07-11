@@ -44,6 +44,13 @@ export class PoolController {
     return this.poolService.listEntries(category, pageNum, pageSizeNum);
   }
 
+  // Gorev 12.4 icin gerekli ek: tek bir soruyu ID ile getirir - auth
+  // gerektirmez (detay sayfasi + OG etiketleri, Gorev 12.5).
+  @Get("entries/:id")
+  async getEntry(@Param("id") id: string) {
+    return this.poolService.getEntryById(id);
+  }
+
   // Gorev 6.3: Katman 1 auth zorunlu - deneyen kisinin kimligi
   // (attemptingUserId), basarili eslesmede olusacak thread'in
   // recipientUserId'si olarak kullanilacak (Bolum 4, 9).

@@ -61,6 +61,28 @@ export class PoolService {
     return { items, page, pageSize, total };
   }
 
+  // Gorev 12.4 icin gerekli ek: tek bir soruyu ID ile getirir (detay
+  // sayfasi + OG etiketleri icin, Gorev 12.5). answerHash ASLA donmez.
+  async getEntryById(id: string) {
+    const entry = await this.prisma.poolEntry.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        questionText: true,
+        category: true,
+        visibility: true,
+        createdAt: true,
+      },
+    });
+
+    if (!entry) {
+      throw new NotFoundException("Soru bulunamadi.");
+    }
+
+    return entry;
+  }
+
   private attemptRateLimitKey(poolEntryId: string): string {
     return `pool-attempt-rl:${poolEntryId}`;
   }
