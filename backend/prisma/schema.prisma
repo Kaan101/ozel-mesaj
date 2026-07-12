@@ -13,3 +13,180 @@ datasource db {
 // NOT: Tablolar (users, message_threads, messages, pool_entries) bu dosyaya
 // Görev 2.3 - 2.6'da sırayla eklenecek. Bu adımda (Görev 2.2) sadece
 // Prisma'nın kurulumu ve veritabanına bağlanabildiği doğrulanıyor.
+
+// --------------------------------------------------------
+// GÖREV 2.3 — users tablosu
+// --------------------------------------------------------
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  // Telefon numarası ASLA düz metin saklanmaz, sadece hash (Bölüm 10).
+  phoneNumberHash String     @unique @map("phone_number_hash")
+  displayName     String?    @map("display_name")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  lastSeenAt      DateTime?  @map("last_seen_at")
+  status          UserStatus @default(active)
+
+  initiatedThreads MessageThread[] @relation("ThreadInitiator")
+  receivedThreads  MessageThread[] @relation("ThreadRecipient")
+  sentMessages     Message[]
+  poolEntries      PoolEntry[]
+  blockedUsers     Block[]         @relation("Blocker")
+  blockedByUsers   Block[]         @relation("Blocked")
+  reports          Report[]
+
+  @@map("users")
+}
+
+// --------------------------------------------------------
+// GÖREV 2.4 — message_threads tablosu
+// --------------------------------------------------------
+
+enum ThreadOriginType {
+  direct
+  pool
+}
+
+enum ThreadLockType {
+  password
+  question
+}
+
+model MessageThread {
+  id              String           @id @default(uuid()) @db.Uuid
+  originType      ThreadOriginType @map("origin_type")
+
+  initiatorUserId String  @map("initiator_user_id") @db.Uuid
+  initiator       User    @relation("ThreadInitiator", fields: [initiatorUserId], references: [id])
+
+  // Pool senaryosunda eşleşme olana kadar null (Bölüm 4, 8).
+  recipientUserId String? @map("recipient_user_id") @db.Uuid
+  recipient       User?   @relation("ThreadRecipient", fields: [recipientUserId], references: [id])
+
+  lockType     ThreadLockType @map("lock_type")
+  // Parola/cevap ASLA düz metin saklanmaz, sadece hash (Bölüm 8, 10).
+  lockSecretHash String       @map("lock_secret_hash")
+  questionText   String?      @map("question_text")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  expiresAt DateTime? @map("expires_at")
+
+  messages Message[]
+  reports  Report[]
+
+  @@map("message_threads")
+}
+
+// --------------------------------------------------------
+// GÖREV 2.5 — messages tablosu
+// --------------------------------------------------------
+
+model Message {
+  id       String        @id @default(uuid()) @db.Uuid
+  threadId String        @map("thread_id") @db.Uuid
+  thread   MessageThread @relation(fields: [threadId], references: [id])
+
+  senderUserId String @map("sender_user_id") @db.Uuid
+  sender       User   @relation(fields: [senderUserId], references: [id])
+
+  body String
+
+  // true ise API response'unda sender_user_id backend seviyesinde
+  // alan filtrelemesiyle hiç dönmez (Bölüm 8, Anonimlik Modeli).
+  isAnonymous       Boolean   @default(false) @map("is_anonymous")
+  readAt            DateTime? @map("read_at")
+  destroyAfterRead  Boolean   @default(false) @map("destroy_after_read")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([threadId])
+  @@map("messages")
+}
+
+// --------------------------------------------------------
+// GÖREV 2.6 — pool_entries tablosu
+// --------------------------------------------------------
+
+enum PoolVisibility {
+  public
+  unlisted
+}
+
+model PoolEntry {
+  id      String @id @default(uuid()) @db.Uuid
+
+  ownerUserId String @map("owner_user_id") @db.Uuid
+  owner       User   @relation(fields: [ownerUserId], references: [id])
+
+  title        String
+  questionText String @map("question_text")
+  // Cevap ASLA düz metin saklanmaz, sadece hash (Bölüm 8, 10).
+  answerHash   String @map("answer_hash")
+
+  category   String?        @map("category")
+  visibility PoolVisibility @default(public)
+
+  // Rate-limit/brute-force takibi için (Bölüm 10).
+  attemptCount Int @default(0) @map("attempt_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([category])
+  @@map("pool_entries")
+}
+
+// --------------------------------------------------------
+// GÖREV 7.2 — blocks tablosu (engelleme)
+// --------------------------------------------------------
+
+model Block {
+  id String @id @default(uuid()) @db.Uuid
+
+  blockerUserId String @map("blocker_user_id") @db.Uuid
+  blocker       User   @relation("Blocker", fields: [blockerUserId], references: [id])
+
+  blockedUserId String @map("blocked_user_id") @db.Uuid
+  blocked       User   @relation("Blocked", fields: [blockedUserId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Ayni kisi ayni numarayi birden fazla kez engelleyemez.
+  @@unique([blockerUserId, blockedUserId])
+  @@map("blocks")
+}
+
+// --------------------------------------------------------
+// GÖREV 7.3 — reports tablosu (şikayet / moderasyon kuyruğu)
+// --------------------------------------------------------
+
+enum ReportStatus {
+  pending
+  reviewed
+  dismissed
+}
+
+model Report {
+  id String @id @default(uuid()) @db.Uuid
+
+  reporterUserId String @map("reporter_user_id") @db.Uuid
+  reporter       User   @relation(fields: [reporterUserId], references: [id])
+
+  threadId String        @map("thread_id") @db.Uuid
+  thread   MessageThread @relation(fields: [threadId], references: [id])
+
+  reason String?
+  status ReportStatus @default(pending)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("reports")
+}
+
+
+
+

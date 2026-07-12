@@ -1,0 +1,23 @@
+{
+  "name": "YouHaveMi",
+  "short_name": "YouHaveMi",
+  "description": "Soylemek istedigin ama nasil baslayacagini bilemedigin seyi, dogru kisiye ulastiran arac.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2FBF8",
+  "theme_color": "#3E8EDE",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
