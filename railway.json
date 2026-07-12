@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "corepack enable && corepack prepare pnpm@9.1.0 --activate && pnpm install --frozen-lockfile && pnpm --filter backend run build"
+  },
+  "deploy": {
+    "startCommand": "pnpm --filter backend exec prisma migrate deploy && pnpm --filter backend run start",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}
