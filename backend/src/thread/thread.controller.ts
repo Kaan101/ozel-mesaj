@@ -33,6 +33,16 @@ export class ThreadController {
     return { thread_access_token: threadAccessToken };
   }
 
+  // Kullanicinin dahil oldugu tum thread'leri listeler ("Mesajlarim"
+  // sayfasi icin). DIKKAT: bu route ":id" route'undan ONCE tanimlanmali,
+  // yoksa "/threads/mine" istegi yanlislikla ":id"="mine" ile eslesir.
+  @UseGuards(JwtAuthGuard)
+  @Get("mine")
+  async listMyThreads(@Req() request: Request) {
+    const userId = (request as any).user.sub;
+    return this.threadService.listMyThreads(userId);
+  }
+
   // Gorev 11.5 icin gerekli ek: alici, unlock denemeden once kilit
   // tipini (parola/soru) ve soru metnini gormeli. Sadece Katman 1
   // yeterli - hicbir sir donmuyor.

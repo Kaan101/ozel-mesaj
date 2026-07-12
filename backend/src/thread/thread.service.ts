@@ -146,6 +146,35 @@ export class ThreadService {
     return thread;
   }
 
+  // Kullanicinin (initiator veya recipient olarak) dahil oldugu tum
+  // thread'leri listeler - "Mesajlarim" sayfasi icin gerekli. Hicbir
+  // sir donmez, sadece guvenli metadata (Bolum 8, 10).
+  async listMyThreads(userId: string) {
+    const threads = await this.prisma.messageThread.findMany({
+      where: {
+        OR: [{ initiatorUserId: userId }, { recipientUserId: userId }],
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        originType: true,
+        lockType: true,
+        questionText: true,
+        createdAt: true,
+        initiatorUserId: true,
+      },
+    });
+
+    return threads.map((t) => ({
+      id: t.id,
+      originType: t.originType,
+      lockType: t.lockType,
+      questionText: t.questionText,
+      createdAt: t.createdAt,
+      role: t.initiatorUserId === userId ? "initiator" : "recipient",
+    }));
+  }
+
   // Gorev 5.4 + 5.6: Thread'e ait mesajlari listeler ve okunmamis
   // olanlarin read_at alanini isaretler (destroy_after_read job'inin
   // "ne zaman okundu" bilgisine ihtiyaci var). is_anonymous alanina

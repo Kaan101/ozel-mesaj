@@ -46,6 +46,7 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
   const [replyAnonymous, setReplyAnonymous] = useState(true);
   const [isReplying, setIsReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
+  const [myMessageIds, setMyMessageIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     apiFetch<PoolEntryDetail>(`/pool/entries/${entryId}`, { skipAuth: true })
@@ -55,6 +56,24 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
       })
       .catch(() => setView("not-found"));
   }, [entryId]);
+
+  // Eslesme sonrasi 5 saniyede bir otomatik yenileme - karsi taraf
+  // yanit yazdiginda elle yenilemeye gerek kalmaz (mesaj ekraniyla
+  // tutarlilik icin, Kategori 13).
+  useEffect(() => {
+    if (view !== "matched" || !matchedThreadToken || !matchedThreadId) return;
+
+    const interval = setInterval(() => {
+      apiFetch<DisplayMessage[]>(`/threads/${matchedThreadId}/messages`, {
+        skipAuth: true,
+        headers: { Authorization: `Bearer ${matchedThreadToken}` },
+      })
+        .then(setMessages)
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [view, matchedThreadToken, matchedThreadId]);
 
   function describeError(err: unknown): string {
     if (err instanceof ApiError) {
@@ -110,11 +129,12 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
     setReplyError(null);
     setIsReplying(true);
     try {
-      await apiFetch(`/threads/${matchedThreadId}/messages`, {
+      const sent = await apiFetch<{ id: string }>(`/threads/${matchedThreadId}/messages`, {
         method: "POST",
         body: JSON.stringify({ body: replyBody, isAnonymous: replyAnonymous }),
         headers: { "X-Thread-Access-Token": matchedThreadToken },
       });
+      setMyMessageIds((prev) => new Set(prev).add(sent.id));
       setReplyBody("");
       const msgs = await apiFetch<DisplayMessage[]>(`/threads/${matchedThreadId}/messages`, {
         skipAuth: true,
@@ -153,14 +173,20 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
               Doğru cevabı bildin, artık sohbet edebilirsiniz.
             </p>
           </div>
-          {messages.map((msg) => (
-            <Card key={msg.id}>
-              <p className="font-body text-slate">{msg.body}</p>
-              <p className="mt-2 font-body text-xs text-slate-light">
-                {msg.isAnonymous ? "Gönderen kimliğini gizledi" : "Gönderen kimliğini gösterdi"}
-              </p>
-            </Card>
-          ))}
+          {messages.map((msg) => {
+            const isFromCounterpart = !myMessageIds.has(msg.id);
+            return (
+              <Card
+                key={msg.id}
+                className={isFromCounterpart ? "border-2 border-meadow" : ""}
+              >
+                <p className="font-body text-slate">{msg.body}</p>
+                <p className="mt-2 font-body text-xs text-slate-light">
+                  {msg.isAnonymous ? "Gönderen kimliğini gizledi" : "Gönderen kimliğini gösterdi"}
+                </p>
+              </Card>
+            );
+          })}
 
           {/* Gorev 13.1 + 13.2: Yanit formu + kimlik gosterme anahtari */}
           <Card lifted className="space-y-3">

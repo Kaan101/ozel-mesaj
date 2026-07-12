@@ -17,6 +17,12 @@ export default function LandingPage() {
           <Link href="/havuz" className="font-body text-sm text-slate-light hover:text-slate">
             Havuz
           </Link>
+          <Link
+            href="/mesajlarim"
+            className="font-body text-sm text-slate-light hover:text-slate"
+          >
+            Mesajlarım
+          </Link>
           <Link href="/giris">
             <Button variant="ghost">Giriş Yap</Button>
           </Link>
