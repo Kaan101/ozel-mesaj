@@ -59,12 +59,14 @@ export default function MesajlarimPage() {
           threads.map((thread) => (
             <Link key={thread.id} href={`/mesaj/${thread.id}`}>
               <Card className="hover:shadow-soft-lifted transition-shadow cursor-pointer">
-                <div className="flex items-center justify-between">
-                  <span className="font-body text-sm font-semibold text-slate">
-                    {thread.role === "initiator" ? "Sen gönderdin" : "Sana gönderildi"}
-                  </span>
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="font-display text-base font-bold text-slate">
+                    {thread.lockType === "question" && thread.questionText
+                      ? thread.questionText
+                      : "Parola korumalı mesaj"}
+                  </h2>
                   <span
-                    className={`rounded-full px-3 py-1 font-body text-xs ${
+                    className={`shrink-0 rounded-full px-3 py-1 font-body text-xs ${
                       thread.originType === "pool"
                         ? "bg-sky-light text-sky"
                         : "bg-meadow-light text-meadow-hover"
@@ -73,12 +75,9 @@ export default function MesajlarimPage() {
                     {thread.originType === "pool" ? "Havuz" : "Doğrudan"}
                   </span>
                 </div>
-                {thread.questionText && (
-                  <p className="mt-1 font-body text-sm text-slate-light">
-                    {thread.questionText}
-                  </p>
-                )}
                 <p className="mt-1 font-body text-xs text-slate-light">
+                  {thread.role === "initiator" ? "Sen gönderdin" : "Sana gönderildi"}
+                  {" · "}
                   {new Date(thread.createdAt).toLocaleString("tr-TR")}
                 </p>
               </Card>

@@ -6,6 +6,8 @@ import { UnlockThreadDto } from "./dto/unlock-thread.dto";
 import { SendMessageDto } from "./dto/send-message.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { ThreadAccessGuard } from "./guards/thread-access.guard";
+import { ThreadAccessOrOwnerGuard } from "./guards/thread-access-or-owner.guard";
+import { ThreadWriteGuard } from "./guards/thread-write.guard";
 
 @Controller("threads")
 export class ThreadController {
@@ -52,18 +54,19 @@ export class ThreadController {
     return this.threadService.getThreadMeta(id);
   }
 
-  // Gorev 5.4: Thread'e ait mesajlari listeler. Katman 2 (ThreadAccessGuard)
-  // korumasi altinda - sadece dogru parolayi/cevabi bilenler erisir.
-  @UseGuards(ThreadAccessGuard)
+  // Gorev 5.4 (revize): Thread'e ait mesajlari listeler. Ya thread_access_token
+  // (bilgiye dayali - alici icin) ya da thread'i olusturan kisinin Katman 1
+  // token'i (sahiplik - initiator icin, tekrar parola sormamak icin) yeterli.
+  @UseGuards(ThreadAccessOrOwnerGuard)
   @Get(":id/messages")
   async getMessages(@Param("id") id: string) {
     return this.threadService.getMessages(id);
   }
 
-  // Gorev 5.5: Yanit gonderme. Iki guard birden: JwtAuthGuard (Katman 1
-  // - kimin gonderdigini bilmek icin) + ThreadAccessGuard (Katman 2 -
-  // dogru thread'e erisim). Ikisi de gecmeli (Bolum 9).
-  @UseGuards(JwtAuthGuard, ThreadAccessGuard)
+  // Gorev 5.5 (revize): Yanit gonderme. ThreadWriteGuard tek basina hem
+  // kimligi (senderUserId icin) hem yazma yetkisini (thread_access_token
+  // VEYA sahiplik) kontrol eder (Bolum 9, UX iyilestirmesi).
+  @UseGuards(ThreadWriteGuard)
   @Post(":id/messages")
   async sendMessage(
     @Req() request: Request,

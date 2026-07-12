@@ -103,14 +103,27 @@ export default function MesajGosterPage() {
           setView("messages");
         })
         .catch(() => {
-          // Token gecersiz/suresi dolmus - normal unlock akisina don.
           clearStoredThreadToken(threadId);
-          fetchMeta();
+          tryOwnerShortcut();
         });
       return;
     }
 
-    fetchMeta();
+    tryOwnerShortcut();
+
+    // Bu thread'i olusturan kisiysem (initiator), kendi belirledigim
+    // parolayi/cevabi tekrar girmeme gerek yok - backend Katman 1
+    // kimligimle dogrudan mesajlara erismeme izin veriyor (Bolum 8,
+    // UX iyilestirmesi). Bu yol basarisiz olursa (alici isem) normal
+    // unlock akisina duseriz.
+    function tryOwnerShortcut() {
+      apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`)
+        .then((msgs) => {
+          setMessages(msgs);
+          setView("messages");
+        })
+        .catch(fetchMeta);
+    }
 
     function fetchMeta() {
       apiFetch<ThreadMeta>(`/threads/${threadId}`)
@@ -135,11 +148,16 @@ export default function MesajGosterPage() {
 
   // Mesaj ekranindayken 5 saniyede bir otomatik yenileme (polling) -
   // karsi taraf yanit yazdiginda sayfayi elle yenilemeye gerek kalmaz.
+  // threadToken yoksa (sahip kisayolu) normal Katman 1 kimligiyle cekilir.
   useEffect(() => {
-    if (view !== "messages" || !threadToken) return;
+    if (view !== "messages") return;
 
     const interval = setInterval(() => {
-      refreshMessages(threadToken).catch(() => {
+      const fetchPromise = threadToken
+        ? refreshMessages(threadToken)
+        : apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`).then(setMessages);
+
+      fetchPromise.catch(() => {
         // Sessizce yoksay - token suresi dolduysa bir sonraki manuel
         // islemde (orn. yanit gonderirken) zaten fark edilecek.
       });
@@ -150,18 +168,25 @@ export default function MesajGosterPage() {
   }, [view, threadToken, threadId]);
 
   async function handleReply() {
-    if (!threadToken) return;
     setReplyError(null);
     setIsReplying(true);
     try {
       const sent = await apiFetch<{ id: string }>(`/threads/${threadId}/messages`, {
         method: "POST",
         body: JSON.stringify({ body: replyBody, isAnonymous: replyAnonymous }),
-        headers: { "X-Thread-Access-Token": threadToken },
+        // threadToken varsa (alici yolu) X-Thread-Access-Token gonderilir.
+        // Yoksa (sahip kisayolu) ThreadWriteGuard, normal Katman 1
+        // access_token'la sahiplik uzerinden zaten izin verir.
+        headers: threadToken ? { "X-Thread-Access-Token": threadToken } : undefined,
       });
       setMyMessageIds((prev) => new Set(prev).add(sent.id));
       setReplyBody("");
-      await refreshMessages(threadToken);
+      if (threadToken) {
+        await refreshMessages(threadToken);
+      } else {
+        const msgs = await apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`);
+        setMessages(msgs);
+      }
     } catch {
       setReplyError("Yanıt gönderilemedi. Lütfen tekrar dene.");
     } finally {
@@ -242,11 +267,29 @@ export default function MesajGosterPage() {
   // Gorev 11.6 + 13.1 + 13.2 + 13.3: Mesaj gosterim ekrani + yanit
   // formu (kimlik gosterme anahtariyla) + sikayet butonu.
   if (view === "messages") {
+    // Kullanici geri bildirimi: parola/cevap hash'li oldugu icin
+    // gosterilemiyor - onun yerine "hangi mesajdi" bilgisini, bu
+    // mesaji ilk gordugun/olusturdugun tarih-saat ile ayirt ediyoruz.
+    const firstMessageDate = messages[0]?.createdAt;
+
     return (
       <main className="min-h-screen bg-mint px-4 py-12">
         <div className="mx-auto max-w-md space-y-4">
           <div className="flex items-center justify-between">
-            <h1 className="font-display text-2xl font-bold text-slate">Sana Bir Mesaj Var</h1>
+            <div>
+              <h1 className="font-display text-2xl font-bold text-slate">Sana Bir Mesaj Var</h1>
+              {firstMessageDate && (
+                <p className="font-body text-xs text-slate-light mt-0.5">
+                  {new Date(firstMessageDate).toLocaleString("tr-TR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleReport}
