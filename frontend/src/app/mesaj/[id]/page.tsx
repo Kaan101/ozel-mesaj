@@ -281,13 +281,19 @@ export default function MesajGosterPage() {
     // gosterilemiyor - onun yerine "hangi mesajdi" bilgisini, bu
     // mesaji ilk gordugun/olusturdugun tarih-saat ile ayirt ediyoruz.
     const firstMessageDate = messages[0]?.createdAt;
+    // Kullanici geri bildirimi: baslik olarak genel "Sana Bir Mesaj Var"
+    // yerine, soru modundaysa dogrudan soru metni gosterilsin.
+    const pageTitle =
+      meta?.lockType === "question" && meta.questionText
+        ? meta.questionText
+        : "Sana Bir Mesaj Var";
 
     return (
       <main className="min-h-screen bg-mint px-4 py-12">
         <div className="mx-auto max-w-md space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-display text-2xl font-bold text-slate">Sana Bir Mesaj Var</h1>
+              <h1 className="font-display text-2xl font-bold text-slate">{pageTitle}</h1>
               {firstMessageDate && (
                 <p className="font-body text-xs text-slate-light mt-0.5">
                   {new Date(firstMessageDate).toLocaleString("tr-TR", {
@@ -310,14 +316,6 @@ export default function MesajGosterPage() {
           </div>
 
           {actionMessage && <p className="font-body text-sm text-meadow-hover">{actionMessage}</p>}
-
-          {/* Kullanici geri bildirimi: soru modundaysa, soru metni
-              mesajlarin en basinda gorunsun (baglam icin). */}
-          {meta?.lockType === "question" && meta.questionText && (
-            <Card className="bg-sky-light">
-              <p className="font-body text-sm font-semibold text-sky">{meta.questionText}</p>
-            </Card>
-          )}
 
           {messages.map((msg) => {
             const isFromCounterpart = !myMessageIds.has(msg.id);
