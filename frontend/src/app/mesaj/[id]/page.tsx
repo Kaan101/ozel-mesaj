@@ -101,6 +101,9 @@ export default function MesajGosterPage() {
           setThreadToken(storedToken);
           setMessages(msgs);
           setView("messages");
+          apiFetch<ThreadMeta>(`/threads/${threadId}`)
+            .then(setMeta)
+            .catch(() => {});
         })
         .catch(() => {
           clearStoredThreadToken(threadId);
@@ -123,6 +126,11 @@ export default function MesajGosterPage() {
         .then((msgs) => {
           setMessages(msgs);
           setView("messages");
+          // Soru metnini de (varsa) baglam icin cekelim - bu yol
+          // (sahip/daha once acmis kisi) normalde meta'yi hic cekmiyordu.
+          apiFetch<ThreadMeta>(`/threads/${threadId}`)
+            .then(setMeta)
+            .catch(() => {});
         })
         .catch(fetchMeta);
     }
@@ -303,6 +311,14 @@ export default function MesajGosterPage() {
 
           {actionMessage && <p className="font-body text-sm text-meadow-hover">{actionMessage}</p>}
 
+          {/* Kullanici geri bildirimi: soru modundaysa, soru metni
+              mesajlarin en basinda gorunsun (baglam icin). */}
+          {meta?.lockType === "question" && meta.questionText && (
+            <Card className="bg-sky-light">
+              <p className="font-body text-sm font-semibold text-sky">{meta.questionText}</p>
+            </Card>
+          )}
+
           {messages.map((msg) => {
             const isFromCounterpart = !myMessageIds.has(msg.id);
             return (
@@ -312,8 +328,6 @@ export default function MesajGosterPage() {
               >
                 <p className="font-body text-slate">{msg.body}</p>
                 <p className="mt-2 font-body text-xs text-slate-light">
-                  {msg.isAnonymous ? "Gönderen kimliğini gizledi" : "Gönderen kimliğini gösterdi"}
-                  {" · "}
                   {new Date(msg.createdAt).toLocaleString("tr-TR")}
                 </p>
               </Card>

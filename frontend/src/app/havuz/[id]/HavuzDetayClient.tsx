@@ -181,9 +181,6 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
                 className={isFromCounterpart ? "border-2 border-meadow" : ""}
               >
                 <p className="font-body text-slate">{msg.body}</p>
-                <p className="mt-2 font-body text-xs text-slate-light">
-                  {msg.isAnonymous ? "Gönderen kimliğini gizledi" : "Gönderen kimliğini gösterdi"}
-                </p>
               </Card>
             );
           })}
