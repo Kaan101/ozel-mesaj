@@ -2,7 +2,6 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -20,8 +19,6 @@ import { PrismaService } from "../../common/prisma.service";
 //     olusturan (initiator) kisi olmasi.
 @Injectable()
 export class ThreadAccessOrOwnerGuard implements CanActivate {
-  private readonly logger = new Logger(ThreadAccessOrOwnerGuard.name);
-
   constructor(
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService
@@ -32,8 +29,6 @@ export class ThreadAccessOrOwnerGuard implements CanActivate {
     const routeThreadId = request.params.id;
     const token = this.extractToken(request);
 
-    this.logger.log(`GIRIS: routeThreadId=${routeThreadId}, token var mi=${!!token}`);
-
     if (!token) {
       throw new UnauthorizedException("Yetkilendirme bilgisi eksik.");
     }
@@ -43,13 +38,12 @@ export class ThreadAccessOrOwnerGuard implements CanActivate {
       const payload = await this.jwt.verifyAsync<{ threadId: string }>(token, {
         secret: process.env.JWT_THREAD_ACCESS_SECRET,
       });
-      this.logger.log(`Adim 1 basarili: payload.threadId=${payload.threadId}`);
       if (payload.threadId === routeThreadId) {
         (request as any).threadId = routeThreadId;
         return true;
       }
-    } catch (err) {
-      this.logger.log(`Adim 1 (thread_access_token) basarisiz: ${(err as Error).message}`);
+    } catch {
+      // Bu bir thread_access_token degilmis - asagida Katman 1 olarak dene.
     }
 
     // 2) Katman 1 (kullanici kimligi) token'i olarak dogrulamayi dene -
@@ -58,23 +52,19 @@ export class ThreadAccessOrOwnerGuard implements CanActivate {
       const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
         secret: process.env.JWT_ACCESS_SECRET,
       });
-      this.logger.log(`Adim 2: token dogrulandi, sub=${payload.sub}`);
 
       const thread = await this.prisma.messageThread.findUnique({
         where: { id: routeThreadId },
         select: { initiatorUserId: true },
       });
-      this.logger.log(
-        `Adim 2: thread initiatorUserId=${thread?.initiatorUserId}, sub=${payload.sub}, esit_mi=${thread?.initiatorUserId === payload.sub}`
-      );
 
       if (thread && thread.initiatorUserId === payload.sub) {
         (request as any).threadId = routeThreadId;
         (request as any).user = payload;
         return true;
       }
-    } catch (err) {
-      this.logger.log(`Adim 2 (Katman 1 + sahiplik) basarisiz: ${(err as Error).message}`);
+    } catch {
+      // Ne thread_access_token ne de gecerli bir Katman 1 token - reddet.
     }
 
     throw new UnauthorizedException("Bu thread'e erisim yetkiniz yok.");

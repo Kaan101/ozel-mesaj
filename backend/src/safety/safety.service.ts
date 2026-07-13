@@ -1,10 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../common/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 import { hashPhoneNumber } from "../common/hash.util";
 
 @Injectable()
 export class SafetyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService
+  ) {}
 
   // Gorev 7.2: Bir kullanicinin baska bir numarayi engellemesi.
   // Engellenen taraf, blocklayan kisiye bir daha thread/mesaj
@@ -65,7 +69,7 @@ export class SafetyService {
     });
 
     if (thread) {
-      const threshold = Number(process.env.REPORT_SUSPEND_THRESHOLD ?? 3);
+      const threshold = await this.settings.getNumber("REPORT_SUSPEND_THRESHOLD");
       const reportCount = await this.prisma.report.count({
         where: { thread: { initiatorUserId: thread.initiatorUserId } },
       });
