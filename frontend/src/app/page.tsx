@@ -1,56 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
-import { useAuth } from "@/lib/auth-context";
 
 // Gorev 14.1-14.4: Landing page. Hero (deger onerisi + 2 CTA), "nasil
 // calisir" (gercek bir 3 adimli surec oldugu icin numaralandirildi),
 // guven unsurlari (gizlilik/guvenlik one plana cikarilir - hassas bir
 // urun oldugu icin bu bolum susleme degil, gercek icerik).
+// Not: Ust menu (header) artik layout.tsx'te global olarak gosteriliyor
+// (SiteHeader), burada tekrar tanimlanmiyor.
 export default function LandingPage() {
-  const router = useRouter();
-  const { isAuthenticated, isLoading, logout } = useAuth();
-
-  function handleLogout() {
-    logout();
-    router.push("/");
-  }
-
   return (
     <main className="min-h-screen bg-mint">
-      {/* Nav */}
-      <header className="mx-auto max-w-5xl px-4 py-6 flex items-center justify-between">
-        <span className="font-display text-xl font-bold text-slate">YouHaveMi</span>
-        <nav className="flex items-center gap-4">
-          <Link href="/havuz" className="font-body text-sm text-slate-light hover:text-slate">
-            Havuz
-          </Link>
-          <Link
-            href="/mesajlarim"
-            className="font-body text-sm text-slate-light hover:text-slate"
-          >
-            Mesajlarım
-          </Link>
-          {/* Kullanici geri bildirimi: giris durumuna gore Giris Yap /
-              Cikis Yap gosterilmeli - onceden her zaman "Giris Yap"
-              gorunuyordu, giris yapmis kullanici icin anlamsizdi. */}
-          {!isLoading &&
-            (isAuthenticated ? (
-              <Button variant="ghost" onClick={handleLogout}>
-                Çıkış Yap
-              </Button>
-            ) : (
-              <Link href="/giris">
-                <Button variant="ghost">Giriş Yap</Button>
-              </Link>
-            ))}
-        </nav>
-      </header>
-
       {/* Hero */}
       <section className="mx-auto max-w-5xl px-4 py-8 md:py-16">
         <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2">
