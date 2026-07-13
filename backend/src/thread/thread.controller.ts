@@ -29,8 +29,9 @@ export class ThreadController {
 
   @UseGuards(JwtAuthGuard)
   @Post(":id/unlock")
-  async unlock(@Param("id") id: string, @Body() dto: UnlockThreadDto) {
-    const { threadAccessToken } = await this.threadService.unlockThread(id, dto.secret);
+  async unlock(@Req() request: Request, @Param("id") id: string, @Body() dto: UnlockThreadDto) {
+    const userId = (request as any).user.sub;
+    const { threadAccessToken } = await this.threadService.unlockThread(id, dto.secret, userId);
 
     return { thread_access_token: threadAccessToken };
   }

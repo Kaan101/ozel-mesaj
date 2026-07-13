@@ -11,12 +11,16 @@ import { PrismaService } from "../../common/prisma.service";
 // Kullanici geri bildirimi: thread'i OLUSTURAN kisi (initiator), kendi
 // belirledigi parolayi/cevabi bilerek zaten kanitlamis sayilir - kendi
 // gonderdigi mesaji tekrar tekrar "acmak" icin ayni bilgiyi yeniden
-// girmesini istemek gereksiz surtunme yaratiyordu. Bu guard, iki yoldan
+// girmesini istemek gereksiz surtunme yaratiyordu. Ayni sekilde, bir
+// ALICI da bir kez dogru parolayi/cevabi girdiyse, bir daha (cikis
+// yapsa/tarayici kapatsa bile) tekrar sorulmamali. Bu guard, uc yoldan
 // biriyle erisime izin verir:
-//  1) Gecerli bir thread_access_token (bilgiye dayali - Bolum 8, mevcut
-//     ThreadAccessGuard davranisi, ozellikle ALICI icin hala gerekli).
+//  1) Gecerli bir thread_access_token (bilgiye dayali - kisa omurlu).
 //  2) Gecerli bir Katman 1 access_token VE bu kullanicinin thread'i
 //     olusturan (initiator) kisi olmasi.
+//  3) Gecerli bir Katman 1 access_token VE bu kullanicinin bu thread'i
+//     daha once basariyla actigina dair kalici bir kayit (ThreadUnlock)
+//     olmasi.
 @Injectable()
 export class ThreadAccessOrOwnerGuard implements CanActivate {
   constructor(
@@ -46,8 +50,9 @@ export class ThreadAccessOrOwnerGuard implements CanActivate {
       // Bu bir thread_access_token degilmis - asagida Katman 1 olarak dene.
     }
 
-    // 2) Katman 1 (kullanici kimligi) token'i olarak dogrulamayi dene -
-    // sadece thread'i olusturan kisi icin gecerli.
+    // 2) + 3) Katman 1 (kullanici kimligi) token'i olarak dogrulamayi
+    // dene - ya thread'i olusturan kisi (initiator) ya da daha once
+    // basariyla acmis (ThreadUnlock kaydi olan) kisi icin gecerli.
     try {
       const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
         secret: process.env.JWT_ACCESS_SECRET,
@@ -59,6 +64,16 @@ export class ThreadAccessOrOwnerGuard implements CanActivate {
       });
 
       if (thread && thread.initiatorUserId === payload.sub) {
+        (request as any).threadId = routeThreadId;
+        (request as any).user = payload;
+        return true;
+      }
+
+      const priorUnlock = await this.prisma.threadUnlock.findUnique({
+        where: { threadId_userId: { threadId: routeThreadId, userId: payload.sub } },
+      });
+
+      if (priorUnlock) {
         (request as any).threadId = routeThreadId;
         (request as any).user = payload;
         return true;

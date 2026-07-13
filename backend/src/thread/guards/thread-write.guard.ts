@@ -67,6 +67,16 @@ export class ThreadWriteGuard implements CanActivate {
       return true;
     }
 
+    // 4) Ya da bu kullanici bu thread'i daha once basariyla actiysa
+    // (kalici ThreadUnlock kaydi), tekrar thread token'a gerek yok.
+    const priorUnlock = await this.prisma.threadUnlock.findUnique({
+      where: { threadId_userId: { threadId: routeThreadId, userId } },
+    });
+
+    if (priorUnlock) {
+      return true;
+    }
+
     throw new UnauthorizedException("Bu thread'e yazma yetkiniz yok.");
   }
 }

@@ -31,6 +31,7 @@ describe("PoolService", () => {
               update: jest.fn(),
             },
             messageThread: { create: jest.fn() },
+            threadUnlock: { upsert: jest.fn() },
           },
         },
         { provide: RedisService, useValue: { incr: jest.fn() } },

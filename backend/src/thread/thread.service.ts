@@ -82,7 +82,8 @@ export class ThreadService {
   // (Bolum 8, 10). Deneme sayaci Redis'te TTL'li tutulur.
   async unlockThread(
     threadId: string,
-    secret: string
+    secret: string,
+    userId: string
   ): Promise<{ threadAccessToken: string }> {
     const maxAttempts = await this.settings.getNumber("THREAD_UNLOCK_MAX_ATTEMPTS");
     const lockoutSeconds = 15 * 60;
@@ -113,6 +114,16 @@ export class ThreadService {
 
     // Basarili giris - deneme sayacini sifirla.
     await this.redis.del(attemptsKey);
+
+    // Kullanici geri bildirimi: bu kullanici bu thread'i bir kez dogru
+    // bilgiyle actigini kalici olarak kaydediyoruz - boylece bir daha
+    // (cikis yapsa/tarayici kapatsa bile) tekrar parola sorulmayacak
+    // (asagida ThreadAccessOrOwnerGuard bu kaydi kontrol ediyor).
+    await this.prisma.threadUnlock.upsert({
+      where: { threadId_userId: { threadId, userId } },
+      update: {},
+      create: { threadId, userId },
+    });
 
     const threadAccessToken = await this.jwt.signAsync(
       { threadId: thread.id },

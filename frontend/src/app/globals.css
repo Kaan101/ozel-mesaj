@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Kullanici geri bildirimi: metinler biraz daha kalin (bold) gorunsun.
+   Tum gövde metnini varsayilan olarak "medium" agirliga cekiyoruz -
+   tam "bold" degil ama gozle gorulur sekilde daha belirgin. */
+body {
+  font-weight: 500;
+}
+
 /* Gorev 14: Hero illustrasyonundaki yapraklar icin hafif, "bahar
    ruzgari" hissi veren bir animasyon - "prefers-reduced-motion"
    tercih edenlerde devre disi kalir. */

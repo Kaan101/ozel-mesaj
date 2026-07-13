@@ -104,19 +104,21 @@ export default function MesajGosterPage() {
         })
         .catch(() => {
           clearStoredThreadToken(threadId);
-          tryOwnerShortcut();
+          tryDirectAccess();
         });
       return;
     }
 
-    tryOwnerShortcut();
+    tryDirectAccess();
 
-    // Bu thread'i olusturan kisiysem (initiator), kendi belirledigim
-    // parolayi/cevabi tekrar girmeme gerek yok - backend Katman 1
-    // kimligimle dogrudan mesajlara erismeme izin veriyor (Bolum 8,
-    // UX iyilestirmesi). Bu yol basarisiz olursa (alici isem) normal
+    // Bu thread'i olusturan kisiysem (initiator) VEYA bu thread'i daha
+    // once basariyla actiysam (ThreadUnlock kaydi varsa - Kullanici
+    // geri bildirimi: bir kez dogru parolayi/cevabi giren kisi bir
+    // daha sorulmamali), parolayi/cevabi tekrar girmeme gerek yok -
+    // backend Katman 1 kimligimle dogrudan mesajlara erismeme izin
+    // veriyor. Bu yol basarisiz olursa (ilk kez aciyorsam) normal
     // unlock akisina duseriz.
-    function tryOwnerShortcut() {
+    function tryDirectAccess() {
       apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`)
         .then((msgs) => {
           setMessages(msgs);
