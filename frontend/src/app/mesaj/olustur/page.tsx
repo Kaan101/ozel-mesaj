@@ -21,7 +21,7 @@ export default function MesajOlusturPage() {
 
   const [recipientPhone, setRecipientPhone] = useState("");
   const [body, setBody] = useState("");
-  const [lockType, setLockType] = useState<LockType>("password");
+  const [lockType, setLockType] = useState<LockType>("question");
   const [lockSecret, setLockSecret] = useState("");
   const [questionText, setQuestionText] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(true);
@@ -134,18 +134,11 @@ export default function MesajOlusturPage() {
             onChange={(e) => setBody(e.target.value)}
           />
 
-          {/* Gorev 11.2: Parola/Soru modu toggle */}
+          {/* Gorev 11.2: Parola/Soru modu toggle - Soru-Cevap varsayilan
+              ve solda (kullanici geri bildirimi). */}
           <div>
             <label className="font-display text-sm font-semibold text-slate">Kilit Türü</label>
             <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setLockType("password")}
-                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${lockType === "password" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
-              >
-                Parola
-              </button>
               <button
                 type="button"
                 onClick={() => setLockType("question")}
@@ -153,6 +146,14 @@ export default function MesajOlusturPage() {
                   ${lockType === "question" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
               >
                 Soru-Cevap
+              </button>
+              <button
+                type="button"
+                onClick={() => setLockType("password")}
+                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
+                  ${lockType === "password" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
+              >
+                Parola
               </button>
             </div>
           </div>
