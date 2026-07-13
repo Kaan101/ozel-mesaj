@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import { RedisService } from "../common/redis.service";
 import { PrismaService } from "../common/prisma.service";
 import { SmsService } from "../sms/sms.service";
+import { SettingsService } from "../settings/settings.service";
 import { generateOtpCode, hashPhoneNumber } from "../common/hash.util";
 
 @Injectable()
@@ -11,6 +12,7 @@ export class AuthService {
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
     private readonly sms: SmsService,
+    private readonly settings: SettingsService,
     private readonly jwt: JwtService
   ) {}
 
@@ -30,8 +32,8 @@ export class AuthService {
   // istegi engellenir (Bolum 8 "Rate limiting", Bolum 10 spam/smishing
   // onleme). Limit asilirsa 429 doner.
   private async enforceRateLimit(phoneHash: string): Promise<void> {
-    const perMinuteLimit = Number(process.env.OTP_RATE_LIMIT_PER_MINUTE ?? 1);
-    const perHourLimit = Number(process.env.OTP_RATE_LIMIT_PER_HOUR ?? 5);
+    const perMinuteLimit = await this.settings.getNumber("OTP_RATE_LIMIT_PER_MINUTE");
+    const perHourLimit = await this.settings.getNumber("OTP_RATE_LIMIT_PER_HOUR");
 
     const minuteCount = await this.redis.incr(this.rateLimitMinuteKey(phoneHash), 60);
     if (minuteCount > perMinuteLimit) {
@@ -92,7 +94,7 @@ export class AuthService {
     code: string
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const phoneHash = hashPhoneNumber(phoneNumber);
-    const maxAttempts = 5;
+    const maxAttempts = await this.settings.getNumber("OTP_VERIFY_MAX_ATTEMPTS");
     const lockoutSeconds = 15 * 60;
 
     const attemptsKey = this.otpVerifyAttemptsKey(phoneHash);

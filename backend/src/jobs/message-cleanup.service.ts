@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Interval } from "@nestjs/schedule";
 import { PrismaService } from "../common/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 
 // Gorev 5.6: destroy_after_read=true olan mesajlar, okunduktan
 // (read_at set edildikten) belirli bir sure sonra veritabanindan
@@ -12,12 +13,15 @@ import { PrismaService } from "../common/prisma.service";
 export class MessageCleanupService {
   private readonly logger = new Logger(MessageCleanupService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService
+  ) {}
 
   // Her 10 saniyede bir calisir ve suresi gelen mesajlari siler.
   @Interval(10_000)
   async handleCleanup() {
-    const delaySeconds = Number(process.env.MESSAGE_DESTROY_DELAY_SECONDS ?? 10);
+    const delaySeconds = await this.settings.getNumber("MESSAGE_DESTROY_DELAY_SECONDS");
     const threshold = new Date(Date.now() - delaySeconds * 1000);
 
     const result = await this.prisma.message.deleteMany({

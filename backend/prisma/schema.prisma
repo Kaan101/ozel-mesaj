@@ -187,6 +187,20 @@ model Report {
   @@map("reports")
 }
 
+// --------------------------------------------------------
+// Yonetim ekrani icin ayarlanabilir parametreler (Bolum 10'un
+// devami - test surecinde rate limit gibi degerlerin deploy
+// gerekmeden degistirilebilmesi icin).
+// --------------------------------------------------------
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
 
 
 

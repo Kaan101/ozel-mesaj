@@ -4,6 +4,7 @@ import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SmsService } from "../sms/sms.service";
 import { SafetyService } from "../safety/safety.service";
+import { SettingsService } from "../settings/settings.service";
 import { hashPhoneNumber } from "../common/hash.util";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
@@ -15,6 +16,7 @@ export class ThreadService {
     private readonly redis: RedisService,
     private readonly sms: SmsService,
     private readonly safety: SafetyService,
+    private readonly settings: SettingsService,
     private readonly jwt: JwtService
   ) {}
 
@@ -82,7 +84,7 @@ export class ThreadService {
     threadId: string,
     secret: string
   ): Promise<{ threadAccessToken: string }> {
-    const maxAttempts = 5;
+    const maxAttempts = await this.settings.getNumber("THREAD_UNLOCK_MAX_ATTEMPTS");
     const lockoutSeconds = 15 * 60;
 
     const attemptsKey = this.threadAttemptsKey(threadId);

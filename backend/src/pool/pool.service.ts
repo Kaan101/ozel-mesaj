@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable, NotFoundException } from "@nestj
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
+import { SettingsService } from "../settings/settings.service";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
 
@@ -10,6 +11,7 @@ export class PoolService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly settings: SettingsService,
     private readonly jwt: JwtService
   ) {}
 
@@ -93,7 +95,7 @@ export class PoolService {
   // de (unlock'a gerek kalmadan) bir thread_access_token doner - cunku
   // dogru cevabi zaten kanitlamis oldu (Bolum 4, Adim 3).
   async attemptEntry(poolEntryId: string, attemptingUserId: string, answer: string) {
-    const limit = Number(process.env.POOL_ATTEMPT_RATE_LIMIT_PER_MINUTE ?? 5);
+    const limit = await this.settings.getNumber("POOL_ATTEMPT_RATE_LIMIT_PER_MINUTE");
     const attemptCount = await this.redis.incr(this.attemptRateLimitKey(poolEntryId), 60);
     if (attemptCount > limit) {
       throw new HttpException(
