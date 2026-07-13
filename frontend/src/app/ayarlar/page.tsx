@@ -78,7 +78,18 @@ export default function AyarlarPage() {
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
-        <h1 className="font-display text-2xl font-bold text-slate">Ayarlar</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-2xl font-bold text-slate">Ayarlar</h1>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              logout();
+              router.push("/");
+            }}
+          >
+            Çıkış Yap
+          </Button>
+        </div>
 
         <Card lifted className="space-y-4">
           <h2 className="font-display text-lg font-bold text-slate">Profil</h2>

@@ -1,13 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
+import { useAuth } from "@/lib/auth-context";
 
 // Gorev 14.1-14.4: Landing page. Hero (deger onerisi + 2 CTA), "nasil
 // calisir" (gercek bir 3 adimli surec oldugu icin numaralandirildi),
 // guven unsurlari (gizlilik/guvenlik one plana cikarilir - hassas bir
 // urun oldugu icin bu bolum susleme degil, gercek icerik).
 export default function LandingPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading, logout } = useAuth();
+
+  function handleLogout() {
+    logout();
+    router.push("/");
+  }
+
   return (
     <main className="min-h-screen bg-mint">
       {/* Nav */}
@@ -23,9 +35,19 @@ export default function LandingPage() {
           >
             Mesajlarım
           </Link>
-          <Link href="/giris">
-            <Button variant="ghost">Giriş Yap</Button>
-          </Link>
+          {/* Kullanici geri bildirimi: giris durumuna gore Giris Yap /
+              Cikis Yap gosterilmeli - onceden her zaman "Giris Yap"
+              gorunuyordu, giris yapmis kullanici icin anlamsizdi. */}
+          {!isLoading &&
+            (isAuthenticated ? (
+              <Button variant="ghost" onClick={handleLogout}>
+                Çıkış Yap
+              </Button>
+            ) : (
+              <Link href="/giris">
+                <Button variant="ghost">Giriş Yap</Button>
+              </Link>
+            ))}
         </nav>
       </header>
 
