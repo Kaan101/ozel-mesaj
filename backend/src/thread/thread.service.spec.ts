@@ -11,6 +11,7 @@ import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SmsService } from "../sms/sms.service";
 import { SafetyService } from "../safety/safety.service";
+import { SettingsService } from "../settings/settings.service";
 
 // Gorev 5.8: Senaryo A (dogrudan mesaj) akisinin tum backend adimlarini
 // (thread olusturma, unlock, mesaj listeleme/gonderme) kapsayan unit
@@ -34,6 +35,7 @@ describe("ThreadService", () => {
             user: { upsert: jest.fn() },
             messageThread: { create: jest.fn(), findUnique: jest.fn() },
             message: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn() },
+            threadUnlock: { upsert: jest.fn(), findUnique: jest.fn() },
           },
         },
         {
@@ -42,6 +44,7 @@ describe("ThreadService", () => {
         },
         { provide: SmsService, useValue: { send: jest.fn() } },
         { provide: SafetyService, useValue: { isBlocked: jest.fn().mockResolvedValue(false) } },
+        { provide: SettingsService, useValue: { getNumber: jest.fn().mockResolvedValue(5) } },
         { provide: JwtService, useValue: { signAsync: jest.fn(), verifyAsync: jest.fn() } },
       ],
     }).compile();
@@ -79,7 +82,7 @@ describe("ThreadService", () => {
     it("5 basarisiz denemeden sonra 423 firlatir (yeni denemeyi hic kontrol etmeden)", async () => {
       redis.get.mockResolvedValue("5");
 
-      await expect(service.unlockThread("thread-1", "her-hangi-bir-sey")).rejects.toThrow(
+      await expect(service.unlockThread("thread-1", "her-hangi-bir-sey", "user-1")).rejects.toThrow(
         HttpException
       );
       expect(prisma.messageThread.findUnique).not.toHaveBeenCalled();
@@ -89,7 +92,7 @@ describe("ThreadService", () => {
       redis.get.mockResolvedValue(null);
       prisma.messageThread.findUnique.mockResolvedValue(null);
 
-      await expect(service.unlockThread("olmayan-id", "xyz")).rejects.toThrow(
+      await expect(service.unlockThread("olmayan-id", "xyz", "user-1")).rejects.toThrow(
         NotFoundException
       );
     });
@@ -103,7 +106,7 @@ describe("ThreadService", () => {
         ).hashSecret("Mavi Klasor"),
       });
 
-      await expect(service.unlockThread("thread-1", "yanlis")).rejects.toThrow(
+      await expect(service.unlockThread("thread-1", "yanlis", "user-1")).rejects.toThrow(
         UnauthorizedException
       );
       expect(redis.incr).toHaveBeenCalledTimes(1);
@@ -118,7 +121,7 @@ describe("ThreadService", () => {
       });
       jwt.signAsync.mockResolvedValue("thread-token");
 
-      const result = await service.unlockThread("thread-1", "Mavi Klasor");
+      const result = await service.unlockThread("thread-1", "Mavi Klasor", "user-1");
 
       expect(redis.del).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ threadAccessToken: "thread-token" });

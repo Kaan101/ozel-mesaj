@@ -40,6 +40,7 @@ model User {
   blockedUsers     Block[]         @relation("Blocker")
   blockedByUsers   Block[]         @relation("Blocked")
   reports          Report[]
+  threadUnlocks    ThreadUnlock[]
 
   @@map("users")
 }
@@ -79,6 +80,7 @@ model MessageThread {
 
   messages Message[]
   reports  Report[]
+  unlocks  ThreadUnlock[]
 
   @@map("message_threads")
 }
@@ -199,6 +201,29 @@ model AppSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")
+}
+
+// --------------------------------------------------------
+// Kullanici geri bildirimi: bir kullanici bir thread'in parolasini/
+// cevabini bir kez dogru girdiginde, bir daha (cikis yapsa/tarayici
+// kapatsa bile) tekrar sorulmamali. Bu tablo "kim, hangi thread'i
+// dogru bilgiyle actı" kaydini kalici olarak tutar.
+// --------------------------------------------------------
+
+model ThreadUnlock {
+  id String @id @default(uuid()) @db.Uuid
+
+  threadId String        @map("thread_id") @db.Uuid
+  thread   MessageThread @relation(fields: [threadId], references: [id])
+
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  unlockedAt DateTime @default(now()) @map("unlocked_at")
+
+  // Ayni kullanici ayni thread icin bir kez kaydedilir.
+  @@unique([threadId, userId])
+  @@map("thread_unlocks")
 }
 
 

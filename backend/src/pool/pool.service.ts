@@ -134,6 +134,15 @@ export class PoolService {
       },
     });
 
+    // Havuzda dogru cevabi veren kisi de bu thread'i "actigini" kalici
+    // olarak kanitlamis sayilir - ileride /mesaj/[id] uzerinden tekrar
+    // ziyaret ettiginde cevap sorulmaz (tutarlilik, Bolum 8 UX).
+    await this.prisma.threadUnlock.upsert({
+      where: { threadId_userId: { threadId: thread.id, userId: attemptingUserId } },
+      update: {},
+      create: { threadId: thread.id, userId: attemptingUserId },
+    });
+
     const threadAccessToken = await this.jwt.signAsync(
       { threadId: thread.id },
       {
