@@ -18,7 +18,7 @@ const RESEND_COOLDOWN_SECONDS = 60;
 function GirisFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [step, setStep] = useState<Step>("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -28,6 +28,16 @@ function GirisFormContent() {
   const [cooldown, setCooldown] = useState(0);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Kullanici geri bildirimi: zaten gecerli bir oturumu varsa (token
+  // hala gecerliyse), /giris sayfasi tekrar form gostermemeli - dogrudan
+  // hedef sayfaya (varsa ?next, yoksa ana sayfaya) yonlendirilmeli.
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      const next = searchParams.get("next") ?? "/";
+      router.replace(next);
+    }
+  }, [authLoading, isAuthenticated, router, searchParams]);
 
   useEffect(() => {
     return () => {
@@ -74,11 +84,17 @@ function GirisFormContent() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await apiFetch("/auth/otp/request", {
+      const data = await apiFetch<{ mockCode?: string }>("/auth/otp/request", {
         method: "POST",
         body: JSON.stringify({ phoneNumber }),
         skipAuth: true,
       });
+      // Kullanici geri bildirimi: MOCK modda (SMS_MOCK_MODE=true) backend
+      // kodu response'a ekliyor - test/gelistirme sirasinda kolaylik icin
+      // otomatik dolduruyoruz. Gercek SMS modunda bu alan gelmez.
+      if (data.mockCode) {
+        setCode(data.mockCode);
+      }
       setStep("otp");
       startCooldown();
     } catch (err) {
@@ -108,6 +124,12 @@ function GirisFormContent() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  // Yonlendirme gerceklesene kadar formun bir an gorunmesini (flicker)
+  // onlemek icin.
+  if (authLoading || isAuthenticated) {
+    return <main className="min-h-screen bg-mint" />;
   }
 
   return (
