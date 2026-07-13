@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, HttpException, Injectable } from "@nestjs/common";
 import { Request } from "express";
-import { RedisService } from "../common/redis.service";
-import { SettingsService } from "../settings/settings.service";
+import { RedisService } from "../../common/redis.service";
+import { SettingsService } from "../settings.service";
 
 // Gorev 7.1 (revize): Genel, IP bazli rate limiting - artik sabit
 // @nestjs/throttler yapilandirmasi yerine SettingsService'ten okuyor,
