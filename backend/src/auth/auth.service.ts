@@ -53,7 +53,9 @@ export class AuthService {
   // Gorev 3.2 + 3.3 + 3.7: Telefon numarasini hash'ler, rate limit
   // kontrolu yapar, 4 haneli kod uretir, Redis'e TTL:5dk ile yazar,
   // sonra SmsService uzerinden gonderir.
-  async requestOtp(phoneNumber: string): Promise<{ phoneHash: string; ttlSeconds: number }> {
+  async requestOtp(
+    phoneNumber: string
+  ): Promise<{ phoneHash: string; ttlSeconds: number; mockCode?: string }> {
     const phoneHash = hashPhoneNumber(phoneNumber);
 
     await this.enforceRateLimit(phoneHash);
@@ -66,7 +68,15 @@ export class AuthService {
     const text = `Ozel Mesaj dogrulama kodunuz: ${code}. Bu kod ${Math.round(ttlSeconds / 60)} dakika gecerlidir.`;
     await this.sms.send(phoneNumber, text);
 
-    return { phoneHash, ttlSeconds };
+    // Kullanici geri bildirimi: sadece SMS_MOCK_MODE=true iken (yerel
+    // gelistirme/test), kodu response'a da ekliyoruz ki frontend'de
+    // otomatik doldurulabilsin. SMS_MOCK_MODE=false oldugunda (gercek
+    // SMS gonderiliyorken) bu alan ASLA response'a eklenmez - aksi
+    // halde OTP'nin tum guvenlik amacini (numarayi gercekten kontrol
+    // etme) bosa cikarirdi (Bolum 8).
+    const isMockMode = process.env.SMS_MOCK_MODE === "true";
+
+    return { phoneHash, ttlSeconds, ...(isMockMode ? { mockCode: code } : {}) };
   }
 
   private otpVerifyAttemptsKey(phoneHash: string): string {

@@ -12,13 +12,16 @@ export class AuthController {
 
   @Post("otp/request")
   async requestOtp(@Body() dto: RequestOtpDto) {
-    const { ttlSeconds } = await this.authService.requestOtp(dto.phoneNumber);
+    const { ttlSeconds, mockCode } = await this.authService.requestOtp(dto.phoneNumber);
 
-    // Guvenlik: response'ta ASLA telefon numarasi, hash'i veya OTP kodu
-    // donmez - sadece "istek alindi" bilgisi verilir (Bolum 8, 10).
+    // Guvenlik: response'ta ASLA telefon numarasi veya hash'i donmez.
+    // mockCode SADECE SMS_MOCK_MODE=true iken doluyor (yukarida
+    // AuthService'te aciklandigi gibi) - gercek SMS modunda undefined
+    // olacagi icin response'a hic eklenmeyecek.
     return {
       message: "Dogrulama kodu gonderildi.",
       expiresInSeconds: ttlSeconds,
+      ...(mockCode ? { mockCode } : {}),
     };
   }
 
