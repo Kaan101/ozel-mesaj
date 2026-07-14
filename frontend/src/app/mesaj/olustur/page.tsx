@@ -25,6 +25,8 @@ export default function MesajOlusturPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [recipientPhone, setRecipientPhone] = useState("");
+  const [addEmail, setAddEmail] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
   const [body, setBody] = useState("");
   const [addQuestion, setAddQuestion] = useState(false);
   const [questionText, setQuestionText] = useState("");
@@ -62,6 +64,7 @@ export default function MesajOlusturPage() {
         method: "POST",
         body: JSON.stringify({
           recipientPhone,
+          recipientNotificationEmail: addEmail && recipientEmail ? recipientEmail : undefined,
           body,
           lockType: addQuestion ? "question" : "none",
           lockSecret: addQuestion ? lockSecret : undefined,
@@ -99,6 +102,8 @@ export default function MesajOlusturPage() {
             onClick={() => {
               setSentThreadId(null);
               setRecipientPhone("");
+              setAddEmail(false);
+              setRecipientEmail("");
               setBody("");
               setAddQuestion(false);
               setLockSecret("");
@@ -129,6 +134,27 @@ export default function MesajOlusturPage() {
             value={recipientPhone}
             onChange={setRecipientPhone}
           />
+
+          {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici
+              hala telefon/OTP ile giris yapiyor, bu sadece ek bir
+              bildirim yolu (mock modda calisir, gercek e-posta
+              saglayicisi baglanana kadar). */}
+          <Toggle
+            id="add-email-toggle"
+            checked={addEmail}
+            onChange={setAddEmail}
+            label="Ayrıca e-posta ile de bildirmek ister misin?"
+          />
+
+          {addEmail && (
+            <Input
+              label="Alıcının E-postası"
+              type="email"
+              placeholder="ornek@eposta.com"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+            />
+          )}
 
           <Input
             label="Mesajın"
@@ -179,7 +205,8 @@ export default function MesajOlusturPage() {
               isSubmitting ||
               !recipientPhone ||
               !body ||
-              (addQuestion && (!questionText || !lockSecret))
+              (addQuestion && (!questionText || !lockSecret)) ||
+              (addEmail && !recipientEmail)
             }
           >
             {isSubmitting ? "Gönderiliyor..." : "Mesajı Gönder"}

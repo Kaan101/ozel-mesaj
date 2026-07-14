@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SmsService } from "../sms/sms.service";
+import { EmailService } from "../email/email.service";
 import { SafetyService } from "../safety/safety.service";
 import { SettingsService } from "../settings/settings.service";
 import { hashPhoneNumber } from "../common/hash.util";
@@ -15,6 +16,7 @@ export class ThreadService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly sms: SmsService,
+    private readonly email: EmailService,
     private readonly safety: SafetyService,
     private readonly settings: SettingsService,
     private readonly jwt: JwtService
@@ -55,6 +57,7 @@ export class ThreadService {
         lockSecretHash,
         questionText: dto.lockType === "question" ? dto.questionText : null,
         recipientPhoneDisplay: dto.recipientPhone,
+        recipientNotificationEmail: dto.recipientNotificationEmail ?? null,
         messages: {
           create: [
             {
@@ -71,6 +74,17 @@ export class ThreadService {
     const appUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
     const text = `Sana ozel bir mesaj var. Gormek icin: ${appUrl}/mesaj/${thread.id}`;
     await this.sms.send(dto.recipientPhone, text);
+
+    // Kullanici istegi: gonderen opsiyonel bir e-posta da eklediyse,
+    // ek bir bildirim kanali olarak oraya da gonder (giris hala
+    // telefon/OTP ile yapiliyor, e-posta sadece bildirim amacli).
+    if (dto.recipientNotificationEmail) {
+      await this.email.send(
+        dto.recipientNotificationEmail,
+        "Sana özel bir mesaj var",
+        `Sana özel bir mesaj var. Görmek için: ${appUrl}/mesaj/${thread.id}`
+      );
+    }
 
     return { threadId: thread.id };
   }

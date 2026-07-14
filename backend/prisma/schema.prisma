@@ -88,6 +88,12 @@ model MessageThread {
   // başka hiç kimseye asla döndürülmez (bkz. listMyThreads).
   recipientPhoneDisplay String? @map("recipient_phone_display")
 
+  // Kullanici istegi: opsiyonel ek bildirim kanali - alici HALA
+  // telefon/OTP ile giris yapmak zorunda (bu, giris/kimlik sistemini
+  // degistirmez), ama gonderen isterse ek olarak bir e-posta adresine
+  // de bildirim gonderilsin diye bu alani doldurabilir.
+  recipientNotificationEmail String? @map("recipient_notification_email")
+
   // Kullanici geri bildirimi: "mesaj silme" ozelligi - gercekte veriyi
   // silmiyoruz (karsi tarafin gorunumunu etkilememeli), sadece
   // kullanicinin KENDI "Mesajlarim" listesinden gizliyoruz.

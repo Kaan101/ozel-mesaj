@@ -1,4 +1,13 @@
-import { IsBoolean, IsIn, IsOptional, IsString, Matches, MinLength, ValidateIf } from "class-validator";
+import {
+  IsBoolean,
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MinLength,
+  ValidateIf,
+} from "class-validator";
 
 export class CreateThreadDto {
   @IsString()
@@ -6,6 +15,13 @@ export class CreateThreadDto {
     message: "Telefon numarasi gecerli formatta degil (orn: +905551234567)",
   })
   recipientPhone: string;
+
+  // Kullanici istegi: opsiyonel ek bildirim kanali - alicinin giris
+  // yontemini DEGISTIRMEZ (hala telefon/OTP ile giris yapar), sadece
+  // gonderen isterse ek olarak bir e-postaya da bildirim gitsin diye.
+  @IsOptional()
+  @IsEmail({}, { message: "Gecerli bir e-posta adresi gir." })
+  recipientNotificationEmail?: string;
 
   @IsString()
   @MinLength(1)

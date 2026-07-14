@@ -10,6 +10,7 @@ import { ThreadService } from "./thread.service";
 import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SmsService } from "../sms/sms.service";
+import { EmailService } from "../email/email.service";
 import { SafetyService } from "../safety/safety.service";
 import { SettingsService } from "../settings/settings.service";
 
@@ -43,6 +44,7 @@ describe("ThreadService", () => {
           useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn(), incr: jest.fn() },
         },
         { provide: SmsService, useValue: { send: jest.fn() } },
+        { provide: EmailService, useValue: { send: jest.fn() } },
         { provide: SafetyService, useValue: { isBlocked: jest.fn().mockResolvedValue(false) } },
         { provide: SettingsService, useValue: { getNumber: jest.fn().mockResolvedValue(5) } },
         { provide: JwtService, useValue: { signAsync: jest.fn(), verifyAsync: jest.fn() } },
