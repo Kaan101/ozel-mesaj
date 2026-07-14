@@ -84,6 +84,12 @@ model MessageThread {
   // başka hiç kimseye asla döndürülmez (bkz. listMyThreads).
   recipientPhoneDisplay String? @map("recipient_phone_display")
 
+  // Kullanici geri bildirimi: "mesaj silme" ozelligi - gercekte veriyi
+  // silmiyoruz (karsi tarafin gorunumunu etkilememeli), sadece
+  // kullanicinin KENDI "Mesajlarim" listesinden gizliyoruz.
+  hiddenByInitiator Boolean @default(false) @map("hidden_by_initiator")
+  hiddenByRecipient Boolean @default(false) @map("hidden_by_recipient")
+
   createdAt DateTime  @default(now()) @map("created_at")
   expiresAt DateTime? @map("expires_at")
 

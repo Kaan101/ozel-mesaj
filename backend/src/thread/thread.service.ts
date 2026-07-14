@@ -184,8 +184,13 @@ export class ThreadService {
     const threads = await this.prisma.messageThread.findMany({
       where: {
         OR: [{ initiatorUserId: userId }, { recipientUserId: userId }],
+        // Kullanici geri bildirimi: kendi listesinden "sildigi"
+        // (gizledigi) thread'ler bir daha gorunmesin.
+        NOT: [
+          { AND: [{ initiatorUserId: userId }, { hiddenByInitiator: true }] },
+          { AND: [{ recipientUserId: userId }, { hiddenByRecipient: true }] },
+        ],
       },
-      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         originType: true,
@@ -194,17 +199,18 @@ export class ThreadService {
         recipientPhoneDisplay: true,
         createdAt: true,
         initiatorUserId: true,
-        // Kullanici geri bildirimi: listede baslik olarak gonderilen
-        // mesaj metni gorunsun - ilk mesaji da cekiyoruz.
+        // Bug duzeltmesi: listede EN SON mesaj gosterilmeli, ilk mesaj
+        // degil - aksi halde yeni gelen yanitlar listeye hic yansimaz
+        // (kullanici geri bildirimi).
         messages: {
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: "desc" },
           take: 1,
-          select: { body: true },
+          select: { body: true, createdAt: true },
         },
       },
     });
 
-    return threads.map((t) => {
+    const mapped = threads.map((t) => {
       const role = t.initiatorUserId === userId ? "initiator" : "recipient";
       // Guvenlik: mesaj govdesini (body) listede sadece (a) kilitsiz
       // (lockType="none") thread'lerde, ya da (b) mesaji YAZAN kisi
@@ -213,6 +219,7 @@ export class ThreadService {
       // modeli). Soru metni ise hassas degil (sadece bir ipucu,
       // cevabin kendisi degil) - bu yuzden herkese gosterilir.
       const canShowBody = t.lockType === "none" || role === "initiator";
+      const lastMessageAt = t.messages[0]?.createdAt ?? t.createdAt;
 
       return {
         id: t.id,
@@ -224,9 +231,47 @@ export class ThreadService {
         // veya baska hic kimseye asla donmez (Bolum 8, 10).
         recipientPhoneDisplay: role === "initiator" ? t.recipientPhoneDisplay : null,
         createdAt: t.createdAt,
+        lastMessageAt,
         role,
       };
     });
+
+    // Son aktiviteye gore sirala (en son yaniti gelen en ustte) -
+    // sadece olusturulma tarihine gore siralamak, yeni yanit gelen
+    // eski bir konusmanin listede "asagida kalmasina" sebep oluyordu.
+    return mapped.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
+  }
+
+  // Kullanici geri bildirimi: "mesaj silme" - gercekte veri silinmez,
+  // sadece istegi yapan kullanicinin KENDI listesinden gizlenir. Karsi
+  // tarafin gorunumu etkilenmez.
+  async hideThreadForUser(threadId: string, userId: string): Promise<void> {
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: threadId },
+      select: { initiatorUserId: true, recipientUserId: true },
+    });
+
+    if (!thread) {
+      throw new NotFoundException("Thread bulunamadi.");
+    }
+
+    if (thread.initiatorUserId === userId) {
+      await this.prisma.messageThread.update({
+        where: { id: threadId },
+        data: { hiddenByInitiator: true },
+      });
+      return;
+    }
+
+    if (thread.recipientUserId === userId) {
+      await this.prisma.messageThread.update({
+        where: { id: threadId },
+        data: { hiddenByRecipient: true },
+      });
+      return;
+    }
+
+    throw new UnauthorizedException("Bu thread senin degil.");
   }
 
   // Gorev 5.4 + 5.6: Thread'e ait mesajlari listeler ve okunmamis

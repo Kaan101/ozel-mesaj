@@ -15,6 +15,7 @@ interface MyThread {
   firstMessageBody: string | null;
   recipientPhoneDisplay: string | null;
   createdAt: string;
+  lastMessageAt: string;
   role: "initiator" | "recipient";
 }
 
@@ -39,9 +40,10 @@ function saveSeenIds(ids: Set<string>) {
 //
 // Kullanici geri bildirimi: gonderilen ve alinan mesajlar birbirinden
 // ayri iki bolumde gosteriliyor. Ayrica, henuz TIKLANMAMIS (goruntu-
-// lenmemis) mesajlar "Yeni" rozetiyle vurgulanir - bu bilgi thread ID
-// bazinda localStorage'da tutulur, bir mesaja tiklandiginda "gorulmus"
-// olarak isaretlenir.
+// lenmemis) mesajlar "Yeni" rozetiyle vurgulanir. Bug duzeltmesi:
+// liste artik EN SON mesaja gore guncelleniyor (onceden hep ILK
+// mesaj gosteriliyordu, yeni yanitlar yansimiyordu). Ayrica her
+// konusma kendi listesinden silinebilir (karsi tarafi etkilemez).
 export default function MesajlarimPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -72,9 +74,8 @@ export default function MesajlarimPage() {
     fetchThreads();
   }, [isAuthenticated]);
 
-  // Kullanici geri bildirimi: liste asenkron olarak (5sn'de bir)
-  // guncellensin - yeni gelen bir mesaj/iletisim talebi elle
-  // yenilemeden gorunsun.
+  // Liste asenkron olarak (5sn'de bir) guncellensin - yeni gelen bir
+  // mesaj/iletisim talebi elle yenilemeden gorunsun.
   useEffect(() => {
     if (!isAuthenticated) return;
     const interval = setInterval(fetchThreads, 5000);
@@ -87,6 +88,17 @@ export default function MesajlarimPage() {
     updated.add(threadId);
     setSeenIds(updated);
     saveSeenIds(updated);
+  }
+
+  async function handleDeleteThread(threadId: string) {
+    // Kendi listesinden gizler - karsi tarafi etkilemez.
+    setThreads((prev) => prev.filter((t) => t.id !== threadId));
+    try {
+      await apiFetch(`/threads/${threadId}/hide`, { method: "DELETE" });
+    } catch {
+      // Basarisiz olursa listeyi yeniden cekip gercek durumu yansitalim.
+      fetchThreads();
+    }
   }
 
   if (authLoading || !isAuthenticated) {
@@ -116,12 +128,14 @@ export default function MesajlarimPage() {
               threads={receivedThreads}
               seenIds={seenIds}
               onOpen={handleOpenThread}
+              onDelete={handleDeleteThread}
             />
             <ThreadSection
               title="📤 Gönderdiklerim"
               threads={sentThreads}
               seenIds={seenIds}
               onOpen={handleOpenThread}
+              onDelete={handleDeleteThread}
             />
           </>
         )}
@@ -135,11 +149,13 @@ function ThreadSection({
   threads,
   seenIds,
   onOpen,
+  onDelete,
 }: {
   title: string;
   threads: MyThread[];
   seenIds: Set<string>;
   onOpen: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   if (threads.length === 0) return null;
 
@@ -152,61 +168,76 @@ function ThreadSection({
         {threads.map((thread) => {
           const isNew = !seenIds.has(thread.id);
           return (
-            <Link
-              key={thread.id}
-              href={`/mesaj/${thread.id}`}
-              onClick={() => onOpen(thread.id)}
-            >
-              <Card
-                className={`hover:shadow-soft-lifted transition-shadow cursor-pointer ${
-                  isNew ? "border-2 border-meadow" : ""
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h3
-                      className={`font-display text-base text-slate ${
-                        isNew ? "font-bold" : "font-normal"
-                      }`}
-                    >
-                      {thread.firstMessageBody
-                        ? thread.firstMessageBody
-                        : thread.lockType === "question" && thread.questionText
-                          ? thread.questionText
-                          : "Parola korumalı mesaj"}
-                    </h3>
-                    <p className="mt-1 font-body text-xs text-slate-light">
-                      {thread.role === "initiator" && thread.recipientPhoneDisplay
-                        ? `Kime: ${thread.recipientPhoneDisplay}`
-                        : thread.role === "initiator"
-                          ? "Sen gönderdin"
-                          : "Sana gönderildi"}
-                      {" · "}
-                      {new Date(thread.createdAt).toLocaleString("tr-TR")}
-                    </p>
-                  </div>
+            <div key={thread.id} className="relative group">
+              <Link href={`/mesaj/${thread.id}`} onClick={() => onOpen(thread.id)}>
+                <Card
+                  className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 ${
+                    isNew ? "border-2 border-meadow" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3
+                        className={`font-display text-base text-slate ${
+                          isNew ? "font-bold" : "font-normal"
+                        }`}
+                      >
+                        {thread.firstMessageBody
+                          ? thread.firstMessageBody
+                          : thread.lockType === "question" && thread.questionText
+                            ? thread.questionText
+                            : "Parola korumalı mesaj"}
+                      </h3>
+                      <p className="mt-1 font-body text-xs text-slate-light">
+                        {thread.role === "initiator" && thread.recipientPhoneDisplay
+                          ? `Kime: ${thread.recipientPhoneDisplay}`
+                          : thread.role === "initiator"
+                            ? "Sen gönderdin"
+                            : "Sana gönderildi"}
+                        {" · "}
+                        {new Date(thread.lastMessageAt).toLocaleString("tr-TR")}
+                      </p>
+                    </div>
 
-                  {/* Kullanici geri bildirimi: yeni mesaj gostergesi
-                      her satirin kendi ustunde, WhatsApp benzeri. */}
-                  <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <span
-                      className={`rounded-full px-3 py-1 font-body text-xs ${
-                        thread.originType === "pool"
-                          ? "bg-sky-light text-sky"
-                          : "bg-meadow-light text-meadow-hover"
-                      }`}
-                    >
-                      {thread.originType === "pool" ? "Havuz" : "Doğrudan"}
-                    </span>
-                    {isNew && (
-                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
-                        1
+                    {/* Kullanici geri bildirimi: yeni mesaj gostergesi
+                        her satirin kendi ustunde, WhatsApp benzeri. */}
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span
+                        className={`rounded-full px-3 py-1 font-body text-xs ${
+                          thread.originType === "pool"
+                            ? "bg-sky-light text-sky"
+                            : "bg-meadow-light text-meadow-hover"
+                        }`}
+                      >
+                        {thread.originType === "pool" ? "Havuz" : "Doğrudan"}
                       </span>
-                    )}
+                      {isNew && (
+                        <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
+                          1
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Card>
-            </Link>
+                </Card>
+              </Link>
+
+              {/* Kullanici geri bildirimi: mesaj silme (kendi
+                  listesinden gizleme) ozelligi. */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (confirm("Bu konuşmayı listenden kaldırmak istiyor musun?")) {
+                    onDelete(thread.id);
+                  }
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-slate-light hover:bg-coral-light hover:text-coral"
+                aria-label="Sil"
+              >
+                🗑️
+              </button>
+            </div>
           );
         })}
       </div>

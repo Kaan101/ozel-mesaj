@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
 import { ThreadService } from "./thread.service";
 import { CreateThreadDto } from "./dto/create-thread.dto";
@@ -44,6 +44,16 @@ export class ThreadController {
   async listMyThreads(@Req() request: Request) {
     const userId = (request as any).user.sub;
     return this.threadService.listMyThreads(userId);
+  }
+
+  // Kullanici geri bildirimi: "mesaj silme" - gercekte veri silinmez,
+  // sadece istegi yapan kullanicinin KENDI listesinden gizlenir.
+  @UseGuards(JwtAuthGuard)
+  @Delete(":id/hide")
+  async hideThread(@Req() request: Request, @Param("id") id: string) {
+    const userId = (request as any).user.sub;
+    await this.threadService.hideThreadForUser(id, userId);
+    return { message: "Silindi." };
   }
 
   // Gorev 11.5 icin gerekli ek: alici, unlock denemeden once kilit
