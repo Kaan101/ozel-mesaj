@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
 // mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
@@ -123,12 +124,10 @@ export default function MesajOlusturPage() {
         </div>
 
         <Card lifted className="space-y-5">
-          <Input
+          <PhoneInput
             label="Alıcının Telefon Numarası"
-            placeholder="+90 5xx xxx xx xx"
             value={recipientPhone}
-            onChange={(e) => setRecipientPhone(e.target.value)}
-            inputMode="tel"
+            onChange={setRecipientPhone}
           />
 
           <Input

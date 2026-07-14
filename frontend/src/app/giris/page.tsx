@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 
 type Step = "phone" | "otp";
@@ -150,13 +151,10 @@ function GirisFormContent() {
         <Card lifted>
           {step === "phone" ? (
             <div className="space-y-4">
-              <Input
+              <PhoneInput
                 label="Telefon Numarası"
-                placeholder="+90 5xx xxx xx xx"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                inputMode="tel"
-                autoFocus
+                onChange={setPhoneNumber}
               />
               {error && <p className="font-body text-sm text-coral">{error}</p>}
               <Button
