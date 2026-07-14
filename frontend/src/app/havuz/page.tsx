@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { Card } from "@/components/ui/Card";
@@ -15,29 +15,35 @@ interface PoolEntry {
   createdAt: string;
 }
 
-// Gorev 12.3: Herkese acik havuz listesi, kategori filtresiyle.
+// Gorev 12.3 (revize): Herkese acik havuz listesi. Kullanici istegi:
+// kategori filtre butonlari kaldirildi, yerine baslik/soru/kategori
+// uzerinde arama yapan bir arama kutusu eklendi (client-side filtre -
+// tum sorular bir kerede cekilip, yazarken anlik filtreleniyor).
 // Auth gerektirmez - herkes goz atabilir (Bolum 4, 9).
 export default function HavuzPage() {
   const { t, language } = useLanguage();
   const [entries, setEntries] = useState<PoolEntry[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    apiFetch<{ categories: string[] }>("/pool/categories", { skipAuth: true })
-      .then((data) => setCategories(data.categories))
-      .catch(() => {});
-  }, []);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     setIsLoading(true);
-    const query = selectedCategory ? `?category=${encodeURIComponent(selectedCategory)}` : "";
-    apiFetch<{ items: PoolEntry[] }>(`/pool/entries${query}`, { skipAuth: true })
+    apiFetch<{ items: PoolEntry[] }>("/pool/entries", { skipAuth: true })
       .then((data) => setEntries(data.items))
       .catch(() => setEntries([]))
       .finally(() => setIsLoading(false));
-  }, [selectedCategory]);
+  }, []);
+
+  const filteredEntries = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return entries;
+    return entries.filter(
+      (entry) =>
+        entry.title.toLowerCase().includes(q) ||
+        entry.questionText.toLowerCase().includes(q) ||
+        (entry.category ?? "").toLowerCase().includes(q)
+    );
+  }, [entries, searchQuery]);
 
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
@@ -52,36 +58,26 @@ export default function HavuzPage() {
           </Link>
         </div>
 
-        {/* Gorev 12.3: Kategori filtresi */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`rounded-full px-4 py-1.5 font-body text-sm font-medium transition-colors
-              ${!selectedCategory ? "bg-sky text-white" : "bg-white text-slate-light"}`}
-          >
-            {t("havuz.all")}
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`rounded-full px-4 py-1.5 font-body text-sm font-medium transition-colors
-                ${selectedCategory === cat ? "bg-sky text-white" : "bg-white text-slate-light"}`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {/* Kullanici istegi: kategori filtre butonlari yerine arama kutusu */}
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("havuz.searchPlaceholder")}
+          className="w-full rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-body text-slate focus:outline-none focus:border-sky"
+        />
 
         {isLoading ? (
           <p className="font-body text-slate-light">{t("havuz.loading")}</p>
-        ) : entries.length === 0 ? (
+        ) : filteredEntries.length === 0 ? (
           <Card>
-            <p className="font-body text-slate-light text-center py-6">{t("havuz.empty")}</p>
+            <p className="font-body text-slate-light text-center py-6">
+              {searchQuery ? t("havuz.noResults") : t("havuz.empty")}
+            </p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {entries.map((entry) => (
+            {filteredEntries.map((entry) => (
               <Link key={entry.id} href={`/havuz/${entry.id}`}>
                 <Card className="h-full hover:shadow-soft-lifted transition-shadow cursor-pointer">
                   <h2 className="font-display text-lg font-bold text-slate">{entry.title}</h2>

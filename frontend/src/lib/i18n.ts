@@ -178,7 +178,9 @@ type TranslationKey =
   | "mesajlarim.pool"
   | "mesajlarim.direct"
   | "mesajlarim.deleteConfirm"
-  | "mesajlarim.delete";
+  | "mesajlarim.delete"
+  | "havuz.searchPlaceholder"
+  | "havuz.noResults";
 
 export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, string>>> = {
   tr: {
@@ -289,6 +291,8 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajlarim.direct": "Doğrudan",
     "mesajlarim.deleteConfirm": "Bu konuşmayı listenden kaldırmak istiyor musun?",
     "mesajlarim.delete": "Sil",
+    "havuz.searchPlaceholder": "Başlık, soru veya kategori ara...",
+    "havuz.noResults": "Aramanla eşleşen bir soru bulunamadı.",
   },
   en: {
     "nav.pool": "Pool",
@@ -398,6 +402,8 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajlarim.direct": "Direct",
     "mesajlarim.deleteConfirm": "Remove this conversation from your list?",
     "mesajlarim.delete": "Delete",
+    "havuz.searchPlaceholder": "Search by title, question, or category...",
+    "havuz.noResults": "No questions match your search.",
   },
 };
 
