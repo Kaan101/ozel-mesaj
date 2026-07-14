@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { AvatarPicker } from "@/components/ui/AvatarPicker";
-import { AvatarSpec } from "@/components/ui/Avatar";
+import { AvatarId } from "@/components/ui/Avatar";
 
 type Step = "phone" | "otp" | "avatar";
 
@@ -29,11 +29,7 @@ function GirisFormContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [avatarSpec, setAvatarSpec] = useState<AvatarSpec>({
-    ageGender: "genc-erkek",
-    hairLength: "kisa",
-    hasGlasses: false,
-  });
+  const [selectedAvatarId, setSelectedAvatarId] = useState<AvatarId>("genc-erkek");
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -133,8 +129,8 @@ function GirisFormContent() {
       // Kullanici geri bildirimi: giris akisinin bir parcasi olarak
       // avatar secimi - kullanicinin daha once avatar secmemis olmasi
       // durumunda (ilk giris) bu adimi gosteriyoruz.
-      const profile = await apiFetch<{ avatarAgeGender: string | null }>("/me");
-      if (!profile.avatarAgeGender) {
+      const profile = await apiFetch<{ avatarId: string | null }>("/me");
+      if (!profile.avatarId) {
         setStep("avatar");
         return;
       }
@@ -153,11 +149,7 @@ function GirisFormContent() {
     try {
       await apiFetch("/me", {
         method: "PATCH",
-        body: JSON.stringify({
-          avatarAgeGender: avatarSpec.ageGender,
-          avatarHairLength: avatarSpec.hairLength,
-          avatarHasGlasses: avatarSpec.hasGlasses,
-        }),
+        body: JSON.stringify({ avatarId: selectedAvatarId }),
       });
       const next = searchParams.get("next") ?? "/";
       router.push(next);
@@ -215,7 +207,7 @@ function GirisFormContent() {
             </div>
           ) : step === "avatar" ? (
             <div className="space-y-4">
-              <AvatarPicker spec={avatarSpec} onChange={setAvatarSpec} />
+              <AvatarPicker value={selectedAvatarId} onChange={setSelectedAvatarId} />
               {error && <p className="font-body text-sm text-coral">{error}</p>}
               <Button className="w-full" onClick={handleSaveAvatar} disabled={isSavingAvatar}>
                 {isSavingAvatar ? "Kaydediliyor..." : "Devam Et"}

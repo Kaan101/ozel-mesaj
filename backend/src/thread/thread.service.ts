@@ -199,6 +199,11 @@ export class ThreadService {
         recipientPhoneDisplay: true,
         createdAt: true,
         initiatorUserId: true,
+        recipientUserId: true,
+        // Kullanici geri bildirimi: karsi tarafin avatari listede de
+        // gorunsun - avatar gercek kimlik tasimadigi icin sakincasiz.
+        initiator: { select: { avatarId: true } },
+        recipient: { select: { avatarId: true } },
         // Bug duzeltmesi: listede EN SON mesaj gosterilmeli, ilk mesaj
         // degil - aksi halde yeni gelen yanitlar listeye hic yansimaz
         // (kullanici geri bildirimi).
@@ -220,6 +225,7 @@ export class ThreadService {
       // cevabin kendisi degil) - bu yuzden herkese gosterilir.
       const canShowBody = t.lockType === "none" || role === "initiator";
       const lastMessageAt = t.messages[0]?.createdAt ?? t.createdAt;
+      const counterpartAvatarId = role === "initiator" ? t.recipient?.avatarId : t.initiator.avatarId;
 
       return {
         id: t.id,
@@ -230,6 +236,7 @@ export class ThreadService {
         // Numara sadece gonderenin KENDISINE geri gosterilir - alici
         // veya baska hic kimseye asla donmez (Bolum 8, 10).
         recipientPhoneDisplay: role === "initiator" ? t.recipientPhoneDisplay : null,
+        counterpartAvatarId,
         createdAt: t.createdAt,
         lastMessageAt,
         role,
@@ -287,9 +294,7 @@ export class ThreadService {
         // Avatar gercek kimlik tasimaz (sadece cizgisel bir gorsel
         // tercih) - bu yuzden anonim mesajlarda bile gosterilebilir,
         // sadece senderUserId (gercek kimlik baglantisi) gizlenir.
-        sender: {
-          select: { avatarAgeGender: true, avatarHairLength: true, avatarHasGlasses: true },
-        },
+        sender: { select: { avatarId: true } },
       },
     });
 
@@ -307,11 +312,7 @@ export class ThreadService {
       body: message.body,
       isAnonymous: message.isAnonymous,
       senderUserId: message.isAnonymous ? undefined : message.senderUserId,
-      senderAvatar: {
-        ageGender: message.sender.avatarAgeGender,
-        hairLength: message.sender.avatarHairLength,
-        hasGlasses: message.sender.avatarHasGlasses,
-      },
+      senderAvatarId: message.sender.avatarId,
       readAt: message.readAt ?? now,
       createdAt: message.createdAt,
     }));

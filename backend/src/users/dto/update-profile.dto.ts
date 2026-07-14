@@ -1,4 +1,17 @@
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsIn, IsOptional, IsString, MaxLength } from "class-validator";
+
+const AVATAR_IDS = [
+  "genc-kiz",
+  "genc-erkek",
+  "erkek",
+  "kadin",
+  "cok-sacli-erkek",
+  "kivircik-kadin",
+  "kivircik-erkek",
+  "duz-sacli-kadin",
+  "olgun-erkek",
+  "olgun-kadin",
+] as const;
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -7,14 +20,6 @@ export class UpdateProfileDto {
   displayName?: string;
 
   @IsOptional()
-  @IsIn(["genc-erkek", "genc-kiz", "yetiskin-kadin", "yetiskin-erkek"])
-  avatarAgeGender?: string;
-
-  @IsOptional()
-  @IsIn(["kisa", "uzun"])
-  avatarHairLength?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  avatarHasGlasses?: boolean;
+  @IsIn(AVATAR_IDS)
+  avatarId?: string;
 }

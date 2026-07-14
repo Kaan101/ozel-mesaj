@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { Card } from "@/components/ui/Card";
+import { Avatar } from "@/components/ui/Avatar";
 
 interface MyThread {
   id: string;
@@ -14,6 +15,7 @@ interface MyThread {
   questionText: string | null;
   firstMessageBody: string | null;
   recipientPhoneDisplay: string | null;
+  counterpartAvatarId: string | null;
   createdAt: string;
   lastMessageAt: string;
   role: "initiator" | "recipient";
@@ -176,6 +178,11 @@ function ThreadSection({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
+                    {thread.counterpartAvatarId && (
+                      <div className="shrink-0">
+                        <Avatar avatarId={thread.counterpartAvatarId} size={40} />
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <h3
                         className={`font-display text-base text-slate ${

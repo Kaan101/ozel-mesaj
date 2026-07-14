@@ -23,11 +23,7 @@ interface DisplayMessage {
   body: string;
   isAnonymous: boolean;
   senderUserId?: string;
-  senderAvatar?: {
-    ageGender: string | null;
-    hairLength: string | null;
-    hasGlasses: boolean | null;
-  };
+  senderAvatarId?: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -346,9 +342,9 @@ export default function MesajGosterPage() {
                 className={isFromCounterpart ? "border-2 border-meadow" : ""}
               >
                 <div className="flex items-start gap-3">
-                  {msg.senderAvatar && (
+                  {msg.senderAvatarId && (
                     <div className="shrink-0">
-                      <Avatar spec={msg.senderAvatar} size={36} />
+                      <Avatar avatarId={msg.senderAvatarId} size={36} />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">

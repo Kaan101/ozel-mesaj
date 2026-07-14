@@ -1,105 +1,33 @@
 "use client";
 
-import { Avatar, AvatarSpec } from "./Avatar";
+import { Avatar, AVATARS, AvatarId } from "./Avatar";
 
-const AGE_GENDER_OPTIONS: { value: NonNullable<AvatarSpec["ageGender"]>; label: string }[] = [
-  { value: "genc-erkek", label: "Genç Erkek" },
-  { value: "genc-kiz", label: "Genç Kız" },
-  { value: "yetiskin-kadin", label: "Kadın" },
-  { value: "yetiskin-erkek", label: "Erkek" },
-];
-
-// Kullanici istegi: girisin bir parcasi olarak avatar secimi. Kullanici
-// yas/cinsiyet, sac uzunlugu ve gozluk tercihini secip anlik onizleme
-// gorur.
+// Kullanici istegi: 10 hazir avatardan biri secilir - izgara (grid)
+// gorunumunde, secili olan belirgin sekilde vurgulanir.
 export function AvatarPicker({
-  spec,
+  value,
   onChange,
 }: {
-  spec: AvatarSpec;
-  onChange: (spec: AvatarSpec) => void;
+  value: AvatarId | null;
+  onChange: (id: AvatarId) => void;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="flex justify-center">
-        <Avatar spec={spec} size={96} />
-      </div>
-
-      <div>
-        <p className="font-display text-sm font-semibold text-slate mb-2">Görünüm</p>
-        <div className="grid grid-cols-2 gap-2">
-          {AGE_GENDER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange({ ...spec, ageGender: opt.value })}
-              className={`rounded-2xl border-2 px-3 py-2 font-body text-sm transition-colors ${
-                spec.ageGender === opt.value
-                  ? "border-sky bg-sky-light text-sky"
-                  : "border-sky-light bg-white text-slate hover:border-sky"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <p className="font-display text-sm font-semibold text-slate mb-2">Saç Uzunluğu</p>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => onChange({ ...spec, hairLength: "kisa" })}
-            className={`rounded-2xl border-2 px-3 py-2 font-body text-sm transition-colors ${
-              spec.hairLength === "kisa"
-                ? "border-sky bg-sky-light text-sky"
-                : "border-sky-light bg-white text-slate hover:border-sky"
-            }`}
-          >
-            Kısa
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange({ ...spec, hairLength: "uzun" })}
-            className={`rounded-2xl border-2 px-3 py-2 font-body text-sm transition-colors ${
-              spec.hairLength === "uzun"
-                ? "border-sky bg-sky-light text-sky"
-                : "border-sky-light bg-white text-slate hover:border-sky"
-            }`}
-          >
-            Uzun
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <p className="font-display text-sm font-semibold text-slate mb-2">Gözlük</p>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => onChange({ ...spec, hasGlasses: false })}
-            className={`rounded-2xl border-2 px-3 py-2 font-body text-sm transition-colors ${
-              spec.hasGlasses === false
-                ? "border-sky bg-sky-light text-sky"
-                : "border-sky-light bg-white text-slate hover:border-sky"
-            }`}
-          >
-            Yok
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange({ ...spec, hasGlasses: true })}
-            className={`rounded-2xl border-2 px-3 py-2 font-body text-sm transition-colors ${
-              spec.hasGlasses === true
-                ? "border-sky bg-sky-light text-sky"
-                : "border-sky-light bg-white text-slate hover:border-sky"
-            }`}
-          >
-            Var
-          </button>
-        </div>
-      </div>
+    <div className="grid grid-cols-3 gap-3">
+      {(Object.keys(AVATARS) as AvatarId[]).map((id) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onChange(id)}
+          className={`flex flex-col items-center gap-1 rounded-2xl border-2 p-2 transition-colors ${
+            value === id ? "border-sky bg-sky-light" : "border-sky-light bg-white hover:border-sky"
+          }`}
+        >
+          <Avatar avatarId={id} size={56} />
+          <span className="font-body text-[11px] text-slate text-center leading-tight">
+            {AVATARS[id].label}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

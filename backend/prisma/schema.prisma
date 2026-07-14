@@ -29,12 +29,10 @@ model User {
   // Telefon numarası ASLA düz metin saklanmaz, sadece hash (Bölüm 10).
   phoneNumberHash String     @unique @map("phone_number_hash")
   displayName     String?    @map("display_name")
-  // Kullanici istegi: girisin bir parcasi olarak secilen basit
-  // cizgisel avatar - hicbir gercek kimlik bilgisi tasimaz, sadece
+  // Kullanici istegi: girisin bir parcasi olarak secilen 10 hazir
+  // avatardan biri - hicbir gercek kimlik bilgisi tasimaz, sadece
   // gorsel bir tercih (Bolum 8 gizlilik modeline aykiri degil).
-  avatarAgeGender String?    @map("avatar_age_gender") // "genc-erkek" | "genc-kiz" | "yetiskin-kadin" | "yetiskin-erkek"
-  avatarHairLength String?   @map("avatar_hair_length") // "kisa" | "uzun"
-  avatarHasGlasses Boolean?  @map("avatar_has_glasses")
+  avatarId String? @map("avatar_id") // bkz. frontend AVATARS listesi
   createdAt       DateTime   @default(now()) @map("created_at")
   lastSeenAt      DateTime?  @map("last_seen_at")
   status          UserStatus @default(active)
