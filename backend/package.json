@@ -7,7 +7,7 @@
     "build": "nest build",
     "dev": "nest start --watch",
     "start": "node dist/main",
-    "postinstall": "npx prisma generate",
+    "postinstall": "node node_modules/prisma/build/index.js generate",
     "test": "jest",
     "test:cov": "jest --coverage",
     "prisma:generate": "prisma generate",
