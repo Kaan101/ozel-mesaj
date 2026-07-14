@@ -7,14 +7,25 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch } from "@/lib/api-client";
 
-const SEEN_COUNT_KEY = "mesajlarim_seen_count";
+const SEEN_IDS_KEY = "seen_thread_ids";
+
+function loadSeenIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SEEN_IDS_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
 
 // Kullanici geri bildirimi: tum ekranlarda sol tarafta ana menuye
 // donmeyi saglayacak bir yol olsun. Bu bileson layout.tsx uzerinden
 // TUM sayfalarda otomatik gorunur - her sayfayi tek tek duzenlemeye
 // gerek kalmadan. Ayrica: kullanici baska bir mesajin icindeyken bile
 // yeni bir iletisim talebi geldiginde "Mesajlarim" linkinde bir rozet
-// gostererek haberdar eder (arka planda periyodik kontrol).
+// gostererek haberdar eder (arka planda periyodik kontrol). "Yeni"
+// tanimi, Mesajlarim sayfasindaki ile ayni (seen_thread_ids) - bir
+// mesaja TIKLANMADAN "gorulmus" sayilmaz.
 export function SiteHeader() {
   const router = useRouter();
   const pathname = usePathname();
@@ -27,16 +38,9 @@ export function SiteHeader() {
     function checkForNewThreads() {
       apiFetch<{ id: string }[]>("/threads/mine")
         .then((threads) => {
-          const seenCount = Number(localStorage.getItem(SEEN_COUNT_KEY) ?? "0");
-          if (threads.length > seenCount) {
-            setHasNewThreads(true);
-          }
-          // Zaten Mesajlarim sayfasindaysak, "gorulmus" sayacini da
-          // guncel tutalim ki rozet hemen kaybolsun.
-          if (pathname === "/mesajlarim") {
-            localStorage.setItem(SEEN_COUNT_KEY, String(threads.length));
-            setHasNewThreads(false);
-          }
+          const seenIds = loadSeenIds();
+          const anyUnseen = threads.some((t) => !seenIds.has(t.id));
+          setHasNewThreads(anyUnseen);
         })
         .catch(() => {});
     }
