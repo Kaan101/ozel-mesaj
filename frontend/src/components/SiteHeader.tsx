@@ -18,7 +18,7 @@ export function SiteHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isLoading, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, nativeLanguage, setLanguage, t } = useLanguage();
 
   // Admin ekraninda header gostermiyoruz (bilerek gizli/linksiz tutulan
   // bir ekran, ustune nav eklemek amacina aykiri olur).
@@ -35,7 +35,9 @@ export function SiteHeader() {
   // (orn. Polonya -> PL), ustte bu dil ile Ingilizce arasinda gecis
   // yapilabilen bir degistirici gosterilir. "language" zaten Ingilizce
   // ise sadece EN gorunur (kendi kendine gecis olmaz).
-  const otherLanguage = language !== "en" ? language : null;
+  // Bug duzeltmesi: "language" EN oldugunda diger secenek (nativeLanguage)
+  // artik kaybolmuyor - nativeLanguage her zaman ayrica saklaniyor.
+  const otherLanguage = nativeLanguage !== "en" ? nativeLanguage : null;
 
   return (
     <header className="mx-auto max-w-5xl px-4 py-6 flex items-center justify-between">
