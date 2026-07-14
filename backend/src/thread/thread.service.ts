@@ -54,6 +54,7 @@ export class ThreadService {
         lockType: dto.lockType,
         lockSecretHash,
         questionText: dto.lockType === "question" ? dto.questionText : null,
+        recipientPhoneDisplay: dto.recipientPhone,
         messages: {
           create: [
             {
@@ -190,19 +191,42 @@ export class ThreadService {
         originType: true,
         lockType: true,
         questionText: true,
+        recipientPhoneDisplay: true,
         createdAt: true,
         initiatorUserId: true,
+        // Kullanici geri bildirimi: listede baslik olarak gonderilen
+        // mesaj metni gorunsun - ilk mesaji da cekiyoruz.
+        messages: {
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { body: true },
+        },
       },
     });
 
-    return threads.map((t) => ({
-      id: t.id,
-      originType: t.originType,
-      lockType: t.lockType,
-      questionText: t.questionText,
-      createdAt: t.createdAt,
-      role: t.initiatorUserId === userId ? "initiator" : "recipient",
-    }));
+    return threads.map((t) => {
+      const role = t.initiatorUserId === userId ? "initiator" : "recipient";
+      // Guvenlik: mesaj govdesini (body) listede sadece (a) kilitsiz
+      // (lockType="none") thread'lerde, ya da (b) mesaji YAZAN kisi
+      // (initiator) icin gosteriyoruz. Alici, parola korumali bir
+      // mesajin icerigini kilidi acmadan gormemeli (Bolum 8 guvenlik
+      // modeli). Soru metni ise hassas degil (sadece bir ipucu,
+      // cevabin kendisi degil) - bu yuzden herkese gosterilir.
+      const canShowBody = t.lockType === "none" || role === "initiator";
+
+      return {
+        id: t.id,
+        originType: t.originType,
+        lockType: t.lockType,
+        questionText: t.questionText,
+        firstMessageBody: canShowBody ? (t.messages[0]?.body ?? null) : null,
+        // Numara sadece gonderenin KENDISINE geri gosterilir - alici
+        // veya baska hic kimseye asla donmez (Bolum 8, 10).
+        recipientPhoneDisplay: role === "initiator" ? t.recipientPhoneDisplay : null,
+        createdAt: t.createdAt,
+        role,
+      };
+    });
   }
 
   // Gorev 5.4 + 5.6: Thread'e ait mesajlari listeler ve okunmamis

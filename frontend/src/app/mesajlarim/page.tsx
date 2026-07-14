@@ -10,8 +10,10 @@ import { Card } from "@/components/ui/Card";
 interface MyThread {
   id: string;
   originType: string;
-  lockType: "password" | "question";
+  lockType: "password" | "question" | "none";
   questionText: string | null;
+  firstMessageBody: string | null;
+  recipientPhoneDisplay: string | null;
   createdAt: string;
   role: "initiator" | "recipient";
 }
@@ -61,9 +63,11 @@ export default function MesajlarimPage() {
               <Card className="hover:shadow-soft-lifted transition-shadow cursor-pointer">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="font-display text-base font-bold text-slate">
-                    {thread.lockType === "question" && thread.questionText
-                      ? thread.questionText
-                      : "Parola korumalı mesaj"}
+                    {thread.firstMessageBody
+                      ? thread.firstMessageBody
+                      : thread.lockType === "question" && thread.questionText
+                        ? thread.questionText
+                        : "Parola korumalı mesaj"}
                   </h2>
                   <span
                     className={`shrink-0 rounded-full px-3 py-1 font-body text-xs ${
@@ -76,7 +80,11 @@ export default function MesajlarimPage() {
                   </span>
                 </div>
                 <p className="mt-1 font-body text-xs text-slate-light">
-                  {thread.role === "initiator" ? "Sen gönderdin" : "Sana gönderildi"}
+                  {thread.role === "initiator" && thread.recipientPhoneDisplay
+                    ? `Kime: ${thread.recipientPhoneDisplay}`
+                    : thread.role === "initiator"
+                      ? "Sen gönderdin"
+                      : "Sana gönderildi"}
                   {" · "}
                   {new Date(thread.createdAt).toLocaleString("tr-TR")}
                 </p>

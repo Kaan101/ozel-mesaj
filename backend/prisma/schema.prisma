@@ -76,6 +76,14 @@ model MessageThread {
   lockSecretHash String?      @map("lock_secret_hash")
   questionText   String?      @map("question_text")
 
+  // Kullanici geri bildirimi: mesajı gönderen kişi, kendi "Mesajlarım"
+  // listesinde kime gönderdiğini görebilsin. Bu, genel "numara asla
+  // düz metin saklanmaz" kuralına ("Bölüm 8, 10") bilinçli, dar
+  // kapsamlı bir istisna - sadece göndericinin KENDİ YAZDIĞI numarayı,
+  // SADECE KENDİSİNE (initiator'a) geri gösteriyoruz. Alıcıya veya
+  // başka hiç kimseye asla döndürülmez (bkz. listMyThreads).
+  recipientPhoneDisplay String? @map("recipient_phone_display")
+
   createdAt DateTime  @default(now()) @map("created_at")
   expiresAt DateTime? @map("expires_at")
 
