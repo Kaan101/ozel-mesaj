@@ -12,7 +12,7 @@ import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { AvatarPicker } from "@/components/ui/AvatarPicker";
 import { AvatarId } from "@/components/ui/Avatar";
 
-type Step = "phone" | "otp" | "avatar";
+type Step = "phone" | "otp" | "checking" | "avatar";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -41,7 +41,7 @@ function GirisFormContent() {
     // "avatar" adimindaysak yonlendirmeyelim - kullanici az once
     // giris yapti (isAuthenticated true oldu) ama once avatar
     // secimini tamamlamasi gerekiyor.
-    if (!authLoading && isAuthenticated && step !== "avatar") {
+    if (!authLoading && isAuthenticated && step !== "avatar" && step !== "checking") {
       const next = searchParams.get("next") ?? "/";
       router.replace(next);
     }
@@ -125,6 +125,14 @@ function GirisFormContent() {
         }
       );
       login(data.access_token, data.refresh_token);
+      // Kullanici geri bildirimi (bug duzeltmesi): login() cagrisi
+      // isAuthenticated'i senkron olmayan bir sekilde true yapiyor,
+      // bu da asagidaki "zaten giris yapmissa yonlendir" useEffect'inin
+      // - biz henuz avatar kontrolunu (GET /me) bitirmeden - hemen
+      // tetiklenmesine sebep oluyordu (yaris durumu). "checking" adimina
+      // gecerek bu useEffect'in devreye girmesini geçici olarak
+      // engelliyoruz.
+      setStep("checking");
 
       // Kullanici geri bildirimi: giris akisinin bir parcasi olarak
       // avatar secimi - kullanicinin daha once avatar secmemis olmasi
@@ -163,7 +171,7 @@ function GirisFormContent() {
   // Yonlendirme gerceklesene kadar formun bir an gorunmesini (flicker)
   // onlemek icin. Avatar adimindaysak (yeni giris yapilmis, henuz
   // avatar secilmemis) bu ekrani BOS gostermeyelim.
-  if ((authLoading || isAuthenticated) && step !== "avatar") {
+  if ((authLoading || isAuthenticated) && step !== "avatar" && step !== "checking") {
     return <main className="min-h-screen bg-mint" />;
   }
 
@@ -213,6 +221,8 @@ function GirisFormContent() {
                 {isSavingAvatar ? "Kaydediliyor..." : "Devam Et"}
               </Button>
             </div>
+          ) : step === "checking" ? (
+            <p className="font-body text-sm text-slate-light text-center py-6">Kontrol ediliyor...</p>
           ) : (
             <div className="space-y-4">
               <Input
