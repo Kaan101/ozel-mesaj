@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Avatar } from "@/components/ui/Avatar";
 import { Toggle } from "@/components/ui/Toggle";
 
 interface ThreadMeta {
@@ -22,6 +23,11 @@ interface DisplayMessage {
   body: string;
   isAnonymous: boolean;
   senderUserId?: string;
+  senderAvatar?: {
+    ageGender: string | null;
+    hairLength: string | null;
+    hasGlasses: boolean | null;
+  };
   readAt: string | null;
   createdAt: string;
 }
@@ -339,10 +345,19 @@ export default function MesajGosterPage() {
                 key={msg.id}
                 className={isFromCounterpart ? "border-2 border-meadow" : ""}
               >
-                <p className="font-body text-slate">{msg.body}</p>
-                <p className="mt-2 font-body text-xs text-slate-light">
-                  {new Date(msg.createdAt).toLocaleString("tr-TR")}
-                </p>
+                <div className="flex items-start gap-3">
+                  {msg.senderAvatar && (
+                    <div className="shrink-0">
+                      <Avatar spec={msg.senderAvatar} size={36} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-body text-slate">{msg.body}</p>
+                    <p className="mt-2 font-body text-xs text-slate-light">
+                      {new Date(msg.createdAt).toLocaleString("tr-TR")}
+                    </p>
+                  </div>
+                </div>
               </Card>
             );
           })}

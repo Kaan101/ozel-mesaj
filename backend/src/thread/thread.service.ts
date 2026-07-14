@@ -283,6 +283,14 @@ export class ThreadService {
     const messages = await this.prisma.message.findMany({
       where: { threadId },
       orderBy: { createdAt: "asc" },
+      include: {
+        // Avatar gercek kimlik tasimaz (sadece cizgisel bir gorsel
+        // tercih) - bu yuzden anonim mesajlarda bile gosterilebilir,
+        // sadece senderUserId (gercek kimlik baglantisi) gizlenir.
+        sender: {
+          select: { avatarAgeGender: true, avatarHairLength: true, avatarHasGlasses: true },
+        },
+      },
     });
 
     const now = new Date();
@@ -299,6 +307,11 @@ export class ThreadService {
       body: message.body,
       isAnonymous: message.isAnonymous,
       senderUserId: message.isAnonymous ? undefined : message.senderUserId,
+      senderAvatar: {
+        ageGender: message.sender.avatarAgeGender,
+        hairLength: message.sender.avatarHairLength,
+        hasGlasses: message.sender.avatarHasGlasses,
+      },
       readAt: message.readAt ?? now,
       createdAt: message.createdAt,
     }));

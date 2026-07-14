@@ -18,7 +18,7 @@ export class UsersController {
   @Patch()
   async updateProfile(@Req() request: Request, @Body() dto: UpdateProfileDto) {
     const userId = (request as any).user.sub;
-    return this.usersService.updateProfile(userId, dto.displayName);
+    return this.usersService.updateProfile(userId, dto);
   }
 
   @Delete()

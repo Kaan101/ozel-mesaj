@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
+import { AvatarPicker } from "@/components/ui/AvatarPicker";
+import { AvatarSpec } from "@/components/ui/Avatar";
 
-type Step = "phone" | "otp";
+type Step = "phone" | "otp" | "avatar";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -27,6 +29,12 @@ function GirisFormContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [avatarSpec, setAvatarSpec] = useState<AvatarSpec>({
+    ageGender: "genc-erkek",
+    hairLength: "kisa",
+    hasGlasses: false,
+  });
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -34,11 +42,14 @@ function GirisFormContent() {
   // hala gecerliyse), /giris sayfasi tekrar form gostermemeli - dogrudan
   // hedef sayfaya (varsa ?next, yoksa ana sayfaya) yonlendirilmeli.
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    // "avatar" adimindaysak yonlendirmeyelim - kullanici az once
+    // giris yapti (isAuthenticated true oldu) ama once avatar
+    // secimini tamamlamasi gerekiyor.
+    if (!authLoading && isAuthenticated && step !== "avatar") {
       const next = searchParams.get("next") ?? "/";
       router.replace(next);
     }
-  }, [authLoading, isAuthenticated, router, searchParams]);
+  }, [authLoading, isAuthenticated, step, router, searchParams]);
 
   useEffect(() => {
     return () => {
@@ -118,6 +129,16 @@ function GirisFormContent() {
         }
       );
       login(data.access_token, data.refresh_token);
+
+      // Kullanici geri bildirimi: giris akisinin bir parcasi olarak
+      // avatar secimi - kullanicinin daha once avatar secmemis olmasi
+      // durumunda (ilk giris) bu adimi gosteriyoruz.
+      const profile = await apiFetch<{ avatarAgeGender: string | null }>("/me");
+      if (!profile.avatarAgeGender) {
+        setStep("avatar");
+        return;
+      }
+
       const next = searchParams.get("next") ?? "/";
       router.push(next);
     } catch (err) {
@@ -127,9 +148,30 @@ function GirisFormContent() {
     }
   }
 
+  async function handleSaveAvatar() {
+    setIsSavingAvatar(true);
+    try {
+      await apiFetch("/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+          avatarAgeGender: avatarSpec.ageGender,
+          avatarHairLength: avatarSpec.hairLength,
+          avatarHasGlasses: avatarSpec.hasGlasses,
+        }),
+      });
+      const next = searchParams.get("next") ?? "/";
+      router.push(next);
+    } catch {
+      setError("Avatar kaydedilemedi. Lütfen tekrar dene.");
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  }
+
   // Yonlendirme gerceklesene kadar formun bir an gorunmesini (flicker)
-  // onlemek icin.
-  if (authLoading || isAuthenticated) {
+  // onlemek icin. Avatar adimindaysak (yeni giris yapilmis, henuz
+  // avatar secilmemis) bu ekrani BOS gostermeyelim.
+  if ((authLoading || isAuthenticated) && step !== "avatar") {
     return <main className="min-h-screen bg-mint" />;
   }
 
@@ -139,12 +181,18 @@ function GirisFormContent() {
         <div className="text-center">
           <ConnectionIllustration className="w-40 h-auto mx-auto" />
           <h1 className="font-display text-2xl font-bold text-slate mt-4">
-            {step === "phone" ? "Hoş geldin" : "Doğrulama kodu"}
+            {step === "phone"
+              ? "Hoş geldin"
+              : step === "otp"
+                ? "Doğrulama kodu"
+                : "Kendini seç"}
           </h1>
           <p className="font-body text-sm text-slate-light mt-1">
             {step === "phone"
               ? "Devam etmek için telefon numaranı gir."
-              : `${phoneNumber} numarasına gönderdiğimiz kodu gir.`}
+              : step === "otp"
+                ? `${phoneNumber} numarasına gönderdiğimiz kodu gir.`
+                : "Seni temsil edecek bir avatar seç."}
           </p>
         </div>
 
@@ -163,6 +211,14 @@ function GirisFormContent() {
                 disabled={isSubmitting || phoneNumber.trim().length < 10}
               >
                 {isSubmitting ? "Gönderiliyor..." : "Kod Gönder"}
+              </Button>
+            </div>
+          ) : step === "avatar" ? (
+            <div className="space-y-4">
+              <AvatarPicker spec={avatarSpec} onChange={setAvatarSpec} />
+              {error && <p className="font-body text-sm text-coral">{error}</p>}
+              <Button className="w-full" onClick={handleSaveAvatar} disabled={isSavingAvatar}>
+                {isSavingAvatar ? "Kaydediliyor..." : "Devam Et"}
               </Button>
             </div>
           ) : (

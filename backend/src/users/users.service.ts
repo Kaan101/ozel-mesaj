@@ -16,23 +16,38 @@ export class UsersService {
     return {
       id: user.id,
       displayName: user.displayName,
+      avatarAgeGender: user.avatarAgeGender,
+      avatarHairLength: user.avatarHairLength,
+      avatarHasGlasses: user.avatarHasGlasses,
       status: user.status,
       createdAt: user.createdAt,
       lastSeenAt: user.lastSeenAt,
     };
   }
 
-  // Gorev 8.2: Sadece displayName gibi zararsiz alanlarin guncellenmesine
-  // izin verilir (Bolum 9).
-  async updateProfile(userId: string, displayName?: string) {
+  // Gorev 8.2 (genisletildi): displayName ve avatar tercihleri
+  // guncellenebilir (Bolum 9). Avatar gercek kimlik tasimaz, sadece
+  // gorsel bir secim.
+  async updateProfile(
+    userId: string,
+    updates: {
+      displayName?: string;
+      avatarAgeGender?: string;
+      avatarHairLength?: string;
+      avatarHasGlasses?: boolean;
+    }
+  ) {
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: { displayName },
+      data: updates,
     });
 
     return {
       id: user.id,
       displayName: user.displayName,
+      avatarAgeGender: user.avatarAgeGender,
+      avatarHairLength: user.avatarHairLength,
+      avatarHasGlasses: user.avatarHasGlasses,
     };
   }
 

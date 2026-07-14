@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Avatar } from "@/components/ui/Avatar";
 import { Toggle } from "@/components/ui/Toggle";
 
 interface PoolEntryDetail {
@@ -22,6 +23,11 @@ interface DisplayMessage {
   id: string;
   body: string;
   isAnonymous: boolean;
+  senderAvatar?: {
+    ageGender: string | null;
+    hairLength: string | null;
+    hasGlasses: boolean | null;
+  };
   createdAt: string;
 }
 
@@ -180,7 +186,14 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
                 key={msg.id}
                 className={isFromCounterpart ? "border-2 border-meadow" : ""}
               >
-                <p className="font-body text-slate">{msg.body}</p>
+                <div className="flex items-start gap-3">
+                  {msg.senderAvatar && (
+                    <div className="shrink-0">
+                      <Avatar spec={msg.senderAvatar} size={36} />
+                    </div>
+                  )}
+                  <p className="font-body text-slate min-w-0 flex-1">{msg.body}</p>
+                </div>
               </Card>
             );
           })}

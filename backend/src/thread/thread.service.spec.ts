@@ -138,6 +138,7 @@ describe("ThreadService", () => {
           senderUserId: "user-1",
           readAt: null,
           createdAt: new Date(),
+          sender: { avatarAgeGender: null, avatarHairLength: null, avatarHasGlasses: null },
         },
         {
           id: "m2",
@@ -146,6 +147,7 @@ describe("ThreadService", () => {
           senderUserId: "user-2",
           readAt: new Date(),
           createdAt: new Date(),
+          sender: { avatarAgeGender: null, avatarHairLength: null, avatarHasGlasses: null },
         },
       ]);
 
