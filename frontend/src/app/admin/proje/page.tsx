@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -208,6 +209,9 @@ export default function AdminProjePage() {
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-2xl space-y-4">
+        <Link href="/admin" className="font-body text-sm text-sky underline underline-offset-2">
+          ← Yönetim Paneli
+        </Link>
         <h1 className="font-display text-2xl font-bold text-slate">Proje / Görev Takibi</h1>
 
         {/* Yeni görev formu - iki satir: ust satir baslik+oncelik+tarih+ekle, alt satir aciklama */}
