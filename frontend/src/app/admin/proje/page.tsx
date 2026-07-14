@@ -15,13 +15,6 @@ interface Task {
   createdAt: string;
 }
 
-const STATUS_LABELS: Record<Task["status"], string> = {
-  pending: "Bekliyor",
-  in_progress: "Geliştirme",
-  completed: "Tamamlandı",
-  cancelled: "İptal",
-};
-
 const STATUS_COLORS: Record<Task["status"], string> = {
   pending: "bg-sun/30 text-slate",
   in_progress: "bg-sky-light text-sky",
@@ -174,42 +167,34 @@ export default function AdminProjePage() {
       <div className="mx-auto max-w-2xl space-y-4">
         <h1 className="font-display text-2xl font-bold text-slate">Proje / Görev Takibi</h1>
 
-        {/* Yeni görev formu */}
-        <Card lifted className="space-y-3">
-          <h2 className="font-display text-sm font-bold text-slate">Yeni Görev</h2>
-          <Input
-            label="Başlık"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-          />
-          <Input
-            label="Açıklama (opsiyonel)"
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-display text-sm font-semibold text-slate">Öncelik</label>
-              <select
-                value={newPriority}
-                onChange={(e) => setNewPriority(e.target.value as Task["priority"])}
-                className="mt-1.5 w-full rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-body text-slate"
-              >
-                <option value="low">Düşük</option>
-                <option value="medium">Orta</option>
-                <option value="high">Yüksek</option>
-              </select>
-            </div>
-            <Input
-              label="Tarih (opsiyonel)"
+        {/* Yeni görev formu - kompakt, tek satir */}
+        <Card className="py-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Görev başlığı..."
+              className="min-w-[160px] flex-1 rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:border-sky"
+            />
+            <select
+              value={newPriority}
+              onChange={(e) => setNewPriority(e.target.value as Task["priority"])}
+              className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate"
+            >
+              <option value="low">Düşük</option>
+              <option value="medium">Orta</option>
+              <option value="high">Yüksek</option>
+            </select>
+            <input
               type="date"
               value={newDueDate}
               onChange={(e) => setNewDueDate(e.target.value)}
+              className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate"
             />
+            <Button onClick={handleCreate} disabled={isCreating || !newTitle}>
+              {isCreating ? "..." : "Ekle"}
+            </Button>
           </div>
-          <Button onClick={handleCreate} disabled={isCreating || !newTitle}>
-            {isCreating ? "Ekleniyor..." : "Görev Ekle"}
-          </Button>
         </Card>
 
         {/* Filtreler */}
@@ -246,53 +231,73 @@ export default function AdminProjePage() {
             <p className="font-body text-slate-light text-center py-6">Görev yok.</p>
           </Card>
         ) : (
-          tasks.map((task) => (
-            <Card key={task.id}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <h3 className="font-display text-sm font-bold text-slate">{task.title}</h3>
-                  {task.description && (
-                    <p className="mt-0.5 font-body text-xs text-slate-light">
-                      {task.description}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-3 py-1 font-body text-xs ${STATUS_COLORS[task.status]}`}
-                    >
-                      {STATUS_LABELS[task.status]}
-                    </span>
-                    <span className="rounded-full bg-whisper-light px-3 py-1 font-body text-xs text-slate">
-                      Öncelik: {PRIORITY_LABELS[task.priority]}
-                    </span>
-                    {task.dueDate && (
-                      <span className="font-body text-xs text-slate-light">
-                        {new Date(task.dueDate).toLocaleDateString("tr-TR")}
+          <div className="overflow-x-auto rounded-bubble bg-white shadow-soft">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-sky-light/50">
+                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                    Başlık
+                  </th>
+                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                    Öncelik
+                  </th>
+                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                    Durum
+                  </th>
+                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                    Tarih
+                  </th>
+                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                    İşlem
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {tasks.map((task) => (
+                  <tr key={task.id} className="border-b border-sky-light/30 last:border-0">
+                    <td className="px-4 py-2 font-body text-sm text-slate">
+                      {task.title}
+                      {task.description && (
+                        <p className="font-body text-xs text-slate-light">{task.description}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className="rounded-full bg-whisper-light px-2 py-0.5 font-body text-xs text-slate">
+                        {PRIORITY_LABELS[task.priority]}
                       </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <select
-                  value={task.status}
-                  onChange={(e) => handleUpdateStatus(task.id, e.target.value as Task["status"])}
-                  className="rounded-full border-2 border-sky-light bg-white px-3 py-1 font-body text-xs text-slate"
-                >
-                  <option value="pending">Bekliyor</option>
-                  <option value="in_progress">Geliştirme</option>
-                  <option value="completed">Tamamlandı</option>
-                  <option value="cancelled">İptal</option>
-                </select>
-                <button
-                  onClick={() => handleDelete(task.id)}
-                  className="font-body text-xs text-coral underline underline-offset-2"
-                >
-                  Sil
-                </button>
-              </div>
-            </Card>
-          ))
+                    </td>
+                    <td className="px-4 py-2">
+                      <select
+                        value={task.status}
+                        onChange={(e) =>
+                          handleUpdateStatus(task.id, e.target.value as Task["status"])
+                        }
+                        className={`rounded-full border-0 px-2 py-1 font-body text-xs ${STATUS_COLORS[task.status]}`}
+                      >
+                        <option value="pending">Bekliyor</option>
+                        <option value="in_progress">Geliştirme</option>
+                        <option value="completed">Tamamlandı</option>
+                        <option value="cancelled">İptal</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-2 font-body text-xs text-slate-light whitespace-nowrap">
+                      {task.dueDate
+                        ? new Date(task.dueDate).toLocaleDateString("tr-TR")
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        onClick={() => handleDelete(task.id)}
+                        className="font-body text-xs text-coral underline underline-offset-2"
+                      >
+                        Sil
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </main>
