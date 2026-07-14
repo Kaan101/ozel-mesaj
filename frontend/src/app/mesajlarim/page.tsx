@@ -159,45 +159,52 @@ function ThreadSection({
             >
               <Card
                 className={`hover:shadow-soft-lifted transition-shadow cursor-pointer ${
-                  isNew ? "border-2 border-coral" : ""
+                  isNew ? "border-2 border-meadow" : ""
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h3
-                    className={`font-display text-base text-slate flex items-center gap-2 ${
-                      isNew ? "font-bold" : "font-normal"
-                    }`}
-                  >
+                  <div className="min-w-0 flex-1">
+                    <h3
+                      className={`font-display text-base text-slate ${
+                        isNew ? "font-bold" : "font-normal"
+                      }`}
+                    >
+                      {thread.firstMessageBody
+                        ? thread.firstMessageBody
+                        : thread.lockType === "question" && thread.questionText
+                          ? thread.questionText
+                          : "Parola korumalı mesaj"}
+                    </h3>
+                    <p className="mt-1 font-body text-xs text-slate-light">
+                      {thread.role === "initiator" && thread.recipientPhoneDisplay
+                        ? `Kime: ${thread.recipientPhoneDisplay}`
+                        : thread.role === "initiator"
+                          ? "Sen gönderdin"
+                          : "Sana gönderildi"}
+                      {" · "}
+                      {new Date(thread.createdAt).toLocaleString("tr-TR")}
+                    </p>
+                  </div>
+
+                  {/* Kullanici geri bildirimi: yeni mesaj gostergesi
+                      her satirin kendi ustunde, WhatsApp benzeri. */}
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span
+                      className={`rounded-full px-3 py-1 font-body text-xs ${
+                        thread.originType === "pool"
+                          ? "bg-sky-light text-sky"
+                          : "bg-meadow-light text-meadow-hover"
+                      }`}
+                    >
+                      {thread.originType === "pool" ? "Havuz" : "Doğrudan"}
+                    </span>
                     {isNew && (
-                      <span className="rounded-full bg-coral px-2 py-0.5 font-body text-[10px] font-bold text-white">
-                        YENİ
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
+                        1
                       </span>
                     )}
-                    {thread.firstMessageBody
-                      ? thread.firstMessageBody
-                      : thread.lockType === "question" && thread.questionText
-                        ? thread.questionText
-                        : "Parola korumalı mesaj"}
-                  </h3>
-                  <span
-                    className={`shrink-0 rounded-full px-3 py-1 font-body text-xs ${
-                      thread.originType === "pool"
-                        ? "bg-sky-light text-sky"
-                        : "bg-meadow-light text-meadow-hover"
-                    }`}
-                  >
-                    {thread.originType === "pool" ? "Havuz" : "Doğrudan"}
-                  </span>
+                  </div>
                 </div>
-                <p className="mt-1 font-body text-xs text-slate-light">
-                  {thread.role === "initiator" && thread.recipientPhoneDisplay
-                    ? `Kime: ${thread.recipientPhoneDisplay}`
-                    : thread.role === "initiator"
-                      ? "Sen gönderdin"
-                      : "Sana gönderildi"}
-                  {" · "}
-                  {new Date(thread.createdAt).toLocaleString("tr-TR")}
-                </p>
               </Card>
             </Link>
           );
