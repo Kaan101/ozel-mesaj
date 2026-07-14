@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/language-context";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -49,6 +50,7 @@ function saveSeenIds(ids: Set<string>) {
 export default function MesajlarimPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { t, language } = useLanguage();
   const [threads, setThreads] = useState<MyThread[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
@@ -113,31 +115,35 @@ export default function MesajlarimPage() {
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
-        <h1 className="font-display text-2xl font-bold text-slate">Mesajlarım</h1>
+        <h1 className="font-display text-2xl font-bold text-slate">{t("mesajlarim.title")}</h1>
 
         {isLoading ? (
-          <p className="font-body text-slate-light">Yükleniyor...</p>
+          <p className="font-body text-slate-light">{t("mesajlarim.loading")}</p>
         ) : threads.length === 0 ? (
           <Card>
             <p className="font-body text-slate-light text-center py-6">
-              Henüz bir mesajın yok.
+              {t("mesajlarim.empty")}
             </p>
           </Card>
         ) : (
           <>
             <ThreadSection
-              title="📥 Bana Gelenler"
+              title={t("mesajlarim.received")}
               threads={receivedThreads}
               seenIds={seenIds}
               onOpen={handleOpenThread}
               onDelete={handleDeleteThread}
+              t={t}
+              language={language}
             />
             <ThreadSection
-              title="📤 Gönderdiklerim"
+              title={t("mesajlarim.sent")}
               threads={sentThreads}
               seenIds={seenIds}
               onOpen={handleOpenThread}
               onDelete={handleDeleteThread}
+              t={t}
+              language={language}
             />
           </>
         )}
@@ -152,12 +158,16 @@ function ThreadSection({
   seenIds,
   onOpen,
   onDelete,
+  t,
+  language,
 }: {
   title: string;
   threads: MyThread[];
   seenIds: Set<string>;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
+  t: ReturnType<typeof useLanguage>["t"];
+  language: string;
 }) {
   if (threads.length === 0) return null;
 
@@ -193,16 +203,18 @@ function ThreadSection({
                           ? thread.firstMessageBody
                           : thread.lockType === "question" && thread.questionText
                             ? thread.questionText
-                            : "Parola korumalı mesaj"}
+                            : t("mesajlarim.passwordProtected")}
                       </h3>
                       <p className="mt-1 font-body text-xs text-slate-light">
                         {thread.role === "initiator" && thread.recipientPhoneDisplay
-                          ? `Kime: ${thread.recipientPhoneDisplay}`
+                          ? `${t("mesajlarim.to")} ${thread.recipientPhoneDisplay}`
                           : thread.role === "initiator"
-                            ? "Sen gönderdin"
-                            : "Sana gönderildi"}
+                            ? t("mesajlarim.youSent")
+                            : t("mesajlarim.sentToYou")}
                         {" · "}
-                        {new Date(thread.lastMessageAt).toLocaleString("tr-TR")}
+                        {new Date(thread.lastMessageAt).toLocaleString(
+                          language === "en" ? "en-US" : "tr-TR"
+                        )}
                       </p>
                     </div>
 
@@ -216,7 +228,9 @@ function ThreadSection({
                             : "bg-meadow-light text-meadow-hover"
                         }`}
                       >
-                        {thread.originType === "pool" ? "Havuz" : "Doğrudan"}
+                        {thread.originType === "pool"
+                          ? t("mesajlarim.pool")
+                          : t("mesajlarim.direct")}
                       </span>
                       {isNew && (
                         <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
@@ -235,12 +249,12 @@ function ThreadSection({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (confirm("Bu konuşmayı listenden kaldırmak istiyor musun?")) {
+                  if (confirm(t("mesajlarim.deleteConfirm"))) {
                     onDelete(thread.id);
                   }
                 }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-slate-light hover:bg-coral-light hover:text-coral"
-                aria-label="Sil"
+                aria-label={t("mesajlarim.delete")}
               >
                 🗑️
               </button>

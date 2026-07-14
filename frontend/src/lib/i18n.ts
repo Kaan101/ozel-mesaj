@@ -165,7 +165,20 @@ type TranslationKey =
   | "havuz.leaveQuestion"
   | "havuz.all"
   | "havuz.loading"
-  | "havuz.empty";
+  | "havuz.empty"
+  | "mesajlarim.title"
+  | "mesajlarim.loading"
+  | "mesajlarim.empty"
+  | "mesajlarim.received"
+  | "mesajlarim.sent"
+  | "mesajlarim.passwordProtected"
+  | "mesajlarim.to"
+  | "mesajlarim.youSent"
+  | "mesajlarim.sentToYou"
+  | "mesajlarim.pool"
+  | "mesajlarim.direct"
+  | "mesajlarim.deleteConfirm"
+  | "mesajlarim.delete";
 
 export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, string>>> = {
   tr: {
@@ -263,6 +276,19 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "havuz.all": "Tümü",
     "havuz.loading": "Yükleniyor...",
     "havuz.empty": "Bu kategoride henüz bir soru yok.",
+    "mesajlarim.title": "Mesajlarım",
+    "mesajlarim.loading": "Yükleniyor...",
+    "mesajlarim.empty": "Henüz bir mesajın yok.",
+    "mesajlarim.received": "📥 Bana Gelenler",
+    "mesajlarim.sent": "📤 Gönderdiklerim",
+    "mesajlarim.passwordProtected": "Parola korumalı mesaj",
+    "mesajlarim.to": "Kime:",
+    "mesajlarim.youSent": "Sen gönderdin",
+    "mesajlarim.sentToYou": "Sana gönderildi",
+    "mesajlarim.pool": "Havuz",
+    "mesajlarim.direct": "Doğrudan",
+    "mesajlarim.deleteConfirm": "Bu konuşmayı listenden kaldırmak istiyor musun?",
+    "mesajlarim.delete": "Sil",
   },
   en: {
     "nav.pool": "Pool",
@@ -359,6 +385,19 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "havuz.all": "All",
     "havuz.loading": "Loading...",
     "havuz.empty": "No questions in this category yet.",
+    "mesajlarim.title": "My Messages",
+    "mesajlarim.loading": "Loading...",
+    "mesajlarim.empty": "You don't have any messages yet.",
+    "mesajlarim.received": "📥 Received",
+    "mesajlarim.sent": "📤 Sent",
+    "mesajlarim.passwordProtected": "Password-protected message",
+    "mesajlarim.to": "To:",
+    "mesajlarim.youSent": "You sent this",
+    "mesajlarim.sentToYou": "Sent to you",
+    "mesajlarim.pool": "Pool",
+    "mesajlarim.direct": "Direct",
+    "mesajlarim.deleteConfirm": "Remove this conversation from your list?",
+    "mesajlarim.delete": "Delete",
   },
 };
 
