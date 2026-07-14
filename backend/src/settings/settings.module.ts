@@ -1,6 +1,8 @@
 import { Global, Module } from "@nestjs/common";
 import { SettingsController } from "./settings.controller";
 import { SettingsService } from "./settings.service";
+import { AdminTasksController } from "./tasks/admin-tasks.controller";
+import { AdminTasksService } from "./tasks/admin-tasks.service";
 
 // Kullanici geri bildirimi: SettingsService birden fazla modulde
 // (JobsModule, AuthModule, ThreadModule, PoolModule, SafetyModule)
@@ -11,8 +13,8 @@ import { SettingsService } from "./settings.service";
 // kullandigimiz ayni desen, Bolum 3).
 @Global()
 @Module({
-  controllers: [SettingsController],
-  providers: [SettingsService],
+  controllers: [SettingsController, AdminTasksController],
+  providers: [SettingsService, AdminTasksService],
   exports: [SettingsService],
 })
 export class SettingsModule {}
