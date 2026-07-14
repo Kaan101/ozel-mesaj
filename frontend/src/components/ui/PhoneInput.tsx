@@ -9,6 +9,10 @@ interface PhoneInputProps {
   label?: string;
   value: string; // tam numara, orn. "+905321234567"
   onChange: (fullPhone: string) => void;
+  // Kullanici istegi: girisin bir parcasi olarak, secilen ulke koduna
+  // gore dil otomatik onerilsin diye - sadece /giris sayfasinda
+  // kullanilir, alici numarasi formlarinda gerekmez.
+  onCountryChange?: (iso2: string) => void;
 }
 
 // Kullanici istegi: ulke kodu ayri, bayrakli/kodlu bir dropdown'dan
@@ -16,7 +20,7 @@ interface PhoneInputProps {
 // algilansin; algilanamazsa kullanicinin ONCEKI secimi (localStorage)
 // varsayilan olarak gelsin, o da yoksa Turkiye varsayilan kalsin.
 // Telefon numarasi kismi da yazarken gruplar halinde formatlanir.
-export function PhoneInput({ label, value, onChange }: PhoneInputProps) {
+export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInputProps) {
   const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
   const [nationalDigits, setNationalDigits] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -31,7 +35,10 @@ export function PhoneInput({ label, value, onChange }: PhoneInputProps) {
     const storedIso2 = localStorage.getItem(STORAGE_KEY);
     const stored = storedIso2 ? COUNTRIES.find((c) => c.iso2 === storedIso2) : null;
     const detected = detectCountryFromLocale();
-    setCountry(stored ?? detected ?? COUNTRIES[0]);
+    const initial = stored ?? detected ?? COUNTRIES[0];
+    setCountry(initial);
+    onCountryChange?.(initial.iso2);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Disariya her degisiklikte tam numarayi bildir.
@@ -59,6 +66,7 @@ export function PhoneInput({ label, value, onChange }: PhoneInputProps) {
     setCountry(c);
     localStorage.setItem(STORAGE_KEY, c.iso2);
     setIsDropdownOpen(false);
+    onCountryChange?.(c.iso2);
   }
 
   function handleNationalInput(raw: string) {

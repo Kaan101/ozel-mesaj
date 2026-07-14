@@ -3,6 +3,7 @@ import { Baloo_2, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-service-worker";
 import { AuthProvider } from "@/lib/auth-context";
+import { LanguageProvider } from "@/lib/language-context";
 import { SiteHeader } from "@/components/SiteHeader";
 
 const baloo = Baloo_2({
@@ -64,11 +65,13 @@ export default function RootLayout({
   return (
     <html lang="tr" className={`${baloo.variable} ${inter.variable} ${plexMono.variable}`}>
       <body className="font-body bg-mint text-slate">
-        <AuthProvider>
-          <SiteHeader />
-          {children}
-          <RegisterServiceWorker />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <SiteHeader />
+            {children}
+            <RegisterServiceWorker />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

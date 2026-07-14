@@ -11,6 +11,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { AvatarPicker } from "@/components/ui/AvatarPicker";
 import { AvatarId } from "@/components/ui/Avatar";
+import { useLanguage } from "@/lib/language-context";
 
 type Step = "phone" | "otp" | "checking" | "avatar";
 
@@ -22,6 +23,7 @@ function GirisFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { t, language, setLanguageFromCountry } = useLanguage();
 
   const [step, setStep] = useState<Step>("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -182,17 +184,21 @@ function GirisFormContent() {
           <ConnectionIllustration className="w-40 h-auto mx-auto" />
           <h1 className="font-display text-2xl font-bold text-slate mt-4">
             {step === "phone"
-              ? "Hoş geldin"
+              ? t("giris.title.phone")
               : step === "otp"
-                ? "Doğrulama kodu"
-                : "Kendini seç"}
+                ? t("giris.title.otp")
+                : step === "checking"
+                  ? t("giris.title.checking")
+                  : t("giris.title.avatar")}
           </h1>
           <p className="font-body text-sm text-slate-light mt-1">
             {step === "phone"
-              ? "Devam etmek için telefon numaranı gir."
+              ? t("giris.subtitle.phone")
               : step === "otp"
-                ? `${phoneNumber} numarasına gönderdiğimiz kodu gir.`
-                : "Seni temsil edecek bir avatar seç."}
+                ? language === "en"
+                  ? `${t("giris.subtitle.otp")} ${phoneNumber}.`
+                  : `${phoneNumber} ${t("giris.subtitle.otp")}`
+                : t("giris.subtitle.avatar")}
           </p>
         </div>
 
@@ -200,9 +206,10 @@ function GirisFormContent() {
           {step === "phone" ? (
             <div className="space-y-4">
               <PhoneInput
-                label="Telefon Numarası"
+                label={t("giris.phoneLabel")}
                 value={phoneNumber}
                 onChange={setPhoneNumber}
+                onCountryChange={setLanguageFromCountry}
               />
               {error && <p className="font-body text-sm text-coral">{error}</p>}
               <Button
@@ -210,7 +217,7 @@ function GirisFormContent() {
                 onClick={handleRequestOtp}
                 disabled={isSubmitting || phoneNumber.trim().length < 10}
               >
-                {isSubmitting ? "Gönderiliyor..." : "Kod Gönder"}
+                {isSubmitting ? t("giris.sending") : t("giris.sendCode")}
               </Button>
             </div>
           ) : step === "avatar" ? (
@@ -218,15 +225,15 @@ function GirisFormContent() {
               <AvatarPicker value={selectedAvatarId} onChange={setSelectedAvatarId} />
               {error && <p className="font-body text-sm text-coral">{error}</p>}
               <Button className="w-full" onClick={handleSaveAvatar} disabled={isSavingAvatar}>
-                {isSavingAvatar ? "Kaydediliyor..." : "Devam Et"}
+                {isSavingAvatar ? t("giris.saving") : t("giris.continue")}
               </Button>
             </div>
           ) : step === "checking" ? (
-            <p className="font-body text-sm text-slate-light text-center py-6">Kontrol ediliyor...</p>
+            <p className="font-body text-sm text-slate-light text-center py-6">{t("giris.checking")}</p>
           ) : (
             <div className="space-y-4">
               <Input
-                label="Doğrulama Kodu"
+                label={t("giris.otpLabel")}
                 placeholder="1234"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
@@ -241,14 +248,14 @@ function GirisFormContent() {
                 onClick={handleVerifyOtp}
                 disabled={isSubmitting || code.trim().length < 4}
               >
-                {isSubmitting ? "Doğrulanıyor..." : "Doğrula ve Devam Et"}
+                {isSubmitting ? t("giris.verifying") : t("giris.verify")}
               </Button>
 
               {/* Gorev 10.2: Geri sayimli "yeniden gonder" */}
               <div className="text-center">
                 {cooldown > 0 ? (
                   <p className="font-body text-sm text-slate-light">
-                    Yeniden gönder ({cooldown}s)
+                    {t("giris.resend")} ({cooldown}s)
                   </p>
                 ) : (
                   <button
@@ -257,7 +264,7 @@ function GirisFormContent() {
                     disabled={isSubmitting}
                     className="font-body text-sm text-sky underline underline-offset-2 disabled:opacity-50"
                   >
-                    Kodu tekrar gönder
+                    {t("giris.resend")}
                   </button>
                 )}
               </div>
@@ -271,7 +278,7 @@ function GirisFormContent() {
                 }}
                 className="w-full font-body text-xs text-slate-light underline underline-offset-2"
               >
-                Numarayı değiştir
+                {t("giris.changeNumber")}
               </button>
             </div>
           )}
