@@ -159,7 +159,13 @@ type TranslationKey =
   | "havuzOlustur.sentPublicDesc"
   | "havuzOlustur.sentUnlistedDesc"
   | "havuzOlustur.goToPool"
-  | "havuzOlustur.leaveAnother";
+  | "havuzOlustur.leaveAnother"
+  | "havuz.title"
+  | "havuz.subtitle"
+  | "havuz.leaveQuestion"
+  | "havuz.all"
+  | "havuz.loading"
+  | "havuz.empty";
 
 export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, string>>> = {
   tr: {
@@ -251,6 +257,12 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "havuzOlustur.sentUnlistedDesc": "Sadece paylaştığın linkle erişilebilir.",
     "havuzOlustur.goToPool": "Havuza Git",
     "havuzOlustur.leaveAnother": "Başka bir soru daha bırak",
+    "havuz.title": "Havuz",
+    "havuz.subtitle": "Ortak bir bilgiyi paylaştığın biriyle karşılaş.",
+    "havuz.leaveQuestion": "Soru Bırak",
+    "havuz.all": "Tümü",
+    "havuz.loading": "Yükleniyor...",
+    "havuz.empty": "Bu kategoride henüz bir soru yok.",
   },
   en: {
     "nav.pool": "Pool",
@@ -341,6 +353,12 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "havuzOlustur.sentUnlistedDesc": "Only reachable through the link you shared.",
     "havuzOlustur.goToPool": "Go to Pool",
     "havuzOlustur.leaveAnother": "Leave another question",
+    "havuz.title": "Pool",
+    "havuz.subtitle": "Meet someone who shares something in common with you.",
+    "havuz.leaveQuestion": "Leave a Question",
+    "havuz.all": "All",
+    "havuz.loading": "Loading...",
+    "havuz.empty": "No questions in this category yet.",
   },
 };
 
