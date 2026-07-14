@@ -42,7 +42,9 @@ export class ThreadService {
       throw new ForbiddenException("Bu kullaniciya mesaj gonderemezsiniz.");
     }
 
-    const lockSecretHash = await hashSecret(dto.lockSecret);
+    // "none" modunda hash'lenecek bir sir yok (kullanici geri
+    // bildirimi: bilinen alici icin kilit zorunlu olmasin).
+    const lockSecretHash = dto.lockType === "none" ? null : await hashSecret(dto.lockSecret!);
 
     const thread = await this.prisma.messageThread.create({
       data: {
@@ -104,6 +106,21 @@ export class ThreadService {
 
     if (!thread) {
       throw new NotFoundException("Thread bulunamadi.");
+    }
+
+    // Savunma kontrolu: lockType "none" olan bir thread icin unlock
+    // cagirilmasi normalde beklenmez (frontend dogrudan erisir), ama
+    // yine de gecerli bir token uretip devam edelim.
+    if (thread.lockType === "none" || !thread.lockSecretHash) {
+      await this.redis.del(attemptsKey);
+      const threadAccessToken = await this.jwt.signAsync(
+        { threadId: thread.id },
+        {
+          secret: process.env.JWT_THREAD_ACCESS_SECRET,
+          expiresIn: process.env.JWT_THREAD_ACCESS_EXPIRES_IN ?? "10m",
+        }
+      );
+      return { threadAccessToken };
     }
 
     const isMatch = await compareSecret(secret, thread.lockSecretHash);

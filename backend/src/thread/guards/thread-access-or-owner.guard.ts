@@ -13,7 +13,10 @@ import { PrismaService } from "../../common/prisma.service";
 // gonderdigi mesaji tekrar tekrar "acmak" icin ayni bilgiyi yeniden
 // girmesini istemek gereksiz surtunme yaratiyordu. Ayni sekilde, bir
 // ALICI da bir kez dogru parolayi/cevabi girdiyse, bir daha (cikis
-// yapsa/tarayici kapatsa bile) tekrar sorulmamali. Bu guard, uc yoldan
+// yapsa/tarayici kapatsa bile) tekrar sorulmamali. Ayrica lockType
+// "none" olan (kilitsiz - Ona Mesaj Gonder akisinda alici zaten
+// bilindigi icin kilit zorunlu degil) thread'lerde HER IKI taraf da
+// (initiator VE recipient) direkt erisebilir. Bu guard, dort yoldan
 // biriyle erisime izin verir:
 //  1) Gecerli bir thread_access_token (bilgiye dayali - kisa omurlu).
 //  2) Gecerli bir Katman 1 access_token VE bu kullanicinin thread'i
@@ -21,6 +24,8 @@ import { PrismaService } from "../../common/prisma.service";
 //  3) Gecerli bir Katman 1 access_token VE bu kullanicinin bu thread'i
 //     daha once basariyla actigina dair kalici bir kayit (ThreadUnlock)
 //     olmasi.
+//  4) Thread'in lockType'i "none" ise VE kullanici bu thread'in
+//     initiator VEYA recipient'i ise.
 @Injectable()
 export class ThreadAccessOrOwnerGuard implements CanActivate {
   constructor(
@@ -50,9 +55,8 @@ export class ThreadAccessOrOwnerGuard implements CanActivate {
       // Bu bir thread_access_token degilmis - asagida Katman 1 olarak dene.
     }
 
-    // 2) + 3) Katman 1 (kullanici kimligi) token'i olarak dogrulamayi
-    // dene - ya thread'i olusturan kisi (initiator) ya da daha once
-    // basariyla acmis (ThreadUnlock kaydi olan) kisi icin gecerli.
+    // 2) + 3) + 4) Katman 1 (kullanici kimligi) token'i olarak
+    // dogrulamayi dene.
     try {
       const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
         secret: process.env.JWT_ACCESS_SECRET,
@@ -60,10 +64,23 @@ export class ThreadAccessOrOwnerGuard implements CanActivate {
 
       const thread = await this.prisma.messageThread.findUnique({
         where: { id: routeThreadId },
-        select: { initiatorUserId: true },
+        select: { initiatorUserId: true, recipientUserId: true, lockType: true },
       });
 
-      if (thread && thread.initiatorUserId === payload.sub) {
+      if (!thread) {
+        throw new UnauthorizedException("Bu thread'e erisim yetkiniz yok.");
+      }
+
+      const isParticipant =
+        thread.initiatorUserId === payload.sub || thread.recipientUserId === payload.sub;
+
+      if (thread.initiatorUserId === payload.sub) {
+        (request as any).threadId = routeThreadId;
+        (request as any).user = payload;
+        return true;
+      }
+
+      if (thread.lockType === "none" && isParticipant) {
         (request as any).threadId = routeThreadId;
         (request as any).user = payload;
         return true;

@@ -9,21 +9,25 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 
-type LockType = "password" | "question";
-
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
-// mesaj metni, kilit tipi, kimlik tercihi) ve gonderim sonrasi onay
-// ekrani. Katman 1 auth gerektirir - girisi olmayan kullanici /giris'e
-// yonlendirilir (Bolum 5, 9).
+// mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
+// onay ekrani. Katman 1 auth gerektirir - girisi olmayan kullanici
+// /giris'e yonlendirilir (Bolum 5, 9).
+//
+// Kullanici geri bildirimi: "Ona Mesaj Gonder" akisinda alici zaten
+// bilinen bir kisi oldugu icin parola secenegi tamamen kaldirildi.
+// Soru-cevap eklemek istege bagli (varsayilan kapali) - acilirsa
+// "Sorun" ve "Cevap" alanlari cikar. Kapaliyken mesaj hicbir kilit
+// olmadan (lockType: "none") gonderilir.
 export default function MesajOlusturPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [recipientPhone, setRecipientPhone] = useState("");
   const [body, setBody] = useState("");
-  const [lockType, setLockType] = useState<LockType>("question");
-  const [lockSecret, setLockSecret] = useState("");
+  const [addQuestion, setAddQuestion] = useState(false);
   const [questionText, setQuestionText] = useState("");
+  const [lockSecret, setLockSecret] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,9 +62,9 @@ export default function MesajOlusturPage() {
         body: JSON.stringify({
           recipientPhone,
           body,
-          lockType,
-          lockSecret,
-          questionText: lockType === "question" ? questionText : undefined,
+          lockType: addQuestion ? "question" : "none",
+          lockSecret: addQuestion ? lockSecret : undefined,
+          questionText: addQuestion ? questionText : undefined,
           isAnonymous,
         }),
       });
@@ -84,8 +88,7 @@ export default function MesajOlusturPage() {
           <div className="text-5xl">🌱</div>
           <h1 className="font-display text-2xl font-bold text-slate">Mesajın gönderildi</h1>
           <p className="font-body text-sm text-slate-light">
-            {recipientPhone} numarasına bir bildirim SMS&apos;i gitti. Doğru parolayı/cevabı
-            bildiği için sana ulaşabilecek.
+            {recipientPhone} numarasına bir bildirim SMS&apos;i gitti.
           </p>
           <Button className="w-full" onClick={() => router.push("/")}>
             Ana Sayfaya Dön
@@ -96,6 +99,7 @@ export default function MesajOlusturPage() {
               setSentThreadId(null);
               setRecipientPhone("");
               setBody("");
+              setAddQuestion(false);
               setLockSecret("");
               setQuestionText("");
             }}
@@ -134,45 +138,30 @@ export default function MesajOlusturPage() {
             onChange={(e) => setBody(e.target.value)}
           />
 
-          {/* Gorev 11.2: Parola/Soru modu toggle - Soru-Cevap varsayilan
-              ve solda (kullanici geri bildirimi). */}
-          <div>
-            <label className="font-display text-sm font-semibold text-slate">Kilit Türü</label>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setLockType("question")}
-                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${lockType === "question" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
-              >
-                Soru-Cevap
-              </button>
-              <button
-                type="button"
-                onClick={() => setLockType("password")}
-                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${lockType === "password" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
-              >
-                Parola
-              </button>
-            </div>
-          </div>
-
-          {lockType === "question" && (
-            <Input
-              label="Sorun"
-              placeholder="Nerede tanıştık?"
-              value={questionText}
-              onChange={(e) => setQuestionText(e.target.value)}
-            />
-          )}
-
-          <Input
-            label={lockType === "password" ? "Parola" : "Doğru Cevap"}
-            placeholder={lockType === "password" ? "Mavi Klasör" : "Kütüphanede"}
-            value={lockSecret}
-            onChange={(e) => setLockSecret(e.target.value)}
+          {/* Kullanici geri bildirimi: soru-cevap eklemek istege bagli */}
+          <Toggle
+            id="add-question-toggle"
+            checked={addQuestion}
+            onChange={setAddQuestion}
+            label="Bir soru-cevap ile korumak ister misin?"
           />
+
+          {addQuestion && (
+            <div className="space-y-3 rounded-2xl bg-sky-light/40 p-3">
+              <Input
+                label="Sorun"
+                placeholder="Nerede tanıştık?"
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+              />
+              <Input
+                label="Doğru Cevap"
+                placeholder="Kütüphanede"
+                value={lockSecret}
+                onChange={(e) => setLockSecret(e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Gorev 11.3: Anonim/Acik kimlik toggle */}
           <Toggle
@@ -191,8 +180,7 @@ export default function MesajOlusturPage() {
               isSubmitting ||
               !recipientPhone ||
               !body ||
-              !lockSecret ||
-              (lockType === "question" && !questionText)
+              (addQuestion && (!questionText || !lockSecret))
             }
           >
             {isSubmitting ? "Gönderiliyor..." : "Mesajı Gönder"}

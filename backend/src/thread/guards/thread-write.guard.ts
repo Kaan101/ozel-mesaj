@@ -58,12 +58,21 @@ export class ThreadWriteGuard implements CanActivate {
 
     // 3) X-Thread-Access-Token yoksa/gecersizse, kullanici bu thread'i
     // olusturan kisi mi kontrol et (sahiplik - Bolum 8 UX istisnasi).
+    // Ayrica lockType "none" ise (kilitsiz mesaj) recipient de dahil.
     const thread = await this.prisma.messageThread.findUnique({
       where: { id: routeThreadId },
-      select: { initiatorUserId: true },
+      select: { initiatorUserId: true, recipientUserId: true, lockType: true },
     });
 
     if (thread && thread.initiatorUserId === userId) {
+      return true;
+    }
+
+    if (
+      thread &&
+      thread.lockType === "none" &&
+      (thread.initiatorUserId === userId || thread.recipientUserId === userId)
+    ) {
       return true;
     }
 

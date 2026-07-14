@@ -57,6 +57,7 @@ enum ThreadOriginType {
 enum ThreadLockType {
   password
   question
+  none
 }
 
 model MessageThread {
@@ -72,7 +73,7 @@ model MessageThread {
 
   lockType     ThreadLockType @map("lock_type")
   // Parola/cevap ASLA düz metin saklanmaz, sadece hash (Bölüm 8, 10).
-  lockSecretHash String       @map("lock_secret_hash")
+  lockSecretHash String?      @map("lock_secret_hash")
   questionText   String?      @map("question_text")
 
   createdAt DateTime  @default(now()) @map("created_at")

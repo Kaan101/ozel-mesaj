@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsString, Matches, MinLength, ValidateIf } from "class-validator";
+import { IsBoolean, IsIn, IsOptional, IsString, Matches, MinLength, ValidateIf } from "class-validator";
 
 export class CreateThreadDto {
   @IsString()
@@ -11,14 +11,19 @@ export class CreateThreadDto {
   @MinLength(1)
   body: string;
 
-  @IsIn(["password", "question"])
-  lockType: "password" | "question";
+  // "none": alici zaten bilinen bir kisi oldugu icin (Ona Mesaj Gonder
+  // akisinda) kilit zorunlu degil - kullanici geri bildirimi. "password"
+  // geriye donuk uyumluluk icin backend'de hala destekleniyor (eski
+  // kayitlar), ama frontend artik bu secenegi sunmuyor.
+  @IsIn(["password", "question", "none"])
+  lockType: "password" | "question" | "none";
 
-  // Parola modunda: kilit ifadesinin kendisi.
+  // "none" modunda gerekmez. Parola modunda: kilit ifadesinin kendisi.
   // Soru modunda: dogru cevap.
+  @ValidateIf((o) => o.lockType !== "none")
   @IsString()
   @MinLength(4, { message: "lockSecret en az 4 karakter olmali (brute-force zorlugu icin)." })
-  lockSecret: string;
+  lockSecret?: string;
 
   // Sadece lockType 'question' oldugunda zorunlu (Bolum 3, 7).
   @ValidateIf((o) => o.lockType === "question")
