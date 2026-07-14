@@ -59,7 +59,7 @@ export default function AdminHubPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link href="/admin/ayarlar">
             <Card lifted className="h-full hover:shadow-soft-lifted transition-shadow">
               <div className="text-3xl mb-2">⚙️</div>
@@ -89,6 +89,18 @@ export default function AdminHubPage() {
               </p>
             </Card>
           </Link>
+
+          {/* Kullanici istegi: Sentry (hata izleme) dashboard'una hizli
+              erisim - dis bir siteye gittigi icin yeni sekmede acilir. */}
+          <a href="https://sentry.io" target="_blank" rel="noopener noreferrer">
+            <Card lifted className="h-full hover:shadow-soft-lifted transition-shadow">
+              <div className="text-3xl mb-2">🐛</div>
+              <h2 className="font-display text-base font-bold text-slate">Sentry (Hata İzleme)</h2>
+              <p className="mt-1 font-body text-xs text-slate-light">
+                Canlıdaki backend hatalarını görüntüle (yeni sekmede açılır).
+              </p>
+            </Card>
+          </a>
         </div>
       </div>
     </main>
