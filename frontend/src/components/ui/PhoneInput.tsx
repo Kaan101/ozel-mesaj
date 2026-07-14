@@ -68,7 +68,8 @@ export function PhoneInput({ label, value, onChange }: PhoneInputProps) {
 
   // Yazarken 3'lu gruplar halinde bicimlendirme (genel amacli, tum
   // ulkeler icin tam dogru olmasa da okunabilirligi artirir).
-  const formattedNational = nationalDigits.replace(/(\d{3})(?=\d)/g, "$1 ");
+  // Kullanici istegi: "xxx xxx xxxx" (3-3-4) formatinda goster.
+  const formattedNational = formatAs3_3_4(nationalDigits);
 
   return (
     <div>
@@ -91,7 +92,7 @@ export function PhoneInput({ label, value, onChange }: PhoneInputProps) {
         <input
           value={formattedNational}
           onChange={(e) => handleNationalInput(e.target.value)}
-          placeholder="5xx xxx xx xx"
+          placeholder="xxx xxx xxxx"
           inputMode="tel"
           className="flex-1 rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-body text-slate focus:outline-none focus:border-sky min-w-0"
         />
@@ -115,4 +116,13 @@ export function PhoneInput({ label, value, onChange }: PhoneInputProps) {
       </div>
     </div>
   );
+}
+
+// "xxx xxx xxxx" (3-3-4) formatinda gruplar - ilk 10 hane bu sekilde
+// gruplanir, varsa fazlasi son gruba eklenir.
+function formatAs3_3_4(digits: string): string {
+  const part1 = digits.slice(0, 3);
+  const part2 = digits.slice(3, 6);
+  const part3 = digits.slice(6);
+  return [part1, part2, part3].filter(Boolean).join(" ");
 }
