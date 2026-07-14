@@ -85,6 +85,21 @@ export default function MesajGosterPage() {
     }
   }, [authLoading, isAuthenticated, router, threadId]);
 
+  // Kullanici geri bildirimi: mesajin icindeyken tarayici sekme
+  // basligi da mesajin baslikta gorunen metniyle (soru varsa soru,
+  // yoksa genel etiket) eslessin.
+  useEffect(() => {
+    if (view !== "messages") return;
+    const title =
+      meta?.lockType === "question" && meta.questionText
+        ? `${meta.questionText} · YouHaveMi`
+        : "Sana Bir Mesaj Var · YouHaveMi";
+    document.title = title;
+    return () => {
+      document.title = "YouHaveMi — Ona doğru şekilde ulaş";
+    };
+  }, [view, meta]);
+
   // Thread metadata'sini cek (kilit tipi, soru metni). Ama once
   // sessionStorage'da bu thread icin gecerli bir token var mi bak -
   // varsa unlock formunu hic gostermeden dogrudan mesajlara gec.

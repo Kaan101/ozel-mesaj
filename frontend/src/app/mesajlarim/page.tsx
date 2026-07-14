@@ -36,8 +36,27 @@ export default function MesajlarimPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     apiFetch<MyThread[]>("/threads/mine")
-      .then(setThreads)
+      .then((data) => {
+        setThreads(data);
+        localStorage.setItem("mesajlarim_seen_count", String(data.length));
+      })
       .finally(() => setIsLoading(false));
+  }, [isAuthenticated]);
+
+  // Kullanici geri bildirimi: liste asenkron olarak (5sn'de bir)
+  // guncellensin - yeni gelen bir mesaj/iletisim talebi elle
+  // yenilemeden gorunsun.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => {
+      apiFetch<MyThread[]>("/threads/mine")
+        .then((data) => {
+          setThreads(data);
+          localStorage.setItem("mesajlarim_seen_count", String(data.length));
+        })
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(interval);
   }, [isAuthenticated]);
 
   if (authLoading || !isAuthenticated) {
