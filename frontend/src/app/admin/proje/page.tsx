@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -30,9 +30,15 @@ const PRIORITY_LABELS: Record<Task["priority"], string> = {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
+function todayIsoDate(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
 // Kullanici istegi: yonetim panelinde proje/gorev takip ekrani.
 // Ayni ADMIN_SECRET korumasini (/admin/ayarlar ile ayni sessionStorage
-// anahtarini) kullanir.
+// anahtarini) kullanir. Tarih girilmezse bugunun tarihi varsayilan
+// olarak kullanilir. Satira tiklayinca asagi dogru acilip duzenlenebilir
+// hale gelir - silme sadece bu duzenleme gorunumunde mumkun.
 export default function AdminProjePage() {
   const [adminKey, setAdminKey] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -46,8 +52,17 @@ export default function AdminProjePage() {
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newPriority, setNewPriority] = useState<Task["priority"]>("medium");
-  const [newDueDate, setNewDueDate] = useState("");
+  const [newDueDate, setNewDueDate] = useState(todayIsoDate());
   const [isCreating, setIsCreating] = useState(false);
+
+  // Genisletilmis (duzenleme modundaki) gorev ve onun taslak degerleri.
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPriority, setEditPriority] = useState<Task["priority"]>("medium");
+  const [editDueDate, setEditDueDate] = useState("");
+  const [editStatus, setEditStatus] = useState<Task["status"]>("pending");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_secret");
@@ -101,13 +116,15 @@ export default function AdminProjePage() {
           title: newTitle,
           description: newDescription || undefined,
           priority: newPriority,
-          dueDate: newDueDate || undefined,
+          // Tarih girilmediyse (bos birakilmis olma ihtimaline karsi)
+          // bugunun tarihini kullan.
+          dueDate: newDueDate || todayIsoDate(),
         }),
       });
       if (!res.ok) throw new Error("Oluşturulamadı.");
       setNewTitle("");
       setNewDescription("");
-      setNewDueDate("");
+      setNewDueDate(todayIsoDate());
       setNewPriority("medium");
       await fetchTasks();
     } catch (err: any) {
@@ -117,16 +134,41 @@ export default function AdminProjePage() {
     }
   }
 
-  async function handleUpdateStatus(id: string, status: Task["status"]) {
+  function toggleExpand(task: Task) {
+    if (expandedTaskId === task.id) {
+      setExpandedTaskId(null);
+      return;
+    }
+    setExpandedTaskId(task.id);
+    setEditTitle(task.title);
+    setEditDescription(task.description ?? "");
+    setEditPriority(task.priority);
+    setEditDueDate(task.dueDate ? task.dueDate.split("T")[0] : todayIsoDate());
+    setEditStatus(task.status);
+  }
+
+  async function handleSaveEdit(id: string) {
+    setIsSaving(true);
+    setError(null);
     try {
-      await fetch(`${API_BASE_URL}/admin/tasks/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/tasks/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDescription || undefined,
+          priority: editPriority,
+          status: editStatus,
+          dueDate: editDueDate || todayIsoDate(),
+        }),
       });
+      if (!res.ok) throw new Error("Güncellenemedi.");
+      setExpandedTaskId(null);
       await fetchTasks();
-    } catch {
-      setError("Güncellenemedi.");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -136,6 +178,7 @@ export default function AdminProjePage() {
         method: "DELETE",
         headers: { "x-admin-secret": adminKey },
       });
+      setExpandedTaskId(null);
       await fetchTasks();
     } catch {
       setError("Silinemedi.");
@@ -167,15 +210,23 @@ export default function AdminProjePage() {
       <div className="mx-auto max-w-2xl space-y-4">
         <h1 className="font-display text-2xl font-bold text-slate">Proje / Görev Takibi</h1>
 
-        {/* Yeni görev formu - kompakt, tek satir */}
-        <Card className="py-3">
-          <div className="flex flex-wrap items-end gap-2">
+        {/* Yeni görev formu - iki satir */}
+        <Card className="space-y-2 py-3">
+          <div className="flex flex-wrap gap-2">
             <input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Görev başlığı..."
               className="min-w-[160px] flex-1 rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:border-sky"
             />
+            <input
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              placeholder="Açıklama (opsiyonel)..."
+              className="min-w-[160px] flex-1 rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:border-sky"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={newPriority}
               onChange={(e) => setNewPriority(e.target.value as Task["priority"])}
@@ -247,53 +298,111 @@ export default function AdminProjePage() {
                   <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
                     Tarih
                   </th>
-                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
-                    İşlem
-                  </th>
                 </tr>
               </thead>
               <tbody>
                 {tasks.map((task) => (
-                  <tr key={task.id} className="border-b border-sky-light/30 last:border-0">
-                    <td className="px-4 py-2 font-body text-sm text-slate">
-                      {task.title}
-                      {task.description && (
-                        <p className="font-body text-xs text-slate-light">{task.description}</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span className="rounded-full bg-whisper-light px-2 py-0.5 font-body text-xs text-slate">
-                        {PRIORITY_LABELS[task.priority]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      <select
-                        value={task.status}
-                        onChange={(e) =>
-                          handleUpdateStatus(task.id, e.target.value as Task["status"])
-                        }
-                        className={`rounded-full border-0 px-2 py-1 font-body text-xs ${STATUS_COLORS[task.status]}`}
-                      >
-                        <option value="pending">Bekliyor</option>
-                        <option value="in_progress">Geliştirme</option>
-                        <option value="completed">Tamamlandı</option>
-                        <option value="cancelled">İptal</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-2 font-body text-xs text-slate-light whitespace-nowrap">
-                      {task.dueDate
-                        ? new Date(task.dueDate).toLocaleDateString("tr-TR")
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => handleDelete(task.id)}
-                        className="font-body text-xs text-coral underline underline-offset-2"
-                      >
-                        Sil
-                      </button>
-                    </td>
-                  </tr>
+                  <Fragment key={task.id}>
+                    <tr
+                      onClick={() => toggleExpand(task)}
+                      className="cursor-pointer border-b border-sky-light/30 last:border-0 hover:bg-mint/50"
+                    >
+                      <td className="px-4 py-2 font-body text-sm text-slate">{task.title}</td>
+                      <td className="px-4 py-2">
+                        <span className="rounded-full bg-whisper-light px-2 py-0.5 font-body text-xs text-slate">
+                          {PRIORITY_LABELS[task.priority]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-body text-xs ${STATUS_COLORS[task.status]}`}
+                        >
+                          {task.status === "pending"
+                            ? "Bekliyor"
+                            : task.status === "in_progress"
+                              ? "Geliştirme"
+                              : task.status === "completed"
+                                ? "Tamamlandı"
+                                : "İptal"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 font-body text-xs text-slate-light whitespace-nowrap">
+                        {task.dueDate
+                          ? new Date(task.dueDate).toLocaleDateString("tr-TR")
+                          : "—"}
+                      </td>
+                    </tr>
+                    {expandedTaskId === task.id && (
+                      <tr className="border-b border-sky-light/30 last:border-0 bg-mint/40">
+                        <td colSpan={4} className="px-4 py-3">
+                          <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              placeholder="Başlık"
+                              className="w-full rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate"
+                            />
+                            <textarea
+                              value={editDescription}
+                              onChange={(e) => setEditDescription(e.target.value)}
+                              placeholder="Açıklama"
+                              rows={2}
+                              className="w-full rounded-2xl border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate"
+                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                              <select
+                                value={editPriority}
+                                onChange={(e) =>
+                                  setEditPriority(e.target.value as Task["priority"])
+                                }
+                                className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate"
+                              >
+                                <option value="low">Düşük</option>
+                                <option value="medium">Orta</option>
+                                <option value="high">Yüksek</option>
+                              </select>
+                              <select
+                                value={editStatus}
+                                onChange={(e) => setEditStatus(e.target.value as Task["status"])}
+                                className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate"
+                              >
+                                <option value="pending">Bekliyor</option>
+                                <option value="in_progress">Geliştirme</option>
+                                <option value="completed">Tamamlandı</option>
+                                <option value="cancelled">İptal</option>
+                              </select>
+                              <input
+                                type="date"
+                                value={editDueDate}
+                                onChange={(e) => setEditDueDate(e.target.value)}
+                                className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate"
+                              />
+                            </div>
+                            <div className="flex items-center gap-3 pt-1">
+                              <Button
+                                onClick={() => handleSaveEdit(task.id)}
+                                disabled={isSaving || !editTitle}
+                              >
+                                {isSaving ? "Kaydediliyor..." : "Kaydet"}
+                              </Button>
+                              <button
+                                onClick={() => handleDelete(task.id)}
+                                className="font-body text-sm text-coral underline underline-offset-2"
+                              >
+                                Sil
+                              </button>
+                              <button
+                                onClick={() => setExpandedTaskId(null)}
+                                className="font-body text-sm text-slate-light underline underline-offset-2"
+                              >
+                                Vazgeç
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
