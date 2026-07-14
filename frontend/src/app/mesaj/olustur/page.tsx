@@ -36,12 +36,27 @@ export default function MesajOlusturPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentThreadId, setSentThreadId] = useState<string | null>(null);
+  // Kullanici istegi: e-posta secenegi bir sistem parametresiyle
+  // acilip kapatilabilsin - varsayilan olarak acik kabul ediyoruz,
+  // backend'den gercek deger gelene kadar (flicker'i onlemek icin).
+  const [emailOptionEnabled, setEmailOptionEnabled] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push("/giris");
     }
   }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    apiFetch<{ enabled: boolean }>("/admin/settings/public/email-notification-enabled", {
+      skipAuth: true,
+    })
+      .then((data) => setEmailOptionEnabled(data.enabled))
+      .catch(() => {
+        // Ayar okunamazsa varsayilan (acik) ile devam et - kullaniciyi
+        // engellemeyelim.
+      });
+  }, []);
 
   function describeError(err: unknown): string {
     if (err instanceof ApiError) {
@@ -135,27 +150,6 @@ export default function MesajOlusturPage() {
             onChange={setRecipientPhone}
           />
 
-          {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici
-              hala telefon/OTP ile giris yapiyor, bu sadece ek bir
-              bildirim yolu (mock modda calisir, gercek e-posta
-              saglayicisi baglanana kadar). */}
-          <Toggle
-            id="add-email-toggle"
-            checked={addEmail}
-            onChange={setAddEmail}
-            label="Ayrıca e-posta ile de bildirmek ister misin?"
-          />
-
-          {addEmail && (
-            <Input
-              label="Alıcının E-postası"
-              type="email"
-              placeholder="ornek@eposta.com"
-              value={recipientEmail}
-              onChange={(e) => setRecipientEmail(e.target.value)}
-            />
-          )}
-
           <Input
             label="Mesajın"
             placeholder="Seninle tanışmak isterim, bir kahve içelim mi?"
@@ -195,6 +189,32 @@ export default function MesajOlusturPage() {
             onChange={setIsAnonymous}
             label={isAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
           />
+
+          {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
+              telefon/OTP ile giris yapiyor, bu sadece ek bir bildirim
+              yolu (mock modda calisir, gercek e-posta saglayicisi
+              baglanana kadar). Sistem parametresiyle (yonetim paneli)
+              gorunurlugu kapatilabilir. */}
+          {emailOptionEnabled && (
+            <>
+              <Toggle
+                id="add-email-toggle"
+                checked={addEmail}
+                onChange={setAddEmail}
+                label="Ayrıca e-posta ile de bildirmek ister misin?"
+              />
+
+              {addEmail && (
+                <Input
+                  label="Alıcının E-postası"
+                  type="email"
+                  placeholder="ornek@eposta.com"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                />
+              )}
+            </>
+          )}
 
           {error && <p className="font-body text-sm text-coral">{error}</p>}
 

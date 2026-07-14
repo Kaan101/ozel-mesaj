@@ -73,4 +73,11 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: "Genel Limit - Pencere Basina Istek Sayisi",
     description: "Bir IP, zaman penceresi icinde en fazla kac istek atabilir. Test sirasinda dusuk kalirsa 'cok sik istek' hatasi cok erken tetiklenir.",
   },
+  {
+    key: "EMAIL_NOTIFICATION_ENABLED",
+    envFallback: "EMAIL_NOTIFICATION_ENABLED",
+    defaultValue: 1,
+    label: "E-posta Bildirim Secenegi Goster (1=Acik, 0=Kapali)",
+    description: "'Ona Mesaj Gonder' formunda opsiyonel e-posta bildirim alaninin gorunup gorunmeyecegini kontrol eder.",
+  },
 ];
