@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/language-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -15,6 +16,7 @@ type Visibility = "public" | "unlisted";
 export default function HavuzOlusturPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { t } = useLanguage();
 
   const [title, setTitle] = useState("");
   const [question, setQuestion] = useState("");
@@ -77,14 +79,16 @@ export default function HavuzOlusturPage() {
       <main className="min-h-screen bg-mint flex items-center justify-center px-4 py-12">
         <Card lifted className="max-w-sm text-center space-y-4">
           <div className="text-5xl">🌼</div>
-          <h1 className="font-display text-2xl font-bold text-slate">Sorun havuzda</h1>
+          <h1 className="font-display text-2xl font-bold text-slate">
+            {t("havuzOlustur.sentTitle")}
+          </h1>
           <p className="font-body text-sm text-slate-light">
             {visibility === "public"
-              ? "Herkese açık havuzda listeleniyor. Doğru cevabı bilen biri seninle anında bağlantı kurabilecek."
-              : "Sadece paylaştığın linkle erişilebilir."}
+              ? t("havuzOlustur.sentPublicDesc")
+              : t("havuzOlustur.sentUnlistedDesc")}
           </p>
           <Button className="w-full" onClick={() => router.push("/havuz")}>
-            Havuza Git
+            {t("havuzOlustur.goToPool")}
           </Button>
           <button
             type="button"
@@ -96,7 +100,7 @@ export default function HavuzOlusturPage() {
             }}
             className="w-full font-body text-sm text-sky underline underline-offset-2"
           >
-            Başka bir soru daha bırak
+            {t("havuzOlustur.leaveAnother")}
           </button>
         </Card>
       </main>
@@ -107,34 +111,38 @@ export default function HavuzOlusturPage() {
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-slate">Havuza Soru Bırak</h1>
+          <h1 className="font-display text-2xl font-bold text-slate">
+            {t("havuzOlustur.title")}
+          </h1>
           <p className="font-body text-sm text-slate-light mt-1">
-            Numarasını bilmediğin biriyle, ortak bir bilgi üzerinden buluş.
+            {t("havuzOlustur.subtitle")}
           </p>
         </div>
 
         <Card lifted className="space-y-5">
           <Input
-            label="Başlık"
-            placeholder="Ortak Anımız"
+            label={t("havuzOlustur.titleLabel")}
+            placeholder={t("havuzOlustur.titlePlaceholder")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
           <Input
-            label="Sorun"
-            placeholder="İlk nerede tanıştık?"
+            label={t("havuzOlustur.questionLabel")}
+            placeholder={t("havuzOlustur.questionPlaceholder")}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
           />
           <Input
-            label="Doğru Cevap"
-            placeholder="Kütüphanede"
+            label={t("havuzOlustur.answerLabel")}
+            placeholder={t("havuzOlustur.answerPlaceholder")}
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
           />
 
           <div>
-            <label className="font-display text-sm font-semibold text-slate">Kategori</label>
+            <label className="font-display text-sm font-semibold text-slate">
+              {t("havuzOlustur.categoryLabel")}
+            </label>
             {categories.length > 0 ? (
               <select
                 value={category}
@@ -152,7 +160,7 @@ export default function HavuzOlusturPage() {
               <Input
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Genel"
+                placeholder={t("havuzOlustur.categoryPlaceholder")}
                 className="mt-1.5"
               />
             )}
@@ -160,7 +168,9 @@ export default function HavuzOlusturPage() {
 
           {/* Gorev 12.2: Gorunurluk secimi */}
           <div>
-            <label className="font-display text-sm font-semibold text-slate">Görünürlük</label>
+            <label className="font-display text-sm font-semibold text-slate">
+              {t("havuzOlustur.visibilityLabel")}
+            </label>
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
@@ -168,7 +178,7 @@ export default function HavuzOlusturPage() {
                 className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
                   ${visibility === "public" ? "bg-meadow text-white" : "bg-meadow-light text-slate"}`}
               >
-                Herkese Açık
+                {t("havuzOlustur.public")}
               </button>
               <button
                 type="button"
@@ -176,13 +186,13 @@ export default function HavuzOlusturPage() {
                 className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
                   ${visibility === "unlisted" ? "bg-meadow text-white" : "bg-meadow-light text-slate"}`}
               >
-                Sadece Link ile
+                {t("havuzOlustur.unlisted")}
               </button>
             </div>
             <p className="mt-1.5 font-body text-xs text-slate-light">
               {visibility === "public"
-                ? "Havuz sayfasında herkes görebilir."
-                : "Sadece paylaştığın linke sahip olanlar görebilir."}
+                ? t("havuzOlustur.publicDesc")
+                : t("havuzOlustur.unlistedDesc")}
             </p>
           </div>
 
@@ -193,7 +203,7 @@ export default function HavuzOlusturPage() {
             onClick={handleSubmit}
             disabled={isSubmitting || !title || !question || !answer || !category}
           >
-            {isSubmitting ? "Oluşturuluyor..." : "Soruyu Yayınla"}
+            {isSubmitting ? t("havuzOlustur.publishing") : t("havuzOlustur.publish")}
           </Button>
         </Card>
       </div>

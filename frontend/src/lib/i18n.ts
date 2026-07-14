@@ -117,7 +117,49 @@ type TranslationKey =
   | "giris.changeNumber"
   | "giris.continue"
   | "giris.saving"
-  | "giris.checking";
+  | "giris.checking"
+  | "mesajOlustur.title"
+  | "mesajOlustur.subtitle"
+  | "mesajOlustur.phoneLabel"
+  | "mesajOlustur.messageLabel"
+  | "mesajOlustur.messagePlaceholder"
+  | "mesajOlustur.addQuestionLabel"
+  | "mesajOlustur.questionLabel"
+  | "mesajOlustur.questionPlaceholder"
+  | "mesajOlustur.answerLabel"
+  | "mesajOlustur.answerPlaceholder"
+  | "mesajOlustur.anonYes"
+  | "mesajOlustur.anonNo"
+  | "mesajOlustur.addEmailLabel"
+  | "mesajOlustur.emailLabel"
+  | "mesajOlustur.sendButton"
+  | "mesajOlustur.sending"
+  | "mesajOlustur.sentTitle"
+  | "mesajOlustur.sentDesc"
+  | "mesajOlustur.backHome"
+  | "mesajOlustur.leaveAnother"
+  | "havuzOlustur.title"
+  | "havuzOlustur.subtitle"
+  | "havuzOlustur.titleLabel"
+  | "havuzOlustur.titlePlaceholder"
+  | "havuzOlustur.questionLabel"
+  | "havuzOlustur.questionPlaceholder"
+  | "havuzOlustur.answerLabel"
+  | "havuzOlustur.answerPlaceholder"
+  | "havuzOlustur.categoryLabel"
+  | "havuzOlustur.categoryPlaceholder"
+  | "havuzOlustur.visibilityLabel"
+  | "havuzOlustur.public"
+  | "havuzOlustur.unlisted"
+  | "havuzOlustur.publicDesc"
+  | "havuzOlustur.unlistedDesc"
+  | "havuzOlustur.publish"
+  | "havuzOlustur.publishing"
+  | "havuzOlustur.sentTitle"
+  | "havuzOlustur.sentPublicDesc"
+  | "havuzOlustur.sentUnlistedDesc"
+  | "havuzOlustur.goToPool"
+  | "havuzOlustur.leaveAnother";
 
 export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, string>>> = {
   tr: {
@@ -167,6 +209,48 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "giris.continue": "Devam Et",
     "giris.saving": "Kaydediliyor...",
     "giris.checking": "Kontrol ediliyor...",
+    "mesajOlustur.title": "Ona Mesaj Bırak",
+    "mesajOlustur.subtitle": "Söylemek istediğin şeyi, doğru kişiye ulaştır.",
+    "mesajOlustur.phoneLabel": "Alıcının Telefon Numarası",
+    "mesajOlustur.messageLabel": "Mesajın",
+    "mesajOlustur.messagePlaceholder": "Seninle tanışmak isterim, bir kahve içelim mi?",
+    "mesajOlustur.addQuestionLabel": "Bir soru-cevap ile korumak ister misin?",
+    "mesajOlustur.questionLabel": "Sorun",
+    "mesajOlustur.questionPlaceholder": "Nerede tanıştık?",
+    "mesajOlustur.answerLabel": "Doğru Cevap",
+    "mesajOlustur.answerPlaceholder": "Kütüphanede",
+    "mesajOlustur.anonYes": "Anonim kalacaksın",
+    "mesajOlustur.anonNo": "Kimliğin görünecek",
+    "mesajOlustur.addEmailLabel": "Ayrıca e-posta ile de bildirmek ister misin?",
+    "mesajOlustur.emailLabel": "Alıcının E-postası",
+    "mesajOlustur.sendButton": "Mesajı Gönder",
+    "mesajOlustur.sending": "Gönderiliyor...",
+    "mesajOlustur.sentTitle": "Mesajın gönderildi",
+    "mesajOlustur.sentDesc": "numarasına bir bildirim SMS'i gitti.",
+    "mesajOlustur.backHome": "Ana Sayfaya Dön",
+    "mesajOlustur.leaveAnother": "Başka birine daha mesaj bırak",
+    "havuzOlustur.title": "Havuza Soru Bırak",
+    "havuzOlustur.subtitle": "Numarasını bilmediğin biriyle, ortak bir bilgi üzerinden buluş.",
+    "havuzOlustur.titleLabel": "Başlık",
+    "havuzOlustur.titlePlaceholder": "Ortak Anımız",
+    "havuzOlustur.questionLabel": "Sorun",
+    "havuzOlustur.questionPlaceholder": "İlk nerede tanıştık?",
+    "havuzOlustur.answerLabel": "Doğru Cevap",
+    "havuzOlustur.answerPlaceholder": "Kütüphanede",
+    "havuzOlustur.categoryLabel": "Kategori",
+    "havuzOlustur.categoryPlaceholder": "Genel",
+    "havuzOlustur.visibilityLabel": "Görünürlük",
+    "havuzOlustur.public": "Herkese Açık",
+    "havuzOlustur.unlisted": "Sadece Link ile",
+    "havuzOlustur.publicDesc": "Havuz sayfasında herkes görebilir.",
+    "havuzOlustur.unlistedDesc": "Sadece paylaştığın linke sahip olanlar görebilir.",
+    "havuzOlustur.publish": "Soruyu Yayınla",
+    "havuzOlustur.publishing": "Oluşturuluyor...",
+    "havuzOlustur.sentTitle": "Sorun havuzda",
+    "havuzOlustur.sentPublicDesc": "Herkese açık havuzda listeleniyor. Doğru cevabı bilen biri seninle anında bağlantı kurabilecek.",
+    "havuzOlustur.sentUnlistedDesc": "Sadece paylaştığın linkle erişilebilir.",
+    "havuzOlustur.goToPool": "Havuza Git",
+    "havuzOlustur.leaveAnother": "Başka bir soru daha bırak",
   },
   en: {
     "nav.pool": "Pool",
@@ -215,6 +299,48 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "giris.continue": "Continue",
     "giris.saving": "Saving...",
     "giris.checking": "Checking...",
+    "mesajOlustur.title": "Leave Them a Message",
+    "mesajOlustur.subtitle": "Say what you want to say, straight to the right person.",
+    "mesajOlustur.phoneLabel": "Recipient's Phone Number",
+    "mesajOlustur.messageLabel": "Your Message",
+    "mesajOlustur.messagePlaceholder": "I'd love to get to know you, want to grab a coffee?",
+    "mesajOlustur.addQuestionLabel": "Want to protect it with a question?",
+    "mesajOlustur.questionLabel": "Your Question",
+    "mesajOlustur.questionPlaceholder": "Where did we first meet?",
+    "mesajOlustur.answerLabel": "Correct Answer",
+    "mesajOlustur.answerPlaceholder": "At the library",
+    "mesajOlustur.anonYes": "You'll stay anonymous",
+    "mesajOlustur.anonNo": "Your identity will show",
+    "mesajOlustur.addEmailLabel": "Also notify them by email?",
+    "mesajOlustur.emailLabel": "Recipient's Email",
+    "mesajOlustur.sendButton": "Send Message",
+    "mesajOlustur.sending": "Sending...",
+    "mesajOlustur.sentTitle": "Your message was sent",
+    "mesajOlustur.sentDesc": "got a notification SMS.",
+    "mesajOlustur.backHome": "Back to Home",
+    "mesajOlustur.leaveAnother": "Leave a message for someone else",
+    "havuzOlustur.title": "Leave a Question in the Pool",
+    "havuzOlustur.subtitle": "Meet someone whose number you don't know, through shared knowledge.",
+    "havuzOlustur.titleLabel": "Title",
+    "havuzOlustur.titlePlaceholder": "Our Shared Memory",
+    "havuzOlustur.questionLabel": "Your Question",
+    "havuzOlustur.questionPlaceholder": "Where did we first meet?",
+    "havuzOlustur.answerLabel": "Correct Answer",
+    "havuzOlustur.answerPlaceholder": "At the library",
+    "havuzOlustur.categoryLabel": "Category",
+    "havuzOlustur.categoryPlaceholder": "General",
+    "havuzOlustur.visibilityLabel": "Visibility",
+    "havuzOlustur.public": "Public",
+    "havuzOlustur.unlisted": "Link Only",
+    "havuzOlustur.publicDesc": "Anyone can see it on the pool page.",
+    "havuzOlustur.unlistedDesc": "Only people with your link can see it.",
+    "havuzOlustur.publish": "Publish Question",
+    "havuzOlustur.publishing": "Publishing...",
+    "havuzOlustur.sentTitle": "Your question is in the pool",
+    "havuzOlustur.sentPublicDesc": "It's listed in the public pool. Anyone who knows the answer can connect with you instantly.",
+    "havuzOlustur.sentUnlistedDesc": "Only reachable through the link you shared.",
+    "havuzOlustur.goToPool": "Go to Pool",
+    "havuzOlustur.leaveAnother": "Leave another question",
   },
 };
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/language-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -23,6 +24,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 export default function MesajOlusturPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { t } = useLanguage();
 
   const [recipientPhone, setRecipientPhone] = useState("");
   const [addEmail, setAddEmail] = useState(false);
@@ -105,12 +107,14 @@ export default function MesajOlusturPage() {
       <main className="min-h-screen bg-mint flex items-center justify-center px-4 py-12">
         <Card lifted className="max-w-sm text-center space-y-4">
           <div className="text-5xl">🌱</div>
-          <h1 className="font-display text-2xl font-bold text-slate">Mesajın gönderildi</h1>
+          <h1 className="font-display text-2xl font-bold text-slate">
+            {t("mesajOlustur.sentTitle")}
+          </h1>
           <p className="font-body text-sm text-slate-light">
-            {recipientPhone} numarasına bir bildirim SMS&apos;i gitti.
+            {recipientPhone} {t("mesajOlustur.sentDesc")}
           </p>
           <Button className="w-full" onClick={() => router.push("/")}>
-            Ana Sayfaya Dön
+            {t("mesajOlustur.backHome")}
           </Button>
           <button
             type="button"
@@ -126,7 +130,7 @@ export default function MesajOlusturPage() {
             }}
             className="w-full font-body text-sm text-sky underline underline-offset-2"
           >
-            Başka birine daha mesaj bırak
+            {t("mesajOlustur.leaveAnother")}
           </button>
         </Card>
       </main>
@@ -137,22 +141,24 @@ export default function MesajOlusturPage() {
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-slate">Ona Mesaj Bırak</h1>
+          <h1 className="font-display text-2xl font-bold text-slate">
+            {t("mesajOlustur.title")}
+          </h1>
           <p className="font-body text-sm text-slate-light mt-1">
-            Söylemek istediğin şeyi, doğru kişiye ulaştır.
+            {t("mesajOlustur.subtitle")}
           </p>
         </div>
 
         <Card lifted className="space-y-5">
           <PhoneInput
-            label="Alıcının Telefon Numarası"
+            label={t("mesajOlustur.phoneLabel")}
             value={recipientPhone}
             onChange={setRecipientPhone}
           />
 
           <Input
-            label="Mesajın"
-            placeholder="Seninle tanışmak isterim, bir kahve içelim mi?"
+            label={t("mesajOlustur.messageLabel")}
+            placeholder={t("mesajOlustur.messagePlaceholder")}
             value={body}
             onChange={(e) => setBody(e.target.value)}
           />
@@ -162,20 +168,20 @@ export default function MesajOlusturPage() {
             id="add-question-toggle"
             checked={addQuestion}
             onChange={setAddQuestion}
-            label="Bir soru-cevap ile korumak ister misin?"
+            label={t("mesajOlustur.addQuestionLabel")}
           />
 
           {addQuestion && (
             <div className="space-y-3 rounded-2xl bg-sky-light/40 p-3">
               <Input
-                label="Sorun"
-                placeholder="Nerede tanıştık?"
+                label={t("mesajOlustur.questionLabel")}
+                placeholder={t("mesajOlustur.questionPlaceholder")}
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
               />
               <Input
-                label="Doğru Cevap"
-                placeholder="Kütüphanede"
+                label={t("mesajOlustur.answerLabel")}
+                placeholder={t("mesajOlustur.answerPlaceholder")}
                 value={lockSecret}
                 onChange={(e) => setLockSecret(e.target.value)}
               />
@@ -187,7 +193,7 @@ export default function MesajOlusturPage() {
             id="anon-toggle-create"
             checked={isAnonymous}
             onChange={setIsAnonymous}
-            label={isAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
+            label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
           />
 
           {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
@@ -201,12 +207,12 @@ export default function MesajOlusturPage() {
                 id="add-email-toggle"
                 checked={addEmail}
                 onChange={setAddEmail}
-                label="Ayrıca e-posta ile de bildirmek ister misin?"
+                label={t("mesajOlustur.addEmailLabel")}
               />
 
               {addEmail && (
                 <Input
-                  label="Alıcının E-postası"
+                  label={t("mesajOlustur.emailLabel")}
                   type="email"
                   placeholder="ornek@eposta.com"
                   value={recipientEmail}
@@ -229,7 +235,7 @@ export default function MesajOlusturPage() {
               (addEmail && !recipientEmail)
             }
           >
-            {isSubmitting ? "Gönderiliyor..." : "Mesajı Gönder"}
+            {isSubmitting ? t("mesajOlustur.sending") : t("mesajOlustur.sendButton")}
           </Button>
         </Card>
       </div>
