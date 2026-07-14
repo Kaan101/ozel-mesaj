@@ -30,7 +30,7 @@ export function SiteHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isLoading, logout } = useAuth();
-  const [hasNewThreads, setHasNewThreads] = useState(false);
+  const [newThreadsCount, setNewThreadsCount] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -39,8 +39,8 @@ export function SiteHeader() {
       apiFetch<{ id: string }[]>("/threads/mine")
         .then((threads) => {
           const seenIds = loadSeenIds();
-          const anyUnseen = threads.some((t) => !seenIds.has(t.id));
-          setHasNewThreads(anyUnseen);
+          const unseenCount = threads.filter((t) => !seenIds.has(t.id)).length;
+          setNewThreadsCount(unseenCount);
         })
         .catch(() => {});
     }
@@ -75,8 +75,10 @@ export function SiteHeader() {
           className="relative font-body text-sm text-slate-light hover:text-slate"
         >
           Mesajlarım
-          {hasNewThreads && (
-            <span className="absolute -right-2 -top-1 h-2 w-2 rounded-full bg-coral" />
+          {newThreadsCount > 0 && (
+            <span className="absolute -right-3 -top-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-meadow px-1 font-body text-[10px] font-bold text-white">
+              {newThreadsCount}
+            </span>
           )}
         </Link>
         {!isLoading &&

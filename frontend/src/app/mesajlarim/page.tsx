@@ -163,7 +163,11 @@ function ThreadSection({
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-display text-base font-bold text-slate flex items-center gap-2">
+                  <h3
+                    className={`font-display text-base text-slate flex items-center gap-2 ${
+                      isNew ? "font-bold" : "font-normal"
+                    }`}
+                  >
                     {isNew && (
                       <span className="rounded-full bg-coral px-2 py-0.5 font-body text-[10px] font-bold text-white">
                         YENİ
