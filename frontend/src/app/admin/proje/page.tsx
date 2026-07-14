@@ -210,23 +210,15 @@ export default function AdminProjePage() {
       <div className="mx-auto max-w-2xl space-y-4">
         <h1 className="font-display text-2xl font-bold text-slate">Proje / Görev Takibi</h1>
 
-        {/* Yeni görev formu - iki satir */}
+        {/* Yeni görev formu - iki satir: ust satir baslik+oncelik+tarih+ekle, alt satir aciklama */}
         <Card className="space-y-2 py-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Görev başlığı..."
               className="min-w-[160px] flex-1 rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:border-sky"
             />
-            <input
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              placeholder="Açıklama (opsiyonel)..."
-              className="min-w-[160px] flex-1 rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:border-sky"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
             <select
               value={newPriority}
               onChange={(e) => setNewPriority(e.target.value as Task["priority"])}
@@ -245,6 +237,14 @@ export default function AdminProjePage() {
             <Button onClick={handleCreate} disabled={isCreating || !newTitle}>
               {isCreating ? "..." : "Ekle"}
             </Button>
+          </div>
+          <div>
+            <input
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              placeholder="Açıklama (opsiyonel)..."
+              className="w-full rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:border-sky"
+            />
           </div>
         </Card>
 
@@ -378,25 +378,26 @@ export default function AdminProjePage() {
                                 className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate"
                               />
                             </div>
-                            <div className="flex items-center gap-3 pt-1">
+                            <div className="flex items-center justify-end gap-2 pt-1">
+                              <button
+                                onClick={() => setExpandedTaskId(null)}
+                                className="rounded-full border-2 border-slate-light/40 bg-white px-4 py-1.5 font-body text-sm text-slate hover:bg-mint"
+                              >
+                                Vazgeç
+                              </button>
+                              <button
+                                onClick={() => handleDelete(task.id)}
+                                className="rounded-full border-2 border-slate-light/40 bg-white px-4 py-1.5 font-body text-sm text-coral hover:bg-coral-light"
+                              >
+                                Sil
+                              </button>
                               <Button
+                                variant="secondary"
                                 onClick={() => handleSaveEdit(task.id)}
                                 disabled={isSaving || !editTitle}
                               >
                                 {isSaving ? "Kaydediliyor..." : "Kaydet"}
                               </Button>
-                              <button
-                                onClick={() => handleDelete(task.id)}
-                                className="font-body text-sm text-coral underline underline-offset-2"
-                              >
-                                Sil
-                              </button>
-                              <button
-                                onClick={() => setExpandedTaskId(null)}
-                                className="font-body text-sm text-slate-light underline underline-offset-2"
-                              >
-                                Vazgeç
-                              </button>
                             </div>
                           </div>
                         </td>
