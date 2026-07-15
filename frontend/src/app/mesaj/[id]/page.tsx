@@ -22,6 +22,7 @@ interface DisplayMessage {
   id: string;
   body: string;
   isAnonymous: boolean;
+  isSystemMessage?: boolean;
   senderUserId?: string;
   senderAvatarId?: string | null;
   readAt: string | null;
@@ -78,6 +79,9 @@ export default function MesajGosterPage() {
   const [replyError, setReplyError] = useState<string | null>(null);
   // Gorev 13.3: Engelle/Sikayet Et.
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  // Kullanici istegi: sikayet ederken bir sebep aciklamasi girilebilsin.
+  const [isReportFormOpen, setIsReportFormOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
 
   // Katman 1 kontrolu - girisi yoksa, geri donebilmesi icin `next`
   // parametresiyle /giris'e yonlendir.
@@ -244,9 +248,13 @@ export default function MesajGosterPage() {
     try {
       await apiFetch(`/safety/threads/${threadId}/report`, {
         method: "POST",
-        body: JSON.stringify({ reason: "Kullanıcı bu konuşmayı şikayet etti." }),
+        body: JSON.stringify({
+          reason: reportReason.trim() || "Kullanıcı bu konuşmayı şikayet etti.",
+        }),
       });
       setActionMessage("Şikayetin alındı. İnceleyeceğiz.");
+      setIsReportFormOpen(false);
+      setReportReason("");
     } catch {
       setActionMessage("Şikayet gönderilemedi. Lütfen tekrar dene.");
     }
@@ -344,7 +352,7 @@ export default function MesajGosterPage() {
               </button>
               <button
                 type="button"
-                onClick={handleReport}
+                onClick={() => setIsReportFormOpen((v) => !v)}
                 className="font-body text-xs text-coral underline underline-offset-2"
               >
                 Şikayet Et
@@ -352,9 +360,44 @@ export default function MesajGosterPage() {
             </div>
           </div>
 
+          {isReportFormOpen && (
+            <div className="space-y-2 rounded-2xl bg-coral-light/40 p-3">
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="Şikayet sebebini yazar mısın? (opsiyonel)"
+                rows={2}
+                className="w-full rounded-xl border-2 border-coral/30 bg-white px-3 py-2 font-body text-sm text-slate focus:outline-none focus:border-coral"
+              />
+              <button
+                type="button"
+                onClick={handleReport}
+                className="rounded-full bg-coral px-4 py-1.5 font-body text-sm font-semibold text-white hover:bg-coral/90"
+              >
+                Şikayeti Gönder
+              </button>
+            </div>
+          )}
+
           {actionMessage && <p className="font-body text-sm text-meadow-hover">{actionMessage}</p>}
 
           {messages.map((msg) => {
+            if (msg.isSystemMessage) {
+              return (
+                <Card key={msg.id} className="bg-sky-light/50 border-2 border-sky/30">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="rounded-full bg-sky px-2 py-0.5 font-body text-[10px] font-bold text-white">
+                      YouHaveMi
+                    </span>
+                  </div>
+                  <p className="font-body text-slate">{msg.body}</p>
+                  <p className="mt-2 font-body text-xs text-slate-light">
+                    {new Date(msg.createdAt).toLocaleString("tr-TR")}
+                  </p>
+                </Card>
+              );
+            }
+
             const isFromCounterpart = !myMessageIds.has(msg.id);
             return (
               <Card

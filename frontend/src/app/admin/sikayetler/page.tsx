@@ -27,6 +27,10 @@ export default function AdminSikayetlerPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Kullanici istegi: her sikayet icin ayri bir aciklama taslagi -
+  // sonuclandirirken bu metin, sikayeti yapan kisiye sistem mesaji
+  // olarak gonderilir.
+  const [resolutionNotes, setResolutionNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_secret");
@@ -71,7 +75,7 @@ export default function AdminSikayetlerPage() {
       await fetch(`${API_BASE_URL}/safety/reports/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, resolutionNote: resolutionNotes[id]?.trim() || undefined }),
       });
       await fetchReports();
     } catch {
@@ -146,6 +150,20 @@ export default function AdminSikayetlerPage() {
               <p className="font-body text-xs text-slate-light break-all">
                 Thread: {report.threadId}
               </p>
+              <div>
+                <label className="font-body text-xs font-semibold text-slate">
+                  Sonuç Açıklaması (şikayet edene sistem mesajı olarak gönderilir)
+                </label>
+                <textarea
+                  value={resolutionNotes[report.id] ?? ""}
+                  onChange={(e) =>
+                    setResolutionNotes((prev) => ({ ...prev, [report.id]: e.target.value }))
+                  }
+                  placeholder="Örn: İncelememiz sonucunda gerekli işlem yapılmıştır."
+                  rows={2}
+                  className="mt-1 w-full rounded-xl border-2 border-sky-light bg-white px-3 py-2 font-body text-sm text-slate focus:outline-none focus:border-sky"
+                />
+              </div>
               <div className="flex gap-2 pt-1">
                 <Button variant="secondary" onClick={() => handleUpdateStatus(report.id, "reviewed")}>
                   İncelendi

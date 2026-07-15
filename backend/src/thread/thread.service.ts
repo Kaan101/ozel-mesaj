@@ -325,8 +325,9 @@ export class ThreadService {
       id: message.id,
       body: message.body,
       isAnonymous: message.isAnonymous,
-      senderUserId: message.isAnonymous ? undefined : message.senderUserId,
-      senderAvatarId: message.sender.avatarId,
+      isSystemMessage: message.isSystemMessage,
+      senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
+      senderAvatarId: message.sender?.avatarId ?? null,
       readAt: message.readAt ?? now,
       createdAt: message.createdAt,
     }));

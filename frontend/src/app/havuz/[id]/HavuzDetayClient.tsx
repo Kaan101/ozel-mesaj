@@ -23,6 +23,7 @@ interface DisplayMessage {
   id: string;
   body: string;
   isAnonymous: boolean;
+  isSystemMessage?: boolean;
   senderAvatarId?: string | null;
   createdAt: string;
 }
@@ -176,6 +177,19 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
             </p>
           </div>
           {messages.map((msg) => {
+            if (msg.isSystemMessage) {
+              return (
+                <Card key={msg.id} className="bg-sky-light/50 border-2 border-sky/30">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="rounded-full bg-sky px-2 py-0.5 font-body text-[10px] font-bold text-white">
+                      YouHaveMi
+                    </span>
+                  </div>
+                  <p className="font-body text-slate">{msg.body}</p>
+                </Card>
+              );
+            }
+
             const isFromCounterpart = !myMessageIds.has(msg.id);
             return (
               <Card

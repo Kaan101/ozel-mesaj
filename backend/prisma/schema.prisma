@@ -119,10 +119,16 @@ model Message {
   threadId String        @map("thread_id") @db.Uuid
   thread   MessageThread @relation(fields: [threadId], references: [id])
 
-  senderUserId String @map("sender_user_id") @db.Uuid
-  sender       User   @relation(fields: [senderUserId], references: [id])
+  senderUserId String? @map("sender_user_id") @db.Uuid
+  sender       User?   @relation(fields: [senderUserId], references: [id])
 
   body String
+
+  // Kullanici istegi: sikayet sonuclandirildiginde, admin'in girdigi
+  // aciklama, sikayeti yapan kisiye "YouHaveMi"den gelen bir sistem
+  // mesaji olarak ilgili thread'de gorunur. Bu tur mesajlarda
+  // senderUserId null'dur (gercek bir kullanici degil).
+  isSystemMessage Boolean @default(false) @map("is_system_message")
 
   // true ise API response'unda sender_user_id backend seviyesinde
   // alan filtrelemesiyle hiç dönmez (Bölüm 8, Anonimlik Modeli).
@@ -208,6 +214,10 @@ model Report {
 
   reason String?
   status ReportStatus @default(pending)
+
+  // Kullanici istegi: sikayet sonuclandirildiginde admin'in girdigi
+  // aciklama - sikayeti yapan kisiye sistem mesaji olarak gonderilir.
+  resolutionNote String? @map("resolution_note")
 
   createdAt DateTime @default(now()) @map("created_at")
 

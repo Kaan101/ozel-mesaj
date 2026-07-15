@@ -62,9 +62,9 @@ export class SafetyController {
   @Patch("reports/:id")
   async updateReportStatus(
     @Param("id") id: string,
-    @Body() dto: { status: "reviewed" | "dismissed" }
+    @Body() dto: { status: "reviewed" | "dismissed"; resolutionNote?: string }
   ) {
-    await this.safetyService.updateReportStatus(id, dto.status);
+    await this.safetyService.updateReportStatus(id, dto.status, dto.resolutionNote);
     return { message: "Şikayet güncellendi." };
   }
 }

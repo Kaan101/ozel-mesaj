@@ -164,11 +164,31 @@ export class SafetyService {
   }
 
   // Kullanici istegi: sikayeti "incelendi" ya da "reddedildi" olarak
-  // isaretleme - moderasyon kuyrugundan cikarir.
-  async updateReportStatus(reportId: string, status: "reviewed" | "dismissed"): Promise<void> {
-    await this.prisma.report.update({
+  // isaretleme - moderasyon kuyrugundan cikarir. Admin bir aciklama
+  // (resolutionNote) girdiyse, bu aciklama sikayeti yapan kisiye,
+  // ilgili thread icinde "YouHaveMi"den gelen bir SISTEM MESAJI olarak
+  // gonderilir (senderUserId=null, isSystemMessage=true).
+  async updateReportStatus(
+    reportId: string,
+    status: "reviewed" | "dismissed",
+    resolutionNote?: string
+  ): Promise<void> {
+    const report = await this.prisma.report.update({
       where: { id: reportId },
-      data: { status },
+      data: { status, resolutionNote: resolutionNote ?? null },
+      select: { threadId: true },
     });
+
+    if (resolutionNote && resolutionNote.trim()) {
+      await this.prisma.message.create({
+        data: {
+          threadId: report.threadId,
+          senderUserId: null,
+          body: resolutionNote,
+          isSystemMessage: true,
+          isAnonymous: false,
+        },
+      });
+    }
   }
 }
