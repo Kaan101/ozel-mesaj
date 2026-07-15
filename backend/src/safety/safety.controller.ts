@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
 import { SafetyService } from "./safety.service";
 import { BlockUserDto } from "./dto/block-user.dto";
 import { ReportThreadDto } from "./dto/report-thread.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { AdminGuard } from "../settings/guards/admin.guard";
 
 @Controller("safety")
 export class SafetyController {
@@ -44,11 +45,26 @@ export class SafetyController {
     return { message: "Sikayet alindi.", reportId: result.reportId };
   }
 
-  // Moderasyon kuyrugu - MVP'de Katman 1 auth yeterli (admin rolu
-  // ayrimi ileride eklenebilir).
-  @UseGuards(JwtAuthGuard)
+  // Guvenlik duzeltmesi (kullanici geri bildirimi): bu endpoint
+  // ONCEDEN sadece JwtAuthGuard ile korunuyordu - yani HERHANGI bir
+  // giris yapmis kullanici tum sikayetleri gorebiliyordu. Artik
+  // AdminGuard ile korunuyor (diger yonetim ekranlarinda kullandigimiz
+  // ADMIN_SECRET).
+  @UseGuards(AdminGuard)
   @Get("reports")
   async listReports() {
     return this.safetyService.listPendingReports();
+  }
+
+  // Kullanici istegi: sikayetleri "incelendi" veya "reddedildi" olarak
+  // isaretleyebilme (yonetim ekranindan).
+  @UseGuards(AdminGuard)
+  @Patch("reports/:id")
+  async updateReportStatus(
+    @Param("id") id: string,
+    @Body() dto: { status: "reviewed" | "dismissed" }
+  ) {
+    await this.safetyService.updateReportStatus(id, dto.status);
+    return { message: "Şikayet güncellendi." };
   }
 }

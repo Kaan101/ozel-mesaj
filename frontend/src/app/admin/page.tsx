@@ -101,6 +101,16 @@ export default function AdminHubPage() {
               </p>
             </Card>
           </a>
+
+          <Link href="/admin/sikayetler">
+            <Card lifted className="h-full hover:shadow-soft-lifted transition-shadow">
+              <div className="text-3xl mb-2">🚩</div>
+              <h2 className="font-display text-base font-bold text-slate">Şikayetler</h2>
+              <p className="mt-1 font-body text-xs text-slate-light">
+                Bekleyen şikayetleri görüntüle, incele veya reddet.
+              </p>
+            </Card>
+          </Link>
         </div>
       </div>
     </main>

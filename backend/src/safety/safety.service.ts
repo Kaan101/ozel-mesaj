@@ -126,8 +126,11 @@ export class SafetyService {
   }
 
   // Moderasyon kuyrugu: bekleyen (henuz incelenmemis) sikayetleri listeler.
+  // Kullanici istegi: yonetim ekraninda baglam gorebilmek icin thread'in
+  // ilk mesaj metnini de dahil ediyoruz (moderasyon amacli - normal
+  // kullanicilarin gordugu API'lerde bu yapilmaz).
   async listPendingReports() {
-    return this.prisma.report.findMany({
+    const reports = await this.prisma.report.findMany({
       where: { status: "pending" },
       orderBy: { createdAt: "asc" },
       select: {
@@ -137,7 +140,35 @@ export class SafetyService {
         reason: true,
         status: true,
         createdAt: true,
+        thread: {
+          select: {
+            messages: {
+              orderBy: { createdAt: "asc" },
+              take: 1,
+              select: { body: true },
+            },
+          },
+        },
       },
+    });
+
+    return reports.map((r) => ({
+      id: r.id,
+      threadId: r.threadId,
+      reporterUserId: r.reporterUserId,
+      reason: r.reason,
+      status: r.status,
+      createdAt: r.createdAt,
+      firstMessageBody: r.thread.messages[0]?.body ?? null,
+    }));
+  }
+
+  // Kullanici istegi: sikayeti "incelendi" ya da "reddedildi" olarak
+  // isaretleme - moderasyon kuyrugundan cikarir.
+  async updateReportStatus(reportId: string, status: "reviewed" | "dismissed"): Promise<void> {
+    await this.prisma.report.update({
+      where: { id: reportId },
+      data: { status },
     });
   }
 }
