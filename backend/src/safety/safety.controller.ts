@@ -18,6 +18,18 @@ export class SafetyController {
     return { message: "Numara engellendi." };
   }
 
+  // Kullanici istegi: mesaj ekranindan dogrudan engelleme - telefon
+  // numarasi yerine threadId kullanir (Bolum 8 gizlilik modeliyle
+  // tutarli, bkz. SafetyService.blockThreadCounterpart).
+  @UseGuards(JwtAuthGuard)
+  @Post("threads/:id/block")
+  async blockThreadCounterpart(@Req() request: Request, @Param("id") threadId: string) {
+    const requestingUserId = (request as any).user.sub;
+    await this.safetyService.blockThreadCounterpart(threadId, requestingUserId);
+
+    return { message: "Kullanıcı engellendi." };
+  }
+
   // Gorev 7.3: Herhangi bir thread icin sikayet olusturma.
   @UseGuards(JwtAuthGuard)
   @Post("threads/:id/report")

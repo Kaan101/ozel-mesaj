@@ -243,7 +243,8 @@ function ThreadSection({
               </Link>
 
               {/* Kullanici geri bildirimi: mesaj silme (kendi
-                  listesinden gizleme) ozelligi. */}
+                  listesinden gizleme) ozelligi. Ikon kucultulup sag
+                  alta tasindi. */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -253,7 +254,7 @@ function ThreadSection({
                     onDelete(thread.id);
                   }
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-slate-light hover:bg-coral-light hover:text-coral"
+                className="absolute right-2 bottom-2 rounded-full p-1 text-xs text-slate-light hover:bg-coral-light hover:text-coral"
                 aria-label={t("mesajlarim.delete")}
               >
                 🗑️

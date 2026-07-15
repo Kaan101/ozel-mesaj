@@ -10,6 +10,46 @@ export class SafetyService {
     private readonly settings: SettingsService
   ) {}
 
+  // Kullanici istegi: mesaj ekranindan dogrudan "bu kisiyi engelle"
+  // ozelligi - frontend karsi tarafin telefon numarasini BILMEDIGI
+  // icin (Bolum 8, "numara asla client'a sizmaz"), telefon yerine
+  // threadId uzerinden calisir. Backend, thread'e bakarak karsi
+  // tarafin userId'sini kendi cozup dogrudan Block kaydi olusturur -
+  // hicbir zaman telefon numarasina donus yapmaz.
+  async blockThreadCounterpart(threadId: string, requestingUserId: string): Promise<void> {
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: threadId },
+      select: { initiatorUserId: true, recipientUserId: true },
+    });
+
+    if (!thread) {
+      return;
+    }
+
+    const counterpartUserId =
+      thread.initiatorUserId === requestingUserId
+        ? thread.recipientUserId
+        : thread.initiatorUserId;
+
+    if (!counterpartUserId || counterpartUserId === requestingUserId) {
+      return;
+    }
+
+    await this.prisma.block.upsert({
+      where: {
+        blockerUserId_blockedUserId: {
+          blockerUserId: requestingUserId,
+          blockedUserId: counterpartUserId,
+        },
+      },
+      update: {},
+      create: {
+        blockerUserId: requestingUserId,
+        blockedUserId: counterpartUserId,
+      },
+    });
+  }
+
   // Gorev 7.2: Bir kullanicinin baska bir numarayi engellemesi.
   // Engellenen taraf, blocklayan kisiye bir daha thread/mesaj
   // gonderemez (Bolum 10) - kontrol ThreadService.createThread'de yapilir.

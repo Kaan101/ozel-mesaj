@@ -221,13 +221,24 @@ export default function MesajGosterPage() {
     }
   }
 
-  // Gorev 13.3: Numarayi/kullaniciyi engelleme. Bunun icin karsi
-  // tarafin telefon numarasina degil, bu ekranda dogrudan kullanici
-  // ID'sine ihtiyacimiz var - ama biz numarayi bilmiyoruz (Bolum 8,
-  // "numara asla client'a sizmaz"). O yuzden backend'in block
-  // endpoint'i telefon numarasi bekliyor; bu ekrandan sadece "bu
-  // konusmayi sikayet et" akisini tetikleyip, engellemeyi Ayarlar'a
-  // birakiyoruz (Gorev 13.4/13.5 ile birlikte netlesecek).
+  // Kullanici istegi: mesaj ekranindan dogrudan "bu kisiyi engelle"
+  // ozelligi eklendi - artik telefon numarasina gerek kalmadan,
+  // threadId uzerinden backend karsi tarafi cozup engelliyor (Bolum 8
+  // gizlilik modeliyle tutarli, bkz. yeni /safety/threads/:id/block).
+  async function handleBlock() {
+    if (!confirm("Bu kişiyi engellemek istediğine emin misin? Bir daha sana mesaj gönderemeyecek.")) {
+      return;
+    }
+    setActionMessage(null);
+    try {
+      await apiFetch(`/safety/threads/${threadId}/block`, { method: "POST" });
+      setActionMessage("Kullanıcı engellendi.");
+    } catch {
+      setActionMessage("Engelleme işlemi başarısız oldu. Lütfen tekrar dene.");
+    }
+  }
+
+  // Gorev 13.3: Sikayet etme.
   async function handleReport() {
     setActionMessage(null);
     try {
@@ -323,13 +334,22 @@ export default function MesajGosterPage() {
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={handleReport}
-              className="font-body text-xs text-coral underline underline-offset-2"
-            >
-              Şikayet Et
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleBlock}
+                className="font-body text-xs text-slate-light underline underline-offset-2"
+              >
+                Engelle
+              </button>
+              <button
+                type="button"
+                onClick={handleReport}
+                className="font-body text-xs text-coral underline underline-offset-2"
+              >
+                Şikayet Et
+              </button>
+            </div>
           </div>
 
           {actionMessage && <p className="font-body text-sm text-meadow-hover">{actionMessage}</p>}
