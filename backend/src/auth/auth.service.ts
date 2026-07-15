@@ -4,7 +4,9 @@ import { RedisService } from "../common/redis.service";
 import { PrismaService } from "../common/prisma.service";
 import { SmsService } from "../sms/sms.service";
 import { SettingsService } from "../settings/settings.service";
+import { AuditLogService } from "../audit/audit-log.service";
 import { generateOtpCode, hashPhoneNumber } from "../common/hash.util";
+import { encryptReversible } from "../common/encryption.util";
 
 @Injectable()
 export class AuthService {
@@ -13,6 +15,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly sms: SmsService,
     private readonly settings: SettingsService,
+    private readonly auditLog: AuditLogService,
     private readonly jwt: JwtService
   ) {}
 
@@ -70,6 +73,13 @@ export class AuthService {
     const text = `Ozel Mesaj dogrulama kodunuz: ${code}. Bu kod ${Math.round(ttlSeconds / 60)} dakika gecerlidir.`;
     await this.sms.send(phoneNumber, text);
 
+    // Kullanici istegi: hukuki ispat icin genel islem gunlugu - hangi
+    // numaraya (hash olarak) OTP istendigi kaydedilir.
+    await this.auditLog.log({
+      eventType: "otp_requested",
+      metadata: { phoneHash },
+    });
+
     // Kullanici geri bildirimi: sadece SMS_MOCK_MODE=true iken (yerel
     // gelistirme/test), kodu response'a da ekliyoruz ki frontend'de
     // otomatik doldurulabilsin. SMS_MOCK_MODE=false oldugunda (gercek
@@ -120,8 +130,17 @@ export class AuthService {
 
     const user = await this.prisma.user.upsert({
       where: { phoneNumberHash: phoneHash },
-      update: { lastSeenAt: new Date() },
-      create: { phoneNumberHash: phoneHash, status: "active" },
+      update: { lastSeenAt: new Date(), phoneNumberEncrypted: encryptReversible(phoneNumber) },
+      create: {
+        phoneNumberHash: phoneHash,
+        phoneNumberEncrypted: encryptReversible(phoneNumber),
+        status: "active",
+      },
+    });
+
+    await this.auditLog.log({
+      eventType: "otp_verified",
+      userId: user.id,
     });
 
     const accessToken = await this.jwt.signAsync(

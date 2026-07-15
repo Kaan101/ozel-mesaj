@@ -6,8 +6,10 @@ import { SmsService } from "../sms/sms.service";
 import { EmailService } from "../email/email.service";
 import { SafetyService } from "../safety/safety.service";
 import { SettingsService } from "../settings/settings.service";
+import { AuditLogService } from "../audit/audit-log.service";
 import { hashPhoneNumber } from "../common/hash.util";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
+import { encryptReversible } from "../common/encryption.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 
 @Injectable()
@@ -19,6 +21,7 @@ export class ThreadService {
     private readonly email: EmailService,
     private readonly safety: SafetyService,
     private readonly settings: SettingsService,
+    private readonly auditLog: AuditLogService,
     private readonly jwt: JwtService
   ) {}
 
@@ -31,10 +34,18 @@ export class ThreadService {
     // modeline uygun olarak onceden bir kullanici kaydi olusturuyoruz
     // (Bolum 8). Alici kendi OTP'siyle giris yaptiginda ayni kayda
     // (ayni phone_number_hash) baglanacak.
+    // Kullanici istegi: hukuki ispat icin, telefon numarasini AYRICA
+    // (hash'e ek olarak) geri dondurulebilir sekilde sifreli kasada
+    // da saklariz (Bolum: "Audit/Kasada Saklama").
+    const encryptedPhone = encryptReversible(dto.recipientPhone);
     const recipient = await this.prisma.user.upsert({
       where: { phoneNumberHash: recipientPhoneHash },
-      update: {},
-      create: { phoneNumberHash: recipientPhoneHash, status: "active" },
+      update: { phoneNumberEncrypted: encryptedPhone },
+      create: {
+        phoneNumberHash: recipientPhoneHash,
+        phoneNumberEncrypted: encryptedPhone,
+        status: "active",
+      },
     });
 
     // Gorev 7.2: Alici, gonderici tarafindan (initiator) daha once
@@ -74,6 +85,32 @@ export class ThreadService {
     const appUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
     const text = `Sana ozel bir mesaj var. Gormek icin: ${appUrl}/mesaj/${thread.id}`;
     await this.sms.send(dto.recipientPhone, text);
+
+    // Kullanici istegi: hukuki ispat icin, mesajin SIFRELI bir kopyasi
+    // ayri bir arsiv tablosuna yaziliyor - "okunduktan sonra sil"
+    // (destroy_after_read) ile silinse bile bu kopya kalir.
+    const firstMessage = await this.prisma.message.findFirst({
+      where: { threadId: thread.id },
+      orderBy: { createdAt: "asc" },
+    });
+    if (firstMessage) {
+      await this.prisma.messageAudit.create({
+        data: {
+          originalMessageId: firstMessage.id,
+          threadId: thread.id,
+          senderUserId: initiatorUserId,
+          bodyEncrypted: encryptReversible(dto.body),
+          isAnonymous: dto.isAnonymous,
+        },
+      });
+    }
+
+    await this.auditLog.log({
+      eventType: "thread_created",
+      userId: initiatorUserId,
+      threadId: thread.id,
+      metadata: { lockType: dto.lockType, isAnonymous: dto.isAnonymous },
+    });
 
     // Kullanici istegi: gonderen opsiyonel bir e-posta da eklediyse,
     // ek bir bildirim kanali olarak oraya da gonder (giris hala
@@ -141,6 +178,11 @@ export class ThreadService {
     const isMatch = await compareSecret(secret, thread.lockSecretHash);
     if (!isMatch) {
       await this.redis.incr(attemptsKey, lockoutSeconds);
+      await this.auditLog.log({
+        eventType: "thread_unlock_failed",
+        userId,
+        threadId,
+      });
       throw new UnauthorizedException("Parola/cevap hatali.");
     }
 
@@ -155,6 +197,12 @@ export class ThreadService {
       where: { threadId_userId: { threadId, userId } },
       update: {},
       create: { threadId, userId },
+    });
+
+    await this.auditLog.log({
+      eventType: "thread_unlocked",
+      userId,
+      threadId,
     });
 
     const threadAccessToken = await this.jwt.signAsync(
@@ -344,6 +392,23 @@ export class ThreadService {
         body,
         isAnonymous,
       },
+    });
+
+    // Kullanici istegi: her mesajin sifreli bir arsiv kopyasi.
+    await this.prisma.messageAudit.create({
+      data: {
+        originalMessageId: message.id,
+        threadId,
+        senderUserId,
+        bodyEncrypted: encryptReversible(body),
+        isAnonymous,
+      },
+    });
+
+    await this.auditLog.log({
+      eventType: "message_sent",
+      userId: senderUserId,
+      threadId,
     });
 
     return {

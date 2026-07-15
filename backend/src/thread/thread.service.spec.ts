@@ -13,6 +13,7 @@ import { SmsService } from "../sms/sms.service";
 import { EmailService } from "../email/email.service";
 import { SafetyService } from "../safety/safety.service";
 import { SettingsService } from "../settings/settings.service";
+import { AuditLogService } from "../audit/audit-log.service";
 
 // Gorev 5.8: Senaryo A (dogrudan mesaj) akisinin tum backend adimlarini
 // (thread olusturma, unlock, mesaj listeleme/gonderme) kapsayan unit
@@ -27,6 +28,12 @@ describe("ThreadService", () => {
   let jwt: jest.Mocked<JwtService>;
 
   beforeEach(async () => {
+    // encryptReversible fonksiyonu gecerli bir anahtar bekliyor -
+    // testlerde de gercekci bir sifreleme akisi calissin diye ornek
+    // bir anahtar tanimliyoruz (gercek veriyle ilgisi yok).
+    process.env.PHONE_ENCRYPTION_KEY =
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd";
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ThreadService,
@@ -35,7 +42,13 @@ describe("ThreadService", () => {
           useValue: {
             user: { upsert: jest.fn() },
             messageThread: { create: jest.fn(), findUnique: jest.fn() },
-            message: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn() },
+            message: {
+              create: jest.fn(),
+              findMany: jest.fn(),
+              findFirst: jest.fn(),
+              updateMany: jest.fn(),
+            },
+            messageAudit: { create: jest.fn() },
             threadUnlock: { upsert: jest.fn(), findUnique: jest.fn() },
           },
         },
@@ -47,6 +60,7 @@ describe("ThreadService", () => {
         { provide: EmailService, useValue: { send: jest.fn() } },
         { provide: SafetyService, useValue: { isBlocked: jest.fn().mockResolvedValue(false) } },
         { provide: SettingsService, useValue: { getNumber: jest.fn().mockResolvedValue(5) } },
+        { provide: AuditLogService, useValue: { log: jest.fn() } },
         { provide: JwtService, useValue: { signAsync: jest.fn(), verifyAsync: jest.fn() } },
       ],
     }).compile();

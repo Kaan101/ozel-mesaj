@@ -111,6 +111,16 @@ export default function AdminHubPage() {
               </p>
             </Card>
           </Link>
+
+          <Link href="/admin/gunlukler">
+            <Card lifted className="h-full hover:shadow-soft-lifted transition-shadow">
+              <div className="text-3xl mb-2">📜</div>
+              <h2 className="font-display text-base font-bold text-slate">İşlem Günlükleri</h2>
+              <p className="mt-1 font-body text-xs text-slate-light">
+                Hukuki ispat için genel günlük, telefon açma, mesaj arşivi.
+              </p>
+            </Card>
+          </Link>
         </div>
       </div>
     </main>

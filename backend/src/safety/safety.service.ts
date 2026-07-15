@@ -1,13 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../common/prisma.service";
 import { SettingsService } from "../settings/settings.service";
+import { AuditLogService } from "../audit/audit-log.service";
 import { hashPhoneNumber } from "../common/hash.util";
 
 @Injectable()
 export class SafetyService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly settings: SettingsService
+    private readonly settings: SettingsService,
+    private readonly auditLog: AuditLogService
   ) {}
 
   // Kullanici istegi: mesaj ekranindan dogrudan "bu kisiyi engelle"
@@ -47,6 +49,13 @@ export class SafetyService {
         blockerUserId: requestingUserId,
         blockedUserId: counterpartUserId,
       },
+    });
+
+    await this.auditLog.log({
+      eventType: "user_blocked",
+      userId: requestingUserId,
+      threadId,
+      metadata: { blockedUserId: counterpartUserId },
     });
   }
 
@@ -121,6 +130,13 @@ export class SafetyService {
         });
       }
     }
+
+    await this.auditLog.log({
+      eventType: "thread_reported",
+      userId: reporterUserId,
+      threadId,
+      metadata: { reason: reason ?? null },
+    });
 
     return { reportId: report.id };
   }

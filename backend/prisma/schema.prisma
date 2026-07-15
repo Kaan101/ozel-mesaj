@@ -28,6 +28,12 @@ model User {
   id              String     @id @default(uuid()) @db.Uuid
   // Telefon numarası ASLA düz metin saklanmaz, sadece hash (Bölüm 10).
   phoneNumberHash String     @unique @map("phone_number_hash")
+  // Kullanici istegi: hukuki bir talep/soruşturma geldiginde "bu hesap
+  // kime ait" sorusuna cevap verebilmek icin - hash'ten farkli olarak
+  // AES ile SIFRELI ama GERI DONDURULEBILIR sekilde saklanir. Normal
+  // uygulama akislarinda hicbir zaman kullanilmaz/donulmez, sadece
+  // yonetim ekranindan, bilincli bir "ac" islemiyle cozulebilir.
+  phoneNumberEncrypted String? @map("phone_number_encrypted")
   displayName     String?    @map("display_name")
   // Kullanici istegi: girisin bir parcasi olarak secilen 10 hazir
   // avatardan biri - hicbir gercek kimlik bilgisi tasimaz, sadece
@@ -289,6 +295,64 @@ model AdminTask {
   updatedAt   DateTime          @updatedAt @map("updated_at")
 
   @@map("admin_tasks")
+}
+
+// --------------------------------------------------------
+// Kullanici istegi: sistem sahibi olarak hukuki bir talep/soruşturma
+// durumunda ispatlayabilecek/belgeleyebilecek kayitlar. Bu tablolar
+// normal uygulama akislarindan (kullanicilarin gordugu API'ler) HICBIR
+// ZAMAN okunmaz - sadece yonetim ekranindan, bilinçli bir islemle
+// erisilir.
+// --------------------------------------------------------
+
+// Genel islem gunlugu: OTP istekleri, giris/dogrulama, mesaj gonderme,
+// thread acma, engelleme, sikayet, admin islemleri - IP ve zaman
+// damgasiyla birlikte. Ekleme-sadece (append-only), hicbir zaman
+// guncellenmez/silinmez.
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  eventType String @map("event_type") // orn. "otp_request", "message_sent", "thread_unlock", "block", "report"
+  userId    String? @map("user_id") @db.Uuid
+  threadId  String? @map("thread_id") @db.Uuid
+
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+
+  // Olaya ozel ek bilgi (JSON) - orn. hangi telefon numarasina OTP
+  // gonderildi, hangi kilit tipiyle thread acildi, vb.
+  metadata Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([threadId])
+  @@index([eventType])
+  @@map("audit_logs")
+}
+
+// Her mesajin, olusturuldugu anda alinan SIFRELI bir kopyasi - normal
+// "messages" tablosundaki kayit (destroy_after_read ile) silinse bile
+// bu arsiv kaydi kalir. Kullanici geri bildirimi: hukuki ispat icin
+// gerekli.
+model MessageAudit {
+  id String @id @default(uuid()) @db.Uuid
+
+  originalMessageId String  @map("original_message_id") @db.Uuid
+  threadId           String @map("thread_id") @db.Uuid
+
+  senderUserId String? @map("sender_user_id") @db.Uuid
+
+  // Mesaj govdesi AES ile sifreli saklanir (duz metin degil) - sadece
+  // yonetim ekranindan, bilincli bir "coz" islemiyle okunabilir.
+  bodyEncrypted String @map("body_encrypted")
+
+  isAnonymous Boolean @default(false) @map("is_anonymous")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([threadId])
+  @@map("message_audits")
 }
 
 

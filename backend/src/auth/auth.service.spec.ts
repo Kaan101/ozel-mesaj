@@ -5,6 +5,8 @@ import { AuthService } from "./auth.service";
 import { RedisService } from "../common/redis.service";
 import { PrismaService } from "../common/prisma.service";
 import { SmsService } from "../sms/sms.service";
+import { SettingsService } from "../settings/settings.service";
+import { AuditLogService } from "../audit/audit-log.service";
 
 // Gorev 3.8: Auth akisi (OTP request/verify/refresh) icin unit testler.
 // Redis/Prisma/SMS/JWT gercek servisler yerine mock'lanir - boylece
@@ -19,6 +21,9 @@ describe("AuthService", () => {
   let jwt: jest.Mocked<JwtService>;
 
   beforeEach(async () => {
+    process.env.PHONE_ENCRYPTION_KEY =
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd";
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -43,6 +48,23 @@ describe("AuthService", () => {
         {
           provide: SmsService,
           useValue: { send: jest.fn() },
+        },
+        {
+          provide: AuditLogService,
+          useValue: { log: jest.fn() },
+        },
+        {
+          provide: SettingsService,
+          useValue: {
+            getNumber: jest.fn((key: string) => {
+              const defaults: Record<string, number> = {
+                OTP_RATE_LIMIT_PER_MINUTE: 1,
+                OTP_RATE_LIMIT_PER_HOUR: 5,
+                OTP_VERIFY_MAX_ATTEMPTS: 5,
+              };
+              return Promise.resolve(defaults[key] ?? 0);
+            }),
+          },
         },
         {
           provide: JwtService,

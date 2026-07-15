@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./common/prisma.module";
@@ -10,7 +10,9 @@ import { PoolModule } from "./pool/pool.module";
 import { SafetyModule } from "./safety/safety.module";
 import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
+import { AuditModule } from "./audit/audit.module";
 import { GlobalRateLimitGuard } from "./settings/guards/global-rate-limit.guard";
+import { AuditRequestInterceptor } from "./audit/audit-request.interceptor";
 
 @Module({
   imports: [
@@ -22,6 +24,7 @@ import { GlobalRateLimitGuard } from "./settings/guards/global-rate-limit.guard"
     SafetyModule,
     UsersModule,
     SettingsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [
@@ -34,6 +37,12 @@ import { GlobalRateLimitGuard } from "./settings/guards/global-rate-limit.guard"
     {
       provide: APP_GUARD,
       useClass: GlobalRateLimitGuard,
+    },
+    // Kullanici istegi: hukuki ispat/belgeleme icin TUM isteklerin
+    // otomatik olarak gunluge yazilmasi (Bolum: "Audit Log").
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditRequestInterceptor,
     },
   ],
 })

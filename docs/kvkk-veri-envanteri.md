@@ -40,3 +40,21 @@ Kullanıcı `DELETE /me` çağırdığında aşağıdakiler **hard-delete** edil
 - Nihai Gizlilik Politikası ve KVKK Aydınlatma Metni'nin hukuki dille yazılması (Görev 13.2).
 - Veri işleme envanterinin resmi VERBİS (Veri Sorumluları Sicili) kaydı gerekip gerekmediğinin değerlendirilmesi.
 - 18 yaş altı kullanım riskine karşı yaş doğrulama mekanizmasının hukuki yeterliliği (Bölüm 10, 14'te not edilmişti).
+
+## 6. Hukuki İspat/Belgeleme Amaçlı Veri Saklama (Sonradan Eklendi)
+
+**ÖNEMLİ — Bu bölüm, yukarıdaki asgari veri toplama ilkesine bilinçli bir istisnadır ve avukat onayı gerektirir:**
+
+Sistem sahibinin talebiyle, hukuki bir talep/soruşturma durumunda ispat sağlayabilmek için aşağıdaki ek veriler artık saklanmaktadır:
+
+1. **`audit_logs` tablosu**: Tüm API isteklerinin (yöntem, yol, durum kodu, IP adresi, User-Agent, varsa kullanıcı ID'si) otomatik günlüğü. Ayrıca OTP istekleri/doğrulamaları, mesaj gönderimi, thread açma (başarılı/başarısız), engelleme, şikayet gibi iş olayları ayrıca işaretlenir.
+2. **`users.phone_number_encrypted`**: Telefon numarası artık hash'e **ek olarak**, AES-256-GCM ile **geri döndürülebilir** şekilde de şifrelenip saklanıyor. Normal uygulama akışlarında hiçbir zaman kullanılmaz — sadece yönetim ekranından bilinçli bir "aç" işlemiyle çözülebilir.
+3. **`message_audits` tablosu**: Her mesajın oluşturulduğu anda alınan şifreli bir kopyası. `destroy_after_read` (okunduktan sonra sil) özelliğiyle canlı `messages` tablosundan silinen mesajlar için bile bu arşiv kaydı **kalıcı olarak korunur**.
+
+**KVKK açısından dikkat edilmesi gerekenler:**
+- Bu, kullanıcılara sunulan "mesajın okunduktan sonra kalıcı olarak silindiği" vaadini **fiilen değiştirmektedir** — mesaj kullanıcı arayüzünden kayboluyor olsa da, şifreli bir kopyası sistem sahibi tarafından erişilebilir durumda kalmaktadır.
+- Bu durumun **Gizlilik Politikası'nda açıkça belirtilmesi** (KVKK md. 10 aydınlatma yükümlülüğü) gerekmektedir — "mesajlarınız X süre boyunca hukuki amaçlarla şifreli olarak saklanabilir" gibi bir ifade.
+- Saklama süresi için bir üst sınır (örn. "kayıt tarihinden itibaren 2 yıl") belirlenmesi ve bu sürenin sonunda otomatik silme mekanizması kurulması önerilir — şu an bu tablolar için otomatik bir silme job'ı **yoktur**, süresiz saklanmaktadır.
+- Şifreleme anahtarının (`PHONE_ENCRYPTION_KEY`) güvenli saklanması kritik önem taşır — bu anahtar sızarsa, tüm şifreli veriler (telefon numaraları, mesaj arşivi) açığa çıkar.
+
+**Bu bölümün nihai hukuki uygunluğu için bir avukatla görüşülmesi şiddetle önerilir.**
