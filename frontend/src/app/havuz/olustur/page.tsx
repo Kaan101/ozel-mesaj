@@ -36,13 +36,12 @@ export default function HavuzOlusturPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
+    // Kullanici istegi: bu artik sadece oneri (autocomplete) listesi -
+    // ilk degeri otomatik secmiyoruz, kullanici serbestce yazabilir.
     apiFetch<{ categories: string[] }>("/pool/categories", { skipAuth: true })
-      .then((data) => {
-        setCategories(data.categories);
-        if (data.categories.length > 0) setCategory(data.categories[0]);
-      })
+      .then((data) => setCategories(data.categories))
       .catch(() => {
-        // Kategori listesi gelmezse serbest yazima izin verilir (asagida).
+        // Oneri listesi gelmezse sorun degil, alan zaten serbest metin.
       });
   }, []);
 
@@ -60,7 +59,13 @@ export default function HavuzOlusturPage() {
     try {
       const data = await apiFetch<{ poolEntryId: string }>("/pool/entries", {
         method: "POST",
-        body: JSON.stringify({ title, question, answer, category, visibility }),
+        body: JSON.stringify({
+          title,
+          question,
+          answer,
+          category: category.trim() || undefined,
+          visibility,
+        }),
       });
       setCreatedId(data.poolEntryId);
     } catch (err) {
@@ -143,27 +148,22 @@ export default function HavuzOlusturPage() {
             <label className="font-display text-sm font-semibold text-slate">
               {t("havuzOlustur.categoryLabel")}
             </label>
-            {categories.length > 0 ? (
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="mt-1.5 w-full rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-body text-slate
-                  focus:outline-none focus:ring-4 focus:ring-sky/20 focus:border-sky"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <Input
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder={t("havuzOlustur.categoryPlaceholder")}
-                className="mt-1.5"
-              />
-            )}
+            {/* Kullanici istegi: kategori artik serbest metin - yazarken
+                daha once girilmis degerler HTML datalist ile oneri
+                olarak listelenir (tarayicinin dogal autocomplete'i). */}
+            <input
+              list="category-suggestions"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder={t("havuzOlustur.categoryPlaceholder")}
+              className="mt-1.5 w-full rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-body text-slate
+                focus:outline-none focus:ring-4 focus:ring-sky/20 focus:border-sky"
+            />
+            <datalist id="category-suggestions">
+              {categories.map((cat) => (
+                <option key={cat} value={cat} />
+              ))}
+            </datalist>
           </div>
 
           {/* Gorev 12.2: Gorunurluk secimi */}
@@ -201,7 +201,7 @@ export default function HavuzOlusturPage() {
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={isSubmitting || !title || !question || !answer || !category}
+            disabled={isSubmitting || !title || !question || !answer}
           >
             {isSubmitting ? t("havuzOlustur.publishing") : t("havuzOlustur.publish")}
           </Button>

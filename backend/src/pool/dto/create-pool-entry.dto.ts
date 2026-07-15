@@ -1,5 +1,4 @@
-import { IsIn, IsOptional, IsString, MinLength } from "class-validator";
-import { POOL_CATEGORIES } from "../pool-categories.constant";
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class CreatePoolEntryDto {
   @IsString()
@@ -14,10 +13,12 @@ export class CreatePoolEntryDto {
   @MinLength(4, { message: "answer en az 4 karakter olmali (brute-force zorlugu icin)." })
   answer: string;
 
+  // Kullanici istegi: kategori artik sabit bir listeye bagli degil,
+  // serbest metin - frontend'de daha once girilmis degerler oneri
+  // olarak gosteriliyor (bkz. GET /pool/categories).
   @IsOptional()
-  @IsIn(POOL_CATEGORIES, {
-    message: `category su degerlerden biri olmali: ${POOL_CATEGORIES.join(", ")}`,
-  })
+  @IsString()
+  @MaxLength(50)
   category?: string;
 
   @IsIn(["public", "unlisted"])

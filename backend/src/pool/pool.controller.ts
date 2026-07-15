@@ -4,17 +4,19 @@ import { PoolService } from "./pool.service";
 import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
 import { AttemptPoolEntryDto } from "./dto/attempt-pool-entry.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { POOL_CATEGORIES } from "./pool-categories.constant";
 
 @Controller("pool")
 export class PoolController {
   constructor(private readonly poolService: PoolService) {}
 
-  // Gorev 6.5: Frontend'in dropdown/filtre icin kullanabilecegi sabit
-  // kategori listesi - auth gerektirmez.
+  // Gorev 6.5 (revize - kullanici istegi): kategori artik serbest
+  // metin. Bu endpoint sabit bir liste yerine, veritabaninda daha
+  // once GIRILMIS gercek kategori degerlerini doner - frontend'de
+  // yazarken oneri (autocomplete) olarak kullanilir.
   @Get("categories")
-  getCategories() {
-    return { categories: POOL_CATEGORIES };
+  async getCategories() {
+    const categories = await this.poolService.listDistinctCategories();
+    return { categories };
   }
 
   // Katman 1 auth zorunlu (Bolum 9): sadece giris yapmis kullanicilar

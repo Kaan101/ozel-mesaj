@@ -15,6 +15,21 @@ export class PoolService {
     private readonly jwt: JwtService
   ) {}
 
+  // Kullanici istegi: kategori artik serbest metin - sabit liste
+  // yerine, veritabaninda daha once GIRILMIS gercek degerleri (tekrar
+  // etmeyen, en yeni ilk) doner. Frontend bunu bir autocomplete
+  // oneri listesi olarak kullanir.
+  async listDistinctCategories(): Promise<string[]> {
+    const rows = await this.prisma.poolEntry.findMany({
+      where: { category: { not: null } },
+      select: { category: true },
+      distinct: ["category"],
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+    return rows.map((r) => r.category!).filter(Boolean);
+  }
+
   // Gorev 6.1: Baslik, soru, cevap (hash'lenerek), kategori ve
   // gorunurluk ile soru kaydi olusturur (Bolum 4, 9).
   async createEntry(ownerUserId: string, dto: CreatePoolEntryDto) {
