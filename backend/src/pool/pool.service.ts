@@ -56,6 +56,7 @@ export class PoolService {
   async listEntries(category: string | undefined, page: number, pageSize: number) {
     const where = {
       visibility: "public" as const,
+      hiddenByOwner: false,
       ...(category ? { category } : {}),
     };
 
@@ -81,7 +82,13 @@ export class PoolService {
 
   // Gorev 12.4 icin gerekli ek: tek bir soruyu ID ile getirir (detay
   // sayfasi + OG etiketleri icin, Gorev 12.5). answerHash ASLA donmez.
-  async getEntryById(id: string) {
+  // Kullanici istegi (bug duzeltmesi): soru sahibi kendi sorusunun
+  // sayfasina girdiginde ona da "cevabi gir" formu gosteriliyordu - bu
+  // sacma, cunku cevabi zaten kendisi belirledi. requestingUserId
+  // verilirse (kullanici giris yapmissa), sahibi olup olmadigi
+  // isOwner alaninda donulur - ownerUserId'nin kendisi ASLA disari
+  // sizdirilmaz (baska kimsenin bunu bilmesine gerek yok).
+  async getEntryById(id: string, requestingUserId?: string) {
     const entry = await this.prisma.poolEntry.findUnique({
       where: { id },
       select: {
@@ -92,14 +99,74 @@ export class PoolService {
         visibility: true,
         matchMode: true,
         createdAt: true,
+        ownerUserId: true,
+        hiddenByOwner: true,
       },
     });
 
-    if (!entry) {
+    if (!entry || entry.hiddenByOwner) {
       throw new NotFoundException("Soru bulunamadi.");
     }
 
-    return entry;
+    const { ownerUserId, hiddenByOwner, ...publicFields } = entry;
+    return { ...publicFields, isOwner: requestingUserId === ownerUserId };
+  }
+
+  // Kullanici istegi: soru sahibi istedigi zaman sorusunu kaldirabilir -
+  // veri fiilen silinmez (mevcut PoolAttempt/MessageThread referanslari
+  // bozulmasin diye), sadece gizlenir. Bu noktadan sonra hem herkese
+  // acik listede/detayda hem "Mesajlarim"da gorunmez olur.
+  async deleteEntryForOwner(entryId: string, ownerUserId: string): Promise<void> {
+    const entry = await this.prisma.poolEntry.findUnique({
+      where: { id: entryId },
+      select: { ownerUserId: true },
+    });
+
+    if (!entry || entry.ownerUserId !== ownerUserId) {
+      throw new NotFoundException("Soru bulunamadi.");
+    }
+
+    await this.prisma.poolEntry.update({
+      where: { id: entryId },
+      data: { hiddenByOwner: true },
+    });
+  }
+
+  // Kullanici istegi: kendi sorumun sayfasina girdigimde, gelen HER
+  // yaniti (bekleyen/kabul edilmis/reddedilmis fark etmeksizin) ayri
+  // birer "iletisim" olarak gormek istiyorum - devam edip etmemeye
+  // ben karar veririm.
+  async getAllAttemptsForOwner(entryId: string, ownerUserId: string) {
+    const entry = await this.prisma.poolEntry.findUnique({
+      where: { id: entryId },
+      select: { ownerUserId: true },
+    });
+
+    if (!entry || entry.ownerUserId !== ownerUserId) {
+      throw new NotFoundException("Soru bulunamadi.");
+    }
+
+    const attempts = await this.prisma.poolAttempt.findMany({
+      where: { poolEntryId: entryId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        answerText: true,
+        status: true,
+        threadId: true,
+        createdAt: true,
+        attempter: { select: { avatarId: true } },
+      },
+    });
+
+    return attempts.map((a) => ({
+      id: a.id,
+      answerText: a.answerText,
+      status: a.status,
+      threadId: a.threadId,
+      createdAt: a.createdAt,
+      attempterAvatarId: a.attempter.avatarId,
+    }));
   }
 
   // Kullanici istegi: havuza biraktigim sorular, ayri bir menu yerine
@@ -109,7 +176,7 @@ export class PoolService {
   // kalmadan kabul/reddedilebilsin diye).
   async listMyPoolEntries(ownerUserId: string) {
     const entries = await this.prisma.poolEntry.findMany({
-      where: { ownerUserId },
+      where: { ownerUserId, hiddenByOwner: false },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -170,8 +237,19 @@ export class PoolService {
       where: { id: poolEntryId },
     });
 
-    if (!entry) {
+    if (!entry || entry.hiddenByOwner) {
       throw new NotFoundException("Soru bulunamadi.");
+    }
+
+    // Kullanici istegi (bug duzeltmesi): soru sahibi kendi sorusuna
+    // cevap DENEYEMEZ - bu mantiksiz olurdu (kendi belirledigi cevabi
+    // zaten biliyor). Frontend zaten bu formu sahibine gostermiyor,
+    // ama API'yi dogrudan cagiran biri icin de guvenlik onlemi.
+    if (entry.ownerUserId === attemptingUserId) {
+      throw new HttpException(
+        "Kendi olusturdugun soruya cevap veremezsin.",
+        HttpStatus.FORBIDDEN
+      );
     }
 
     // Kalici deneme sayaci (veritabaninda) - istatistik/izleme amacli.

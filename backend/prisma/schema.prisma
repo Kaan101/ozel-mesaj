@@ -224,6 +224,10 @@ model PoolEntry {
   // Rate-limit/brute-force takibi için (Bölüm 10).
   attemptCount Int @default(0) @map("attempt_count")
 
+  // Kullanici istegi: soru sahibi istedigi zaman kaldirabilir - kendi
+  // kendine kalkmaz, sadece bilincli bir "sil" islemiyle gizlenir.
+  hiddenByOwner Boolean @default(false) @map("hidden_by_owner")
+
   attempts PoolAttempt[]
 
   createdAt DateTime @default(now()) @map("created_at")

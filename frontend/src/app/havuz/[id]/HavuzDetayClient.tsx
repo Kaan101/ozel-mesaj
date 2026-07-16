@@ -18,6 +18,7 @@ interface PoolEntryDetail {
   visibility: string;
   matchMode: string;
   createdAt: string;
+  isOwner: boolean;
 }
 
 interface DisplayMessage {
@@ -29,7 +30,19 @@ interface DisplayMessage {
   createdAt: string;
 }
 
-type ViewState = "loading" | "question" | "attempting" | "matched" | "pending" | "not-found";
+// Kullanici istegi: kendi sorumun sayfasina girdigimde, gelen HER
+// yanit (bekleyen/kabul edilmis/reddedilmis) ayri bir "iletisim"
+// olarak listelensin.
+interface OwnerAttempt {
+  id: string;
+  answerText: string;
+  status: "pending" | "accepted" | "rejected";
+  threadId: string | null;
+  createdAt: string;
+  attempterAvatarId: string | null;
+}
+
+type ViewState = "loading" | "question" | "attempting" | "matched" | "pending" | "own-question" | "not-found";
 
 // Gorev 12.4: Havuz sorusu detayi + cevap deneme ekrani. Dogru cevap
 // verilirse anlik olarak soru sahibiyle mesajlasma penceresi acilir
@@ -51,15 +64,84 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
   const [isReplying, setIsReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
   const [myMessageIds, setMyMessageIds] = useState<Set<string>>(new Set());
+  // Kullanici istegi: sahip yonetim gorunumu icin - tum yanitlar
+  // (durumu ne olursa olsun) + silme/kabul/reddet islemleri.
+  const [ownerAttempts, setOwnerAttempts] = useState<OwnerAttempt[]>([]);
+  const [processingAttemptId, setProcessingAttemptId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    apiFetch<PoolEntryDetail>(`/pool/entries/${entryId}`, { skipAuth: true })
+    // Kullanici istegi (bug duzeltmesi): skipAuth KALDIRILDI - giris
+    // yapmis kullanicinin token'i varsa backend'e gonderilir, boylece
+    // "bu senin sorun mu" (isOwner) bilgisi dogru gelir. Giris yapmamis
+    // ziyaretciler icin de sorunsuz calisir (token yoksa header hic
+    // eklenmez).
+    apiFetch<PoolEntryDetail>(`/pool/entries/${entryId}`)
       .then((data) => {
         setEntry(data);
-        setView("question");
+        // Kullanici istegi: soru sahibi kendi sorusuna girdiginde ona
+        // cevap formu gosterilmemeli - kendi belirledigi cevabi zaten
+        // biliyor, bu sacma olurdu. Bunun yerine soru+cevap en tepede,
+        // gelen her yanit ayri bir "iletisim" olarak listelendigi bir
+        // yonetim ekrani gorur.
+        if (data.isOwner) {
+          setView("own-question");
+          fetchOwnerAttempts();
+        } else {
+          setView("question");
+        }
       })
       .catch(() => setView("not-found"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entryId]);
+
+  function fetchOwnerAttempts() {
+    apiFetch<OwnerAttempt[]>(`/pool/entries/${entryId}/attempts`)
+      .then(setOwnerAttempts)
+      .catch(() => {});
+  }
+
+  // Kullanici istegi: sahip yonetim ekrani da 5sn'de bir yenilensin -
+  // yeni gelen yanitlar elle yenilemeden gorunsun.
+  useEffect(() => {
+    if (view !== "own-question") return;
+    const interval = setInterval(fetchOwnerAttempts, 5000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
+  async function handleOwnerAccept(attemptId: string) {
+    setProcessingAttemptId(attemptId);
+    try {
+      await apiFetch(`/pool/attempts/${attemptId}/accept`, { method: "POST" });
+      fetchOwnerAttempts();
+    } finally {
+      setProcessingAttemptId(null);
+    }
+  }
+
+  async function handleOwnerReject(attemptId: string) {
+    setProcessingAttemptId(attemptId);
+    try {
+      await apiFetch(`/pool/attempts/${attemptId}/reject`, { method: "POST" });
+      fetchOwnerAttempts();
+    } finally {
+      setProcessingAttemptId(null);
+    }
+  }
+
+  // Kullanici istegi: soruyu istedigim zaman kaldirabilmeliyim - kendi
+  // kendine kalkmiyor, sadece bilincli bir silme islemiyle gizlenir.
+  async function handleDeleteEntry() {
+    if (!confirm("Bu soruyu kaldırmak istediğine emin misin? Bir daha görünmeyecek.")) return;
+    setIsDeleting(true);
+    try {
+      await apiFetch(`/pool/entries/${entryId}`, { method: "DELETE" });
+      router.push("/mesajlarim");
+    } catch {
+      setIsDeleting(false);
+    }
+  }
 
   // Eslesme sonrasi 5 saniyede bir otomatik yenileme - karsi taraf
   // yanit yazdiginda elle yenilemeye gerek kalmaz (mesaj ekraniyla
@@ -171,6 +253,122 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
         <Card className="max-w-sm text-center">
           <p className="font-body text-coral">Bu soru bulunamadı.</p>
         </Card>
+      </main>
+    );
+  }
+
+  // Kullanici istegi (bug duzeltmesi): bu soruyu SEN olusturdun -
+  // kendi belirledigin cevabi zaten biliyorsun, bu yuzden sana cevap
+  // formu gostermek yerine Mesajlarim'a yonlendiriyoruz (gelen
+  // yanitlari orada kabul/reddedebilirsin).
+  // Kullanici istegi (bug duzeltmesi): bu soruyu SEN olusturdun -
+  // kendi belirledigin cevabi zaten biliyorsun, bu yuzden sana cevap
+  // formu yerine bir yonetim ekrani gosteriyoruz: soru+cevap en
+  // tepede, gelen HER yanit (bekleyen/kabul/reddedilmis) ayri bir
+  // "iletisim" satiri olarak listelenir. Devam edip etmemeye SEN
+  // karar verirsin.
+  if (view === "own-question") {
+    return (
+      <main className="min-h-screen bg-mint px-4 py-12">
+        <div className="mx-auto max-w-md space-y-4">
+          <Card lifted className="space-y-1">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h1 className="font-display text-xl font-bold text-slate">{entry?.title}</h1>
+                <p className="mt-1 font-body text-slate-light">{entry?.questionText}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleDeleteEntry}
+                disabled={isDeleting}
+                className="shrink-0 rounded-full p-1.5 text-slate-light hover:bg-coral-light hover:text-coral"
+                aria-label="Soruyu Sil"
+              >
+                🗑️
+              </button>
+            </div>
+          </Card>
+
+          <h2 className="font-display text-sm font-bold text-slate-light uppercase tracking-wide">
+            Gelen Yanıtlar
+          </h2>
+
+          {ownerAttempts.length === 0 ? (
+            <Card>
+              <p className="font-body text-slate-light text-center py-6">
+                Henüz bir yanıt yok.
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {ownerAttempts.map((attempt) => (
+                <Card
+                  key={attempt.id}
+                  className={`space-y-2 ${
+                    attempt.status === "pending" ? "border-2 border-meadow bg-meadow-light/40" : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {attempt.attempterAvatarId && (
+                      <Avatar avatarId={attempt.attempterAvatarId} size={32} />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-body text-sm text-slate">{attempt.answerText}</p>
+                      <p className="mt-0.5 font-body text-xs text-slate-light">
+                        {new Date(attempt.createdAt).toLocaleString("tr-TR")}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 font-body text-xs ${
+                        attempt.status === "accepted"
+                          ? "bg-meadow-light text-meadow-hover"
+                          : attempt.status === "rejected"
+                            ? "bg-coral-light text-coral"
+                            : "bg-sun/30 text-slate"
+                      }`}
+                    >
+                      {attempt.status === "accepted"
+                        ? "Kabul Edildi"
+                        : attempt.status === "rejected"
+                          ? "Reddedildi"
+                          : "Bekliyor"}
+                    </span>
+                  </div>
+
+                  {/* Kullanici istegi: iletisim devam ettirilip
+                      ettirilmeyecegine ben karar veririm. */}
+                  {attempt.status === "pending" && (
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1"
+                        onClick={() => handleOwnerAccept(attempt.id)}
+                        disabled={processingAttemptId === attempt.id}
+                      >
+                        Kabul Et
+                      </Button>
+                      <button
+                        onClick={() => handleOwnerReject(attempt.id)}
+                        disabled={processingAttemptId === attempt.id}
+                        className="flex-1 rounded-full border-2 border-slate-light/40 bg-white px-4 py-2 font-body text-sm text-slate hover:bg-mint disabled:opacity-50"
+                      >
+                        Reddet
+                      </button>
+                    </div>
+                  )}
+                  {attempt.status === "accepted" && attempt.threadId && (
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => router.push(`/mesaj/${attempt.threadId}`)}
+                    >
+                      Mesaja Git
+                    </Button>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
     );
   }

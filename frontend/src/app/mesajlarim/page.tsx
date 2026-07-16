@@ -7,7 +7,6 @@ import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 
 interface MyThread {
@@ -75,7 +74,6 @@ export default function MesajlarimPage() {
   const [poolEntries, setPoolEntries] = useState<MyPoolEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
-  const [processingAttemptId, setProcessingAttemptId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -131,26 +129,15 @@ export default function MesajlarimPage() {
     }
   }
 
-  // Kullanici istegi: havuz sorusuna gelen bir yaniti sadece bilmek
-  // yeterli degil - soru sahibinin (ben) bilerek kabul etmesi gerekiyor.
-  // Kabul edilirse ayri bir mesaj kutusu (thread) acilir.
-  async function handleAcceptAttempt(attemptId: string) {
-    setProcessingAttemptId(attemptId);
+  // Kullanici istegi: havuz sorusunu istedigim zaman kaldirabilmeliyim -
+  // kendi kendine kalkmiyor, sadece bilincli bir silme islemiyle
+  // gizlenir (karsi taraf/attempt kayitlari etkilenmez).
+  async function handleDeletePoolEntry(entryId: string) {
+    setPoolEntries((prev) => prev.filter((e) => e.id !== entryId));
     try {
-      await apiFetch(`/pool/attempts/${attemptId}/accept`, { method: "POST" });
+      await apiFetch(`/pool/entries/${entryId}`, { method: "DELETE" });
+    } catch {
       fetchAll();
-    } finally {
-      setProcessingAttemptId(null);
-    }
-  }
-
-  async function handleRejectAttempt(attemptId: string) {
-    setProcessingAttemptId(attemptId);
-    try {
-      await apiFetch(`/pool/attempts/${attemptId}/reject`, { method: "POST" });
-      fetchAll();
-    } finally {
-      setProcessingAttemptId(null);
     }
   }
 
@@ -210,9 +197,7 @@ export default function MesajlarimPage() {
                   key={`pool-${item.data.id}`}
                   entry={item.data}
                   language={language}
-                  processingAttemptId={processingAttemptId}
-                  onAccept={handleAcceptAttempt}
-                  onReject={handleRejectAttempt}
+                  onDelete={handleDeletePoolEntry}
                 />
               )
             )}
@@ -336,84 +321,72 @@ function ThreadCard({
 // plan ile vurgulanir) - her biri icin ayri Kabul Et/Reddet aksiyonu.
 // Kabul etmek, o yanit veren kisiyle AYRI bir mesaj kutusu acar;
 // sadece cevabi bilmek yeterli degil.
+// Kullanici istegi (revize): kart artik sadece bir ozet - tiklayinca
+// /havuz/[id]'deki zengin yonetim ekranina gider (soru+cevap en
+// tepede, gelen her yanit ayri bir "iletisim" satiri, kabul/reddet/
+// mesaja git aksiyonlariyla). Silme ikonu da burada, dogrudan
+// kaldirilabilsin diye.
 function PoolEntryCard({
   entry,
   language,
-  processingAttemptId,
-  onAccept,
-  onReject,
+  onDelete,
 }: {
   entry: MyPoolEntry;
   language: string;
-  processingAttemptId: string | null;
-  onAccept: (attemptId: string) => void;
-  onReject: (attemptId: string) => void;
+  onDelete: (entryId: string) => void;
 }) {
   const hasPending = entry.pendingAttempts.length > 0;
 
   return (
-    <Card
-      className={`space-y-3 border-2 border-slate-light/50 ${
-        hasPending ? "bg-meadow-light/40" : ""
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <h3 className="font-display text-base font-bold text-slate">{entry.title}</h3>
-          <p className="mt-0.5 font-body text-xs text-slate-light">{entry.questionText}</p>
-          <p className="mt-1 font-body text-xs text-slate-light">
-            {new Date(entry.createdAt).toLocaleString(language === "en" ? "en-US" : "tr-TR")}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <span className="rounded-full bg-sun/30 px-3 py-1 font-body text-xs text-slate">
-            Havuz Sorusu
-          </span>
-          {hasPending && (
-            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
-              {entry.pendingAttempts.length}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {hasPending && (
-        <div className="space-y-2">
-          {entry.pendingAttempts.map((attempt) => (
-            <div key={attempt.id} className="rounded-2xl bg-mint p-3 space-y-2">
-              <div className="flex items-start gap-2">
-                {attempt.attempterAvatarId && (
-                  <Avatar avatarId={attempt.attempterAvatarId} size={32} />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-body text-sm text-slate">{attempt.answerText}</p>
-                  <p className="mt-0.5 font-body text-xs text-slate-light">
-                    {new Date(attempt.createdAt).toLocaleString(
-                      language === "en" ? "en-US" : "tr-TR"
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1"
-                  onClick={() => onAccept(attempt.id)}
-                  disabled={processingAttemptId === attempt.id}
-                >
-                  Kabul Et
-                </Button>
-                <button
-                  onClick={() => onReject(attempt.id)}
-                  disabled={processingAttemptId === attempt.id}
-                  className="flex-1 rounded-full border-2 border-slate-light/40 bg-white px-4 py-2 font-body text-sm text-slate hover:bg-mint disabled:opacity-50"
-                >
-                  Reddet
-                </button>
-              </div>
+    <div className="relative group">
+      <Link href={`/havuz/${entry.id}`}>
+        <Card
+          className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 border-slate-light/50 ${
+            hasPending ? "bg-meadow-light/40" : ""
+          }`}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h3
+                className={`font-display text-base text-slate ${
+                  hasPending ? "font-bold" : "font-normal"
+                }`}
+              >
+                {entry.title}
+              </h3>
+              <p className="mt-0.5 font-body text-xs text-slate-light">{entry.questionText}</p>
+              <p className="mt-1 font-body text-xs text-slate-light">
+                {new Date(entry.createdAt).toLocaleString(language === "en" ? "en-US" : "tr-TR")}
+              </p>
             </div>
-          ))}
-        </div>
-      )}
-    </Card>
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <span className="rounded-full bg-sun/30 px-3 py-1 font-body text-xs text-slate">
+                Havuz Sorusu
+              </span>
+              {hasPending && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
+                  {entry.pendingAttempts.length}
+                </span>
+              )}
+            </div>
+          </div>
+        </Card>
+      </Link>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (confirm("Bu soruyu kaldırmak istediğine emin misin? Bir daha görünmeyecek.")) {
+            onDelete(entry.id);
+          }
+        }}
+        className="absolute right-2 bottom-2 rounded-full p-1 text-xs text-slate-light hover:bg-coral-light hover:text-coral"
+        aria-label="Sil"
+      >
+        🗑️
+      </button>
+    </div>
   );
 }

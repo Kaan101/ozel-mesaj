@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
+import { JwtService } from "@nestjs/jwt";
 import { PoolService } from "./pool.service";
 import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
 import { AttemptPoolEntryDto } from "./dto/attempt-pool-entry.dto";
@@ -7,7 +8,10 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Controller("pool")
 export class PoolController {
-  constructor(private readonly poolService: PoolService) {}
+  constructor(
+    private readonly poolService: PoolService,
+    private readonly jwt: JwtService
+  ) {}
 
   // Gorev 6.5 (revize - kullanici istegi): kategori artik serbest
   // metin. Bu endpoint sabit bir liste yerine, veritabaninda daha
@@ -58,10 +62,44 @@ export class PoolController {
   }
 
   // Gorev 12.4 icin gerekli ek: tek bir soruyu ID ile getirir - auth
-  // gerektirmez (detay sayfasi + OG etiketleri, Gorev 12.5).
+  // ZORUNLU degil (detay sayfasi + OG etiketleri, herkes gorebilmeli,
+  // Gorev 12.5). Ama kullanici GIRIS YAPMISSA, isOwner bilgisini
+  // dondurebilmek icin token'i (varsa) sessizce cozmeye calisiyoruz -
+  // gecersiz/eksik token hata FIRLATMAZ, sadece isOwner=false olur.
   @Get("entries/:id")
-  async getEntry(@Param("id") id: string) {
-    return this.poolService.getEntryById(id);
+  async getEntry(@Req() request: Request, @Param("id") id: string) {
+    let requestingUserId: string | undefined;
+    const [type, token] = request.headers.authorization?.split(" ") ?? [];
+    if (type === "Bearer" && token) {
+      try {
+        const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
+          secret: process.env.JWT_ACCESS_SECRET,
+        });
+        requestingUserId = payload.sub;
+      } catch {
+        // Gecersiz/eksik token - sorun degil, sadece isOwner=false donecek.
+      }
+    }
+    return this.poolService.getEntryById(id, requestingUserId);
+  }
+
+  // Kullanici istegi: soruyu istedigim zaman kaldirabilmeliyim.
+  @UseGuards(JwtAuthGuard)
+  @Delete("entries/:id")
+  async deleteEntry(@Req() request: Request, @Param("id") id: string) {
+    const ownerUserId = (request as any).user.sub;
+    await this.poolService.deleteEntryForOwner(id, ownerUserId);
+    return { message: "Soru kaldırıldı." };
+  }
+
+  // Kullanici istegi: kendi sorumun sayfasina girdigimde, gelen HER
+  // yaniti (durumu ne olursa olsun) ayri birer "iletisim" olarak
+  // gormek istiyorum.
+  @UseGuards(JwtAuthGuard)
+  @Get("entries/:id/attempts")
+  async getEntryAttempts(@Req() request: Request, @Param("id") id: string) {
+    const ownerUserId = (request as any).user.sub;
+    return this.poolService.getAllAttemptsForOwner(id, ownerUserId);
   }
 
   // Gorev 6.3: Katman 1 auth zorunlu - deneyen kisinin kimligi
