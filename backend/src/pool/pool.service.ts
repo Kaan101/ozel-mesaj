@@ -163,11 +163,11 @@ export class PoolService {
 
     if (attempt.status === "accepted" && attempt.threadId) {
       // Sahip (ownerUserId) bu tur thread'lerde her zaman initiator'dir
-      // (bkz. acceptAttempt) - o yuzden dogrudan hiddenByInitiator
+      // (bkz. acceptAttempt) - o yuzden dogrudan hiddenByInitiatorAt
       // isaretlenebilir.
       await this.prisma.messageThread.update({
         where: { id: attempt.threadId },
-        data: { hiddenByInitiator: true },
+        data: { hiddenByInitiatorAt: new Date() },
       });
     }
 

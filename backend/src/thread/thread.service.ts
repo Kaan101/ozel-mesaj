@@ -246,12 +246,10 @@ export class ThreadService {
     const threads = await this.prisma.messageThread.findMany({
       where: {
         OR: [{ initiatorUserId: userId }, { recipientUserId: userId }],
-        // Kullanici geri bildirimi: kendi listesinden "sildigi"
-        // (gizledigi) thread'ler bir daha gorunmesin.
-        NOT: [
-          { AND: [{ initiatorUserId: userId }, { hiddenByInitiator: true }] },
-          { AND: [{ recipientUserId: userId }, { hiddenByRecipient: true }] },
-        ],
+        // Not: "silinmis" thread'leri burada kesin olarak filtrelemiyoruz
+        // artik - bunun yerine asagida, lastMessageAt ile hiddenAt zaman
+        // damgasini karsilastirarak karar veriyoruz (kullanici istegi:
+        // silindikten SONRA yeni mesaj gelirse iletisim geri acilsin).
       },
       select: {
         id: true,
@@ -263,6 +261,8 @@ export class ThreadService {
         createdAt: true,
         initiatorUserId: true,
         recipientUserId: true,
+        hiddenByInitiatorAt: true,
+        hiddenByRecipientAt: true,
         // Kullanici geri bildirimi: karsi tarafin avatari listede de
         // gorunsun - avatar gercek kimlik tasimadigi icin sakincasiz.
         initiator: { select: { avatarId: true } },
@@ -278,45 +278,57 @@ export class ThreadService {
       },
     });
 
-    const mapped = threads.map((t) => {
-      const role = t.initiatorUserId === userId ? "initiator" : "recipient";
-      // Guvenlik: mesaj govdesini (body) listede sadece (a) kilitsiz
-      // (lockType="none") thread'lerde, ya da (b) mesaji YAZAN kisi
-      // (initiator) icin gosteriyoruz. Alici, parola korumali bir
-      // mesajin icerigini kilidi acmadan gormemeli (Bolum 8 guvenlik
-      // modeli). Soru metni ise hassas degil (sadece bir ipucu,
-      // cevabin kendisi degil) - bu yuzden herkese gosterilir.
-      const canShowBody = t.lockType === "none" || role === "initiator";
-      const lastMessageAt = t.messages[0]?.createdAt ?? t.createdAt;
-      const counterpartAvatarId = role === "initiator" ? t.recipient?.avatarId : t.initiator.avatarId;
+    const mapped = threads
+      .map((t) => {
+        const role = t.initiatorUserId === userId ? "initiator" : "recipient";
+        const lastMessageAt = t.messages[0]?.createdAt ?? t.createdAt;
 
-      // Kullanici istegi: havuz eslesmelerinde (originType='pool')
-      // liste basligi SABIT olmali - soru sahibine "Soru - Cevap",
-      // yanit verene sadece "Soru" - sonraki mesajlasmalar bu basligi
-      // DEGISTIRMEZ (latest-message mantigi burada gecerli degil).
-      let displayTitle: string | null = canShowBody ? (t.messages[0]?.body ?? null) : null;
-      if (t.originType === "pool" && t.questionText && t.answerTextDisplay) {
-        displayTitle =
-          role === "initiator"
-            ? `${t.questionText} - ${t.answerTextDisplay}`
-            : t.questionText;
-      }
+        // Kullanici istegi (bug duzeltmesi): kullanici bu thread'i
+        // sildiyse (hiddenAt dolu), ama SONRASINDA yeni bir mesaj
+        // geldiyse (lastMessageAt > hiddenAt), thread otomatik olarak
+        // listeye GERI DONER - kalici silme degil.
+        const hiddenAt = role === "initiator" ? t.hiddenByInitiatorAt : t.hiddenByRecipientAt;
+        const isHidden = hiddenAt !== null && lastMessageAt.getTime() <= hiddenAt.getTime();
+        if (isHidden) return null;
 
-      return {
-        id: t.id,
-        originType: t.originType,
-        lockType: t.lockType,
-        questionText: t.questionText,
-        firstMessageBody: displayTitle,
-        // Numara sadece gonderenin KENDISINE geri gosterilir - alici
-        // veya baska hic kimseye asla donmez (Bolum 8, 10).
-        recipientPhoneDisplay: role === "initiator" ? t.recipientPhoneDisplay : null,
-        counterpartAvatarId,
-        createdAt: t.createdAt,
-        lastMessageAt,
-        role,
-      };
-    });
+        // Guvenlik: mesaj govdesini (body) listede sadece (a) kilitsiz
+        // (lockType="none") thread'lerde, ya da (b) mesaji YAZAN kisi
+        // (initiator) icin gosteriyoruz. Alici, parola korumali bir
+        // mesajin icerigini kilidi acmadan gormemeli (Bolum 8 guvenlik
+        // modeli). Soru metni ise hassas degil (sadece bir ipucu,
+        // cevabin kendisi degil) - bu yuzden herkese gosterilir.
+        const canShowBody = t.lockType === "none" || role === "initiator";
+        const counterpartAvatarId =
+          role === "initiator" ? t.recipient?.avatarId : t.initiator.avatarId;
+
+        // Kullanici istegi: havuz eslesmelerinde (originType='pool')
+        // liste basligi SABIT olmali - soru sahibine "Soru - Cevap",
+        // yanit verene sadece "Soru" - sonraki mesajlasmalar bu basligi
+        // DEGISTIRMEZ (latest-message mantigi burada gecerli degil).
+        let displayTitle: string | null = canShowBody ? (t.messages[0]?.body ?? null) : null;
+        if (t.originType === "pool" && t.questionText && t.answerTextDisplay) {
+          displayTitle =
+            role === "initiator"
+              ? `${t.questionText} - ${t.answerTextDisplay}`
+              : t.questionText;
+        }
+
+        return {
+          id: t.id,
+          originType: t.originType,
+          lockType: t.lockType,
+          questionText: t.questionText,
+          firstMessageBody: displayTitle,
+          // Numara sadece gonderenin KENDISINE geri gosterilir - alici
+          // veya baska hic kimseye asla donmez (Bolum 8, 10).
+          recipientPhoneDisplay: role === "initiator" ? t.recipientPhoneDisplay : null,
+          counterpartAvatarId,
+          createdAt: t.createdAt,
+          lastMessageAt,
+          role,
+        };
+      })
+      .filter((t): t is NonNullable<typeof t> => t !== null);
 
     // Son aktiviteye gore sirala (en son yaniti gelen en ustte) -
     // sadece olusturulma tarihine gore siralamak, yeni yanit gelen
@@ -340,7 +352,7 @@ export class ThreadService {
     if (thread.initiatorUserId === userId) {
       await this.prisma.messageThread.update({
         where: { id: threadId },
-        data: { hiddenByInitiator: true },
+        data: { hiddenByInitiatorAt: new Date() },
       });
       return;
     }
@@ -348,7 +360,7 @@ export class ThreadService {
     if (thread.recipientUserId === userId) {
       await this.prisma.messageThread.update({
         where: { id: threadId },
-        data: { hiddenByRecipient: true },
+        data: { hiddenByRecipientAt: new Date() },
       });
       return;
     }
@@ -361,9 +373,37 @@ export class ThreadService {
   // "ne zaman okundu" bilgisine ihtiyaci var). is_anonymous alanina
   // gore filtreleme BACKEND seviyesinde yapilir - anonim mesajlarda
   // senderUserId response'a hic eklenmez (Bolum 8, "Anonimlik Modeli").
-  async getMessages(threadId: string) {
+  // Kullanici istegi (bug duzeltmesi): kullanici bu thread'i daha once
+  // sildiyse (hiddenAt), o kullaniciya SADECE o zamandan SONRAKI
+  // mesajlar gosterilir - eski mesajlar onun icin "silinmis" kalir.
+  // Karsi taraf icin bu filtre gecerli degildir (kendi silmediyse tum
+  // gecmisi gormeye devam eder).
+  async getMessages(threadId: string, requestingUserId?: string) {
+    let hiddenAtThreshold: Date | null = null;
+    if (requestingUserId) {
+      const thread = await this.prisma.messageThread.findUnique({
+        where: { id: threadId },
+        select: {
+          initiatorUserId: true,
+          recipientUserId: true,
+          hiddenByInitiatorAt: true,
+          hiddenByRecipientAt: true,
+        },
+      });
+      if (thread) {
+        if (thread.initiatorUserId === requestingUserId) {
+          hiddenAtThreshold = thread.hiddenByInitiatorAt;
+        } else if (thread.recipientUserId === requestingUserId) {
+          hiddenAtThreshold = thread.hiddenByRecipientAt;
+        }
+      }
+    }
+
     const messages = await this.prisma.message.findMany({
-      where: { threadId },
+      where: {
+        threadId,
+        ...(hiddenAtThreshold ? { createdAt: { gt: hiddenAtThreshold } } : {}),
+      },
       orderBy: { createdAt: "asc" },
       include: {
         // Avatar gercek kimlik tasimaz (sadece cizgisel bir gorsel

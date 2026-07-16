@@ -70,8 +70,13 @@ export class ThreadController {
   // token'i (sahiplik - initiator icin, tekrar parola sormamak icin) yeterli.
   @UseGuards(ThreadAccessOrOwnerGuard)
   @Get(":id/messages")
-  async getMessages(@Param("id") id: string) {
-    return this.threadService.getMessages(id);
+  async getMessages(@Req() request: Request, @Param("id") id: string) {
+    // Kullanici istegi (bug duzeltmesi): "eski mesajlar silinmis olarak
+    // gelsin" icin, kimlik biliniyorsa (Katman 1 ile erisildiyse)
+    // gecirilir. thread_access_token ile erisimde kimlik bilinmez -
+    // bu durumda filtre uygulanmaz (guvenli varsayilan: tum gecmis gorunur).
+    const requestingUserId = (request as any).user?.sub;
+    return this.threadService.getMessages(id, requestingUserId);
   }
 
   // Gorev 5.5 (revize): Yanit gonderme. ThreadWriteGuard tek basina hem

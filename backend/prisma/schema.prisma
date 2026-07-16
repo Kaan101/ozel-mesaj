@@ -110,8 +110,13 @@ model MessageThread {
   // Kullanici geri bildirimi: "mesaj silme" ozelligi - gercekte veriyi
   // silmiyoruz (karsi tarafin gorunumunu etkilememeli), sadece
   // kullanicinin KENDI "Mesajlarim" listesinden gizliyoruz.
-  hiddenByInitiator Boolean @default(false) @map("hidden_by_initiator")
-  hiddenByRecipient Boolean @default(false) @map("hidden_by_recipient")
+  // Kullanici istegi (bug duzeltmesi): eskiden Boolean idi (kalici
+  // olarak gizli kalirdi). Artik ZAMAN DAMGASI - eger karsi taraf bu
+  // zamandan SONRA yeni bir mesaj gonderirse, thread bu kullanici icin
+  // otomatik olarak listeye GERI DONER (kalici silme degil, "o ana
+  // kadarki mesajlari gizle" anlaminda).
+  hiddenByInitiatorAt DateTime? @map("hidden_by_initiator_at")
+  hiddenByRecipientAt DateTime? @map("hidden_by_recipient_at")
 
   createdAt DateTime  @default(now()) @map("created_at")
   expiresAt DateTime? @map("expires_at")
