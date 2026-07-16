@@ -55,16 +55,18 @@ function saveSeenIds(ids: Set<string>) {
   localStorage.setItem(SEEN_IDS_KEY, JSON.stringify([...ids]));
 }
 
-// Kullanicinin gonderdigi/aldigi tum mesajlari (thread'leri) listeler.
-// Boylece bir mesaj gonderdikten sonra linki kaybetse bile geri
-// donup bulabilir (Kategori 13'u tamamlayan pratik bir eklenti).
-//
-// Kullanici istegi (revize): havuza biraktigim sorular ARTIK ayri bir
-// menude degil, dogrudan burada ("Gonderdiklerim" altinda) "Havuz
-// Sorusu" etiketiyle gorunur. "Tum Yanitlari Goster" modundaki
-// sorularima gelen bekleyen yanitlar da AYNI kartin icinde,
-// kabul/reddet aksiyonuyla birlikte gosterilir - ayri bir sayfaya
-// gitmeye gerek yok.
+// "İletişim" = bu listedeki her satır (bir konuşma ya da bir havuz
+// sorusu). Bunlarin ICINE girdiginde ("Mesaj" ekraninda) gorunen
+// tekil gelen/giden yazismalar ise "mesaj" olarak adlandiriliyor -
+// terminoloji kullanici istegiyle netlestirildi.
+type ListItem =
+  | { kind: "thread"; activityDate: string; data: MyThread }
+  | { kind: "pool"; activityDate: string; data: MyPoolEntry };
+
+// Kullanicinin gonderdigi/aldigi tum iletisimleri (thread + havuz
+// sorulari) TEK BIR listede, en son aktiviteye gore siralar (Bolum:
+// kullanici istegi - "bana gelen"/"benim gonderdigim" ayri bolumler
+// yerine, en aktif iletisim en tepede).
 export default function MesajlarimPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -156,9 +158,26 @@ export default function MesajlarimPage() {
     return <main className="min-h-screen bg-mint" />;
   }
 
-  const sentThreads = threads.filter((t) => t.role === "initiator");
-  const receivedThreads = threads.filter((t) => t.role === "recipient");
   const isEmpty = threads.length === 0 && poolEntries.length === 0;
+
+  // Kullanici istegi: ayri "bana gelenler"/"gonderdiklerim" bolumleri
+  // yerine TEK bir liste - en son aktivitesi olan (mesaj/yanit gelen)
+  // iletisim en tepede.
+  const combined: ListItem[] = [
+    ...threads.map((thread): ListItem => ({
+      kind: "thread",
+      activityDate: thread.lastMessageAt,
+      data: thread,
+    })),
+    ...poolEntries.map((entry): ListItem => {
+      const latestAttemptDate = entry.pendingAttempts[0]?.createdAt;
+      return {
+        kind: "pool",
+        activityDate: latestAttemptDate ?? entry.createdAt,
+        data: entry,
+      };
+    }),
+  ].sort((a, b) => new Date(b.activityDate).getTime() - new Date(a.activityDate).getTime());
 
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
@@ -174,98 +193,41 @@ export default function MesajlarimPage() {
             </p>
           </Card>
         ) : (
-          <>
-            <ThreadSection
-              title={t("mesajlarim.received")}
-              threads={receivedThreads}
-              seenIds={seenIds}
-              onOpen={handleOpenThread}
-              onDelete={handleDeleteThread}
-              t={t}
-              language={language}
-            />
-
-            {/* Kullanici istegi: gonderdiklerim bolumu artik hem
-                dogrudan mesajlari hem havuza biraktigim sorulari
-                (Havuz Sorusu etiketiyle) birlikte gosterir. */}
-            {(sentThreads.length > 0 || poolEntries.length > 0) && (
-              <div className="space-y-3">
-                <h2 className="font-display text-sm font-bold text-slate-light uppercase tracking-wide">
-                  {t("mesajlarim.sent")}
-                </h2>
-                <div className="space-y-3">
-                  {sentThreads.map((thread) => (
-                    <ThreadCard
-                      key={thread.id}
-                      thread={thread}
-                      seenIds={seenIds}
-                      onOpen={handleOpenThread}
-                      onDelete={handleDeleteThread}
-                      t={t}
-                      language={language}
-                    />
-                  ))}
-                  {poolEntries.map((entry) => (
-                    <PoolEntryCard
-                      key={entry.id}
-                      entry={entry}
-                      language={language}
-                      processingAttemptId={processingAttemptId}
-                      onAccept={handleAcceptAttempt}
-                      onReject={handleRejectAttempt}
-                    />
-                  ))}
-                </div>
-              </div>
+          <div className="space-y-3">
+            {combined.map((item) =>
+              item.kind === "thread" ? (
+                <ThreadCard
+                  key={`thread-${item.data.id}`}
+                  thread={item.data}
+                  seenIds={seenIds}
+                  onOpen={handleOpenThread}
+                  onDelete={handleDeleteThread}
+                  t={t}
+                  language={language}
+                />
+              ) : (
+                <PoolEntryCard
+                  key={`pool-${item.data.id}`}
+                  entry={item.data}
+                  language={language}
+                  processingAttemptId={processingAttemptId}
+                  onAccept={handleAcceptAttempt}
+                  onReject={handleRejectAttempt}
+                />
+              )
             )}
-          </>
+          </div>
         )}
       </div>
     </main>
   );
 }
 
-function ThreadSection({
-  title,
-  threads,
-  seenIds,
-  onOpen,
-  onDelete,
-  t,
-  language,
-}: {
-  title: string;
-  threads: MyThread[];
-  seenIds: Set<string>;
-  onOpen: (id: string) => void;
-  onDelete: (id: string) => void;
-  t: ReturnType<typeof useLanguage>["t"];
-  language: string;
-}) {
-  if (threads.length === 0) return null;
-
-  return (
-    <div className="space-y-3">
-      <h2 className="font-display text-sm font-bold text-slate-light uppercase tracking-wide">
-        {title}
-      </h2>
-      <div className="space-y-3">
-        {threads.map((thread) => (
-          <ThreadCard
-            key={thread.id}
-            thread={thread}
-            seenIds={seenIds}
-            onOpen={onOpen}
-            onDelete={onDelete}
-            t={t}
-            language={language}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
+// Kullanici istegi: yon'e gore cerceve rengi - bana gelen iletisimler
+// YESIL cerceve, benim gonderdigim iletisimler GRI cerceve. Okunmamis
+// (yeni) icerik iceren iletisimlerin ARKA PLANI acik yesil olur -
+// cerceve rengi (yon) ile arka plan (okunma durumu) birbirinden
+// bagimsiz iki sinyal.
 function ThreadCard({
   thread,
   seenIds,
@@ -282,12 +244,15 @@ function ThreadCard({
   language: string;
 }) {
   const isNew = !seenIds.has(thread.id);
+  const isReceived = thread.role === "recipient";
+  const borderClass = isReceived ? "border-meadow" : "border-slate-light/50";
+
   return (
     <div className="relative group">
       <Link href={`/mesaj/${thread.id}`} onClick={() => onOpen(thread.id)}>
         <Card
-          className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 ${
-            isNew ? "border-2 border-meadow" : ""
+          className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass} ${
+            isNew ? "bg-meadow-light/40" : ""
           }`}
         >
           <div className="flex items-start justify-between gap-2">
@@ -365,10 +330,12 @@ function ThreadCard({
 }
 
 // Kullanici istegi: havuza biraktigim soru, "Havuz Sorusu" etiketiyle
-// mesajlarim listesinde gorunur. "Tum Yanitlari Goster" modundaysa,
-// bekleyen yanitlar KART ICINDE listelenir - her biri icin ayri
-// Kabul Et/Reddet aksiyonu. Kabul etmek, o yanit veren kisiyle AYRI
-// bir mesaj kutusu (thread) acar; sadece cevabi bilmek yeterli degil.
+// mesajlarim listesinde gorunur - ben olusturdugum icin GRI cerceve
+// (gonderdigim/benim yon'um). "Tum Yanitlari Goster" modundaysa,
+// bekleyen yanitlar KART ICINDE listelenir (ve varsa acik yesil arka
+// plan ile vurgulanir) - her biri icin ayri Kabul Et/Reddet aksiyonu.
+// Kabul etmek, o yanit veren kisiyle AYRI bir mesaj kutusu acar;
+// sadece cevabi bilmek yeterli degil.
 function PoolEntryCard({
   entry,
   language,
@@ -385,7 +352,11 @@ function PoolEntryCard({
   const hasPending = entry.pendingAttempts.length > 0;
 
   return (
-    <Card className={hasPending ? "border-2 border-meadow space-y-3" : "space-y-3"}>
+    <Card
+      className={`space-y-3 border-2 border-slate-light/50 ${
+        hasPending ? "bg-meadow-light/40" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-base font-bold text-slate">{entry.title}</h3>
