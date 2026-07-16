@@ -350,14 +350,14 @@ export default function MesajGosterPage() {
               <button
                 type="button"
                 onClick={handleBlock}
-                className="font-body text-xs text-slate-light underline underline-offset-2"
+                className="font-body text-xs font-bold text-slate-light"
               >
                 Engelle
               </button>
               <button
                 type="button"
                 onClick={() => setIsReportFormOpen((v) => !v)}
-                className="font-body text-xs text-coral underline underline-offset-2"
+                className="font-body text-xs font-bold text-coral"
               >
                 Şikayet Et
               </button>

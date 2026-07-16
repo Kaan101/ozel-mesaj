@@ -273,7 +273,7 @@ function GirisFormContent() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 shrink-0 accent-sky"
+                  className="h-5 w-5 shrink-0 accent-sky"
                 />
                 Otomatik giriş yap (beni hatırla)
               </label>
@@ -286,7 +286,7 @@ function GirisFormContent() {
                     type="checkbox"
                     checked={acceptedKvkk}
                     onChange={(e) => setAcceptedKvkk(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-sky"
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-sky"
                   />
                   <span>
                     {t("giris.kvkkLabel")}{" "}
@@ -305,7 +305,7 @@ function GirisFormContent() {
                     type="checkbox"
                     checked={acceptedConsent}
                     onChange={(e) => setAcceptedConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-sky"
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-sky"
                   />
                   <span>
                     {t("giris.consentLabel")}{" "}
