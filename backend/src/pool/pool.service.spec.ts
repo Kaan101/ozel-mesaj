@@ -67,18 +67,20 @@ describe("PoolService", () => {
 
   describe("listEntries", () => {
     it("sadece public sorulari, kategori filtresiyle ve sayfalamayla doner", async () => {
-      prisma.poolEntry.findMany.mockResolvedValue([{ id: "entry-1", title: "Test" }]);
+      prisma.poolEntry.findMany.mockResolvedValue([
+        { id: "entry-1", title: "Test", ownerUserId: "owner-1" },
+      ]);
       prisma.poolEntry.count.mockResolvedValue(1);
 
       const result = await service.listEntries("Muzik", 1, 10);
 
       expect(prisma.poolEntry.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { visibility: "public", category: "Muzik" },
+          where: { visibility: "public", hiddenByOwner: false, category: "Muzik" },
         })
       );
       expect(result).toEqual({
-        items: [{ id: "entry-1", title: "Test" }],
+        items: [{ id: "entry-1", title: "Test", isOwner: false }],
         page: 1,
         pageSize: 10,
         total: 1,

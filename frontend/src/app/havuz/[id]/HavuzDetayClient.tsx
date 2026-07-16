@@ -130,6 +130,21 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
     }
   }
 
+  // Kullanici istegi: her bir iletisim (yanit) kendi icinde
+  // silinebilsin - soruyu silmekten bagimsiz, tek tek. Kabul edilmis
+  // bir yanitsa, ilgili mesajlasma (thread) SILINMEZ, sadece
+  // gorunumden kalkar.
+  async function handleDeleteAttempt(attemptId: string) {
+    if (!confirm("Bu yanıtı listenden kaldırmak istediğine emin misin?")) return;
+    setProcessingAttemptId(attemptId);
+    try {
+      await apiFetch(`/pool/attempts/${attemptId}`, { method: "DELETE" });
+      fetchOwnerAttempts();
+    } finally {
+      setProcessingAttemptId(null);
+    }
+  }
+
   // Kullanici istegi: soruyu istedigim zaman kaldirabilmeliyim - kendi
   // kendine kalkmiyor, sadece bilincli bir silme islemiyle gizlenir.
   async function handleDeleteEntry() {
@@ -281,7 +296,7 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
                 type="button"
                 onClick={handleDeleteEntry}
                 disabled={isDeleting}
-                className="shrink-0 rounded-full p-1.5 text-slate-light hover:bg-coral-light hover:text-coral"
+                className="shrink-0 rounded-full p-1 text-xs text-slate-light hover:bg-coral-light hover:text-coral"
                 aria-label="Soruyu Sil"
               >
                 🗑️
@@ -318,21 +333,34 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
                         {new Date(attempt.createdAt).toLocaleString("tr-TR")}
                       </p>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 font-body text-xs ${
-                        attempt.status === "accepted"
-                          ? "bg-meadow-light text-meadow-hover"
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-body text-xs ${
+                          attempt.status === "accepted"
+                            ? "bg-meadow-light text-meadow-hover"
+                            : attempt.status === "rejected"
+                              ? "bg-coral-light text-coral"
+                              : "bg-sun/30 text-slate"
+                        }`}
+                      >
+                        {attempt.status === "accepted"
+                          ? "Kabul Edildi"
                           : attempt.status === "rejected"
-                            ? "bg-coral-light text-coral"
-                            : "bg-sun/30 text-slate"
-                      }`}
-                    >
-                      {attempt.status === "accepted"
-                        ? "Kabul Edildi"
-                        : attempt.status === "rejected"
-                          ? "Reddedildi"
-                          : "Bekliyor"}
-                    </span>
+                            ? "Reddedildi"
+                            : "Bekliyor"}
+                      </span>
+                      {/* Kullanici istegi: her bir iletisimin kendi
+                          silme kontrolu olsun. */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAttempt(attempt.id)}
+                        disabled={processingAttemptId === attempt.id}
+                        className="rounded-full p-0.5 text-[10px] text-slate-light hover:bg-coral-light hover:text-coral disabled:opacity-50"
+                        aria-label="Bu iletişimi sil"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
 
                   {/* Kullanici istegi: iletisim devam ettirilip

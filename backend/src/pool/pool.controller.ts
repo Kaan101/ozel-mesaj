@@ -51,14 +51,33 @@ export class PoolController {
   // Gorev 6.2: Herkese acik listeleme - auth gerektirmez (Bolum 4, 9).
   @Get("entries")
   async listEntries(
+    @Req() request: Request,
     @Query("category") category?: string,
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string
   ) {
     const pageNum = Math.max(1, Number(page) || 1);
     const pageSizeNum = Math.min(50, Math.max(1, Number(pageSize) || 10));
+    const requestingUserId = await this.resolveOptionalUserId(request);
 
-    return this.poolService.listEntries(category, pageNum, pageSizeNum);
+    return this.poolService.listEntries(category, pageNum, pageSizeNum, requestingUserId);
+  }
+
+  // Kullanici istegi: birden fazla endpoint'te (liste + detay) auth
+  // ZORUNLU degil ama giris yapmis kullanicinin "isOwner" bilgisini
+  // gorebilmesi icin token'i (varsa) sessizce cozmeye calisan ortak
+  // yardimci - gecersiz/eksik token hata FIRLATMAZ.
+  private async resolveOptionalUserId(request: Request): Promise<string | undefined> {
+    const [type, token] = request.headers.authorization?.split(" ") ?? [];
+    if (type !== "Bearer" || !token) return undefined;
+    try {
+      const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+      return payload.sub;
+    } catch {
+      return undefined;
+    }
   }
 
   // Gorev 12.4 icin gerekli ek: tek bir soruyu ID ile getirir - auth
@@ -68,18 +87,7 @@ export class PoolController {
   // gecersiz/eksik token hata FIRLATMAZ, sadece isOwner=false olur.
   @Get("entries/:id")
   async getEntry(@Req() request: Request, @Param("id") id: string) {
-    let requestingUserId: string | undefined;
-    const [type, token] = request.headers.authorization?.split(" ") ?? [];
-    if (type === "Bearer" && token) {
-      try {
-        const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
-          secret: process.env.JWT_ACCESS_SECRET,
-        });
-        requestingUserId = payload.sub;
-      } catch {
-        // Gecersiz/eksik token - sorun degil, sadece isOwner=false donecek.
-      }
-    }
+    const requestingUserId = await this.resolveOptionalUserId(request);
     return this.poolService.getEntryById(id, requestingUserId);
   }
 
@@ -138,5 +146,15 @@ export class PoolController {
     const ownerUserId = (request as any).user.sub;
     await this.poolService.rejectAttempt(id, ownerUserId);
     return { message: "Yanit reddedildi." };
+  }
+
+  // Kullanici istegi: her bir iletisim (yanit) kendi icinde tek tek
+  // silinebilsin - durumu (bekleyen/kabul/reddedilmis) fark etmeksizin.
+  @UseGuards(JwtAuthGuard)
+  @Delete("attempts/:id")
+  async deleteAttempt(@Req() request: Request, @Param("id") id: string) {
+    const ownerUserId = (request as any).user.sub;
+    await this.poolService.deleteAttemptForOwner(id, ownerUserId);
+    return { message: "İletişim kaldırıldı." };
   }
 }

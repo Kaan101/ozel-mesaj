@@ -305,7 +305,7 @@ function ThreadCard({
             onDelete(thread.id);
           }
         }}
-        className="absolute right-2 bottom-2 rounded-full p-1 text-xs text-slate-light hover:bg-coral-light hover:text-coral"
+        className="absolute right-2 bottom-2 rounded-full p-0.5 text-[10px] text-slate-light hover:bg-coral-light hover:text-coral"
         aria-label={t("mesajlarim.delete")}
       >
         🗑️
@@ -382,7 +382,7 @@ function PoolEntryCard({
             onDelete(entry.id);
           }
         }}
-        className="absolute right-2 bottom-2 rounded-full p-1 text-xs text-slate-light hover:bg-coral-light hover:text-coral"
+        className="absolute right-2 bottom-2 rounded-full p-0.5 text-[10px] text-slate-light hover:bg-coral-light hover:text-coral"
         aria-label="Sil"
       >
         🗑️

@@ -53,7 +53,15 @@ export class PoolService {
   // Gorev 6.2: Kategori filtresi ve sayfalama ile PUBLIC sorulari
   // listeler. Gizli link (unlisted) sorular bu listede hic gorunmez -
   // sadece dogrudan ID ile erisilebilir (Bolum 4, "Gizli link").
-  async listEntries(category: string | undefined, page: number, pageSize: number) {
+  // Kullanici istegi: /havuz listesinde kendi sorularim "isOwner"
+  // bilgisiyle donuyor - boylece frontend'de "Benim Sorularim" grubu
+  // ayrilabilsin. ownerUserId'nin kendisi disari sizdirilmaz.
+  async listEntries(
+    category: string | undefined,
+    page: number,
+    pageSize: number,
+    requestingUserId?: string
+  ) {
     const where = {
       visibility: "public" as const,
       hiddenByOwner: false,
@@ -72,12 +80,18 @@ export class PoolService {
           questionText: true,
           category: true,
           createdAt: true,
+          ownerUserId: true,
         },
       }),
       this.prisma.poolEntry.count({ where }),
     ]);
 
-    return { items, page, pageSize, total };
+    const mappedItems = items.map((item) => {
+      const { ownerUserId, ...publicFields } = item;
+      return { ...publicFields, isOwner: requestingUserId === ownerUserId };
+    });
+
+    return { items: mappedItems, page, pageSize, total };
   }
 
   // Gorev 12.4 icin gerekli ek: tek bir soruyu ID ile getirir (detay
@@ -132,6 +146,37 @@ export class PoolService {
     });
   }
 
+  // Kullanici istegi: her bir iletisim (yanit) kendi icinde
+  // silinebilsin - soruyu silmekten bagimsiz, tek tek. Kabul edilmis
+  // bir yanitsa (gercek bir thread'i varsa), o thread de kendi
+  // listesinden (Mesajlarim) gizlenir - ilgili mesajlar SILINMEZ,
+  // sadece gorunumden kalkar (Bolum 8 ile tutarli "hide" deseni).
+  async deleteAttemptForOwner(attemptId: string, ownerUserId: string): Promise<void> {
+    const attempt = await this.prisma.poolAttempt.findUnique({
+      where: { id: attemptId },
+      include: { poolEntry: true },
+    });
+
+    if (!attempt || attempt.poolEntry.ownerUserId !== ownerUserId) {
+      throw new NotFoundException("Yanit bulunamadi.");
+    }
+
+    if (attempt.status === "accepted" && attempt.threadId) {
+      // Sahip (ownerUserId) bu tur thread'lerde her zaman initiator'dir
+      // (bkz. acceptAttempt) - o yuzden dogrudan hiddenByInitiator
+      // isaretlenebilir.
+      await this.prisma.messageThread.update({
+        where: { id: attempt.threadId },
+        data: { hiddenByInitiator: true },
+      });
+    }
+
+    await this.prisma.poolAttempt.update({
+      where: { id: attemptId },
+      data: { hiddenByOwner: true },
+    });
+  }
+
   // Kullanici istegi: kendi sorumun sayfasina girdigimde, gelen HER
   // yaniti (bekleyen/kabul edilmis/reddedilmis fark etmeksizin) ayri
   // birer "iletisim" olarak gormek istiyorum - devam edip etmemeye
@@ -147,7 +192,7 @@ export class PoolService {
     }
 
     const attempts = await this.prisma.poolAttempt.findMany({
-      where: { poolEntryId: entryId },
+      where: { poolEntryId: entryId, hiddenByOwner: false },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -186,7 +231,7 @@ export class PoolService {
         attemptCount: true,
         createdAt: true,
         attempts: {
-          where: { status: "pending" },
+          where: { status: "pending", hiddenByOwner: false },
           orderBy: { createdAt: "desc" },
           select: {
             id: true,
