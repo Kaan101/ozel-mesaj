@@ -12,7 +12,6 @@ import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { AvatarPicker } from "@/components/ui/AvatarPicker";
 import { AvatarId } from "@/components/ui/Avatar";
 import { useLanguage } from "@/lib/language-context";
-import { KVKK_AYDINLATMA_METNI, ACIK_RIZA_METNI } from "@/lib/legal-texts";
 
 type Step = "phone" | "otp" | "checking" | "avatar";
 
