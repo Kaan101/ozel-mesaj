@@ -4,7 +4,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { LanguageCode, translate } from "./i18n";
 
 const STORAGE_KEY = "app_language";
-const DEFAULT_LANGUAGE: LanguageCode = "tr";
+// Kullanici istegi: sayfa ilk acildiginda (henuz ulke secilmeden/
+// localStorage'da kayitli bir tercih yokken) varsayilan dil Ingilizce
+// olsun - Turkce'ye sadece girişte Turkiye secilirse geciliyor.
+const DEFAULT_LANGUAGE: LanguageCode = "en";
 
 interface LanguageContextValue {
   language: LanguageCode;
