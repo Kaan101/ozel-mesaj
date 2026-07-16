@@ -359,7 +359,7 @@ export default function MesajGosterPage() {
                 onClick={() => setIsReportFormOpen((v) => !v)}
                 className="font-body text-xs font-bold text-coral"
               >
-                Şikayet Et
+                Şikayet
               </button>
             </div>
           </div>
