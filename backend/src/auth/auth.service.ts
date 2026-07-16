@@ -94,6 +94,15 @@ export class AuthService {
 
     await this.enforceRateLimit(phoneHash);
 
+    // Kullanici istegi: bloke edilmis (askiya alinmis) bir numara,
+    // kod GONDERME asamasinda bile reddedilir - onceden sadece
+    // dogrulama (verifyOtp) asamasinda engelleniyordu, bu da bloke
+    // edilmis birine gereksiz yere SMS gitmesine sebep oluyordu.
+    const existingUser = await this.prisma.user.findUnique({ where: { phoneNumberHash: phoneHash } });
+    if (existingUser?.status === "suspended") {
+      throw new HttpException("Telefonunuz bloke edilmiş!", HttpStatus.FORBIDDEN);
+    }
+
     const code = generateOtpCode(Number(process.env.OTP_LENGTH ?? 4));
     const ttlSeconds = Number(process.env.OTP_TTL_SECONDS ?? 300);
 
@@ -183,7 +192,7 @@ export class AuthService {
     // Artik giriste kontrol edilip reddediliyor.
     if (user.status === "suspended") {
       throw new HttpException(
-        "Hesabın askıya alındı. Detaylı bilgi için bizimle iletişime geç.",
+        "Telefonunuz bloke edilmiş!",
         HttpStatus.FORBIDDEN
       );
     }
