@@ -259,6 +259,7 @@ export class ThreadService {
         lockType: true,
         questionText: true,
         recipientPhoneDisplay: true,
+        answerTextDisplay: true,
         createdAt: true,
         initiatorUserId: true,
         recipientUserId: true,
@@ -289,12 +290,24 @@ export class ThreadService {
       const lastMessageAt = t.messages[0]?.createdAt ?? t.createdAt;
       const counterpartAvatarId = role === "initiator" ? t.recipient?.avatarId : t.initiator.avatarId;
 
+      // Kullanici istegi: havuz eslesmelerinde (originType='pool')
+      // liste basligi SABIT olmali - soru sahibine "Soru - Cevap",
+      // yanit verene sadece "Soru" - sonraki mesajlasmalar bu basligi
+      // DEGISTIRMEZ (latest-message mantigi burada gecerli degil).
+      let displayTitle: string | null = canShowBody ? (t.messages[0]?.body ?? null) : null;
+      if (t.originType === "pool" && t.questionText && t.answerTextDisplay) {
+        displayTitle =
+          role === "initiator"
+            ? `${t.questionText} - ${t.answerTextDisplay}`
+            : t.questionText;
+      }
+
       return {
         id: t.id,
         originType: t.originType,
         lockType: t.lockType,
         questionText: t.questionText,
-        firstMessageBody: canShowBody ? (t.messages[0]?.body ?? null) : null,
+        firstMessageBody: displayTitle,
         // Numara sadece gonderenin KENDISINE geri gosterilir - alici
         // veya baska hic kimseye asla donmez (Bolum 8, 10).
         recipientPhoneDisplay: role === "initiator" ? t.recipientPhoneDisplay : null,

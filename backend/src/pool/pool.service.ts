@@ -359,6 +359,9 @@ export class PoolService {
 
     // lockType "none" - sahip zaten bilerek kabul etti, alici (yanit
     // veren) tekrar bir sey girmeden dogrudan erisebilir.
+    // Kullanici istegi: kabul edilen cevap, thread'in ILK mesaji olarak
+    // kaydedilir - ve liste basligi icin answerTextDisplay'e sabitlenir
+    // (sonraki mesajlar bu basligi degistirmez).
     const thread = await this.prisma.messageThread.create({
       data: {
         originType: "pool",
@@ -366,6 +369,16 @@ export class PoolService {
         recipientUserId: attempt.attempterUserId,
         lockType: "none",
         questionText: attempt.poolEntry.questionText,
+        answerTextDisplay: attempt.answerText,
+        messages: {
+          create: [
+            {
+              senderUserId: attempt.attempterUserId,
+              body: attempt.answerText,
+              isAnonymous: false,
+            },
+          ],
+        },
       },
     });
 

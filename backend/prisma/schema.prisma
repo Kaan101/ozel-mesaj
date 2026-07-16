@@ -101,6 +101,12 @@ model MessageThread {
   // de bildirim gonderilsin diye bu alani doldurabilir.
   recipientNotificationEmail String? @map("recipient_notification_email")
 
+  // Kullanici istegi: havuz eslesmelerinde (originType='pool'), kabul
+  // edilen cevap buraya sabitlenir. Liste basligi bundan uretilir ve
+  // sonraki mesajlasmalar ne olursa olsun DEGISMEZ - "Soru - Cevap"
+  // (soru sahibine) / sadece "Soru" (yanit verene) formatinda.
+  answerTextDisplay String? @map("answer_text_display")
+
   // Kullanici geri bildirimi: "mesaj silme" ozelligi - gercekte veriyi
   // silmiyoruz (karsi tarafin gorunumunu etkilememeli), sadece
   // kullanicinin KENDI "Mesajlarim" listesinden gizliyoruz.
