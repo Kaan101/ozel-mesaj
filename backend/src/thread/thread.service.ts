@@ -49,6 +49,21 @@ export class ThreadService {
       },
     });
 
+    // Kullanici istegi: bloke edilmis (admin tarafindan askiya alinmis)
+    // bir numaraya mesaj GONDERILEMEZ.
+    if (recipient.status === "suspended") {
+      throw new ForbiddenException("Bu numaraya mesaj gönderilemiyor.");
+    }
+
+    // Kullanici istegi: bloke edilmis bir kullanici da mesaj
+    // GONDEREMEZ - giriste engellensede (AuthService.verifyOtp),
+    // onceden alinmis bir access_token hala gecerli olabilir, bu
+    // yuzden burada da ayrica kontrol ediyoruz.
+    const initiator = await this.prisma.user.findUnique({ where: { id: initiatorUserId } });
+    if (initiator?.status === "suspended") {
+      throw new ForbiddenException("Hesabın askıya alındığı için mesaj gönderemezsin.");
+    }
+
     // Gorev 7.2: Alici, gonderici tarafindan (initiator) daha once
     // engellendiyse yeni thread olusturulmasi reddedilir (Bolum 10).
     const isBlocked = await this.safety.isBlocked(recipient.id, initiatorUserId);
@@ -520,6 +535,13 @@ export class ThreadService {
   // icin, controller'da JwtAuthGuard ile saglanir) hem Katman 2 (dogru
   // thread'e erisim, ThreadAccessGuard ile saglanir) gerektirir.
   async sendMessage(threadId: string, senderUserId: string, body: string, isAnonymous: boolean) {
+    // Kullanici istegi: bloke edilmis (askiya alinmis) bir kullanici
+    // mevcut bir konusmada da mesaj GONDEREMEZ.
+    const sender = await this.prisma.user.findUnique({ where: { id: senderUserId } });
+    if (sender?.status === "suspended") {
+      throw new ForbiddenException("Hesabın askıya alındığı için mesaj gönderemezsin.");
+    }
+
     const message = await this.prisma.message.create({
       data: {
         threadId,

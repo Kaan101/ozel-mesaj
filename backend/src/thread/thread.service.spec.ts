@@ -40,7 +40,7 @@ describe("ThreadService", () => {
         {
           provide: PrismaService,
           useValue: {
-            user: { upsert: jest.fn() },
+            user: { upsert: jest.fn(), findUnique: jest.fn() },
             messageThread: { create: jest.fn(), findUnique: jest.fn() },
             message: {
               create: jest.fn(),

@@ -141,48 +141,60 @@ export default function AdminBlokePage() {
             </p>
           </Card>
         ) : (
-          users.map((user) => (
-            <Card key={user.userId} className="space-y-2">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <p className="font-display text-base font-bold text-slate">
-                    {user.phoneNumber ?? "(numara kayıtlı değil)"}
-                  </p>
-                  <p className="font-body text-xs text-slate-light">
-                    {user.totalReports} şikayet ({user.pendingReports} bekleyen)
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-3 py-1 font-body text-xs font-semibold ${
-                    user.status === "suspended"
-                      ? "bg-coral-light text-coral"
-                      : "bg-meadow-light text-meadow-hover"
-                  }`}
-                >
-                  {user.status === "suspended" ? "Bloke" : "Aktif"}
-                </span>
-              </div>
-
-              {user.status === "suspended" ? (
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => handleReactivate(user.userId)}
-                  disabled={processingId === user.userId}
-                >
-                  Bloke Kaldır
-                </Button>
-              ) : (
-                <button
-                  onClick={() => handleSuspend(user.userId)}
-                  disabled={processingId === user.userId}
-                  className="w-full rounded-full bg-coral px-4 py-2 font-body text-sm font-semibold text-white hover:bg-coral/90 disabled:opacity-50"
-                >
-                  Bloke Et
-                </button>
-              )}
-            </Card>
-          ))
+          <Card className="overflow-x-auto p-0">
+            <table className="w-full font-body text-sm">
+              <thead>
+                <tr className="border-b border-sky-light/60 text-left">
+                  <th className="px-4 py-3 text-slate-light font-semibold">Telefon</th>
+                  <th className="px-4 py-3 text-slate-light font-semibold">Şikayet</th>
+                  <th className="px-4 py-3 text-slate-light font-semibold">Durum</th>
+                  <th className="px-4 py-3 text-slate-light font-semibold">İşlem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.userId} className="border-b border-sky-light/30 last:border-0">
+                    <td className="px-4 py-3 font-display font-bold text-slate whitespace-nowrap">
+                      {user.phoneNumber ?? "(kayıtlı değil)"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-light whitespace-nowrap">
+                      {user.totalReports} ({user.pendingReports} bekleyen)
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          user.status === "suspended"
+                            ? "bg-coral-light text-coral"
+                            : "bg-meadow-light text-meadow-hover"
+                        }`}
+                      >
+                        {user.status === "suspended" ? "Bloke" : "Aktif"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {user.status === "suspended" ? (
+                        <button
+                          onClick={() => handleReactivate(user.userId)}
+                          disabled={processingId === user.userId}
+                          className="rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light disabled:opacity-50 whitespace-nowrap"
+                        >
+                          Bloke Kaldır
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSuspend(user.userId)}
+                          disabled={processingId === user.userId}
+                          className="rounded-full bg-coral px-3 py-1.5 font-body text-xs font-semibold text-white hover:bg-coral/90 disabled:opacity-50 whitespace-nowrap"
+                        >
+                          Bloke Et
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
       </div>
     </main>
