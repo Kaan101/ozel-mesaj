@@ -98,6 +98,26 @@ export default function AdminBlokePage() {
     }
   }
 
+  // Kullanici istegi: tablodan bir kaydi (bu kullaniciya ait tum
+  // sikayetleri) sil - kullanicinin hesap durumunu etkilemez.
+  async function handleDeleteRecord(userId: string) {
+    if (!confirm("Bu kaydı (bu kullanıcıya ait tüm şikayetleri) silmek istediğine emin misin?")) {
+      return;
+    }
+    setProcessingId(userId);
+    try {
+      await fetch(`${API_BASE_URL}/safety/reported-users/${userId}`, {
+        method: "DELETE",
+        headers: { "x-admin-secret": adminKey },
+      });
+      setUsers((prev) => prev.filter((u) => u.userId !== userId));
+    } catch {
+      setError("İşlem başarısız oldu.");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   if (!isUnlocked) {
     return (
       <main className="min-h-screen bg-mint flex items-center justify-center px-4">
@@ -142,25 +162,36 @@ export default function AdminBlokePage() {
           </Card>
         ) : (
           <Card className="overflow-x-auto p-0">
-            <table className="w-full font-body text-sm">
+            <table className="w-full border-collapse border border-slate-light/60 font-body text-sm">
               <thead>
-                <tr className="border-b border-sky-light/60 text-left">
-                  <th className="px-4 py-3 text-slate-light font-semibold">Telefon</th>
-                  <th className="px-4 py-3 text-slate-light font-semibold">Şikayet</th>
-                  <th className="px-4 py-3 text-slate-light font-semibold">Durum</th>
-                  <th className="px-4 py-3 text-slate-light font-semibold">İşlem</th>
+                <tr className="bg-mint">
+                  <th className="border border-slate-light/60 px-4 py-3 text-left text-slate font-bold">
+                    Telefon
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 text-left text-slate font-bold">
+                    Şikayet
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 text-left text-slate font-bold">
+                    Durum
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 text-left text-slate font-bold">
+                    İşlem
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 text-left text-slate font-bold">
+                    Kayıt
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => (
-                  <tr key={user.userId} className="border-b border-sky-light/30 last:border-0">
-                    <td className="px-4 py-3 font-display font-bold text-slate whitespace-nowrap">
+                  <tr key={user.userId}>
+                    <td className="border border-slate-light/60 px-4 py-3 font-display font-bold text-slate whitespace-nowrap">
                       {user.phoneNumber ?? "(kayıtlı değil)"}
                     </td>
-                    <td className="px-4 py-3 text-slate-light whitespace-nowrap">
+                    <td className="border border-slate-light/60 px-4 py-3 text-slate-light whitespace-nowrap">
                       {user.totalReports} ({user.pendingReports} bekleyen)
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="border border-slate-light/60 px-4 py-3">
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
                           user.status === "suspended"
@@ -171,7 +202,7 @@ export default function AdminBlokePage() {
                         {user.status === "suspended" ? "Bloke" : "Aktif"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="border border-slate-light/60 px-4 py-3">
                       {user.status === "suspended" ? (
                         <button
                           onClick={() => handleReactivate(user.userId)}
@@ -189,6 +220,17 @@ export default function AdminBlokePage() {
                           Bloke Et
                         </button>
                       )}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRecord(user.userId)}
+                        disabled={processingId === user.userId}
+                        className="rounded-full p-1.5 text-xs text-slate-light hover:bg-coral-light hover:text-coral disabled:opacity-50"
+                        aria-label="Kaydı Sil"
+                      >
+                        🗑️
+                      </button>
                     </td>
                   </tr>
                 ))}

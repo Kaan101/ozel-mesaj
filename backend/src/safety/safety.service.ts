@@ -284,4 +284,19 @@ export class SafetyService {
       userId,
     });
   }
+
+  // Kullanici istegi: bloke yonetim ekranindaki tablodan bir kaydi
+  // (bu kullaniciya ait TUM sikayetleri) silme - kullanicinin hesabini
+  // etkilemez (bloke/aktif durumu ayni kalir), sadece bu listeden
+  // kalkar.
+  async deleteReportsForUser(userId: string): Promise<void> {
+    await this.prisma.report.deleteMany({
+      where: { thread: { initiatorUserId: userId } },
+    });
+
+    await this.auditLog.log({
+      eventType: "reports_deleted_by_admin",
+      userId,
+    });
+  }
 }

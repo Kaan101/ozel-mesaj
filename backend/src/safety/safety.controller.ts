@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
 import { SafetyService } from "./safety.service";
 import { BlockUserDto } from "./dto/block-user.dto";
@@ -88,5 +88,14 @@ export class SafetyController {
   async reactivateUser(@Param("id") id: string) {
     await this.safetyService.reactivateUser(id);
     return { message: "Bloke kaldırıldı." };
+  }
+
+  // Kullanici istegi: bloke yonetim ekranindan bir kaydi (bu
+  // kullaniciya ait tum sikayetleri) silme.
+  @UseGuards(AdminGuard)
+  @Delete("reported-users/:id")
+  async deleteReportedUserRecord(@Param("id") id: string) {
+    await this.safetyService.deleteReportsForUser(id);
+    return { message: "Kayıt silindi." };
   }
 }
