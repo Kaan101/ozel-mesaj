@@ -29,6 +29,9 @@ export default function AdminAyarlarPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
+  // Kullanici istegi: hem parametre adina (label) hem anahtarina (key)
+  // gore filtreleyen bir arama kutusu.
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_secret");
@@ -125,43 +128,95 @@ export default function AdminAyarlarPage() {
           Bu değerler değiştirildiğinde ~10 saniye içinde etkin olur, deploy gerekmez.
         </p>
 
+        {/* Kullanici istegi: hem parametre adina (label) hem
+            anahtarina (key) gore filtreleyen bir arama kutusu. */}
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Parametre adı veya anahtarına göre ara..."
+          className="w-full rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-body text-slate focus:outline-none focus:border-sky"
+        />
+
+        {/* Kullanici istegi: ALLOWED_ORIGINS bilgi amacli - bu, veritabani
+            tabanli sistem ayarlarindan degil, Railway'de env degiskeni
+            olarak yonetiliyor. Degeri (guvenlik/konfigurasyon bilgisi
+            oldugu icin) burada gosterilmez, sadece varligindan haberdar
+            edilir. */}
+        {"ALLOWED_ORIGINS".toLowerCase().includes(searchQuery.toLowerCase()) && (
+          <Card className="border-2 border-sun/40 bg-sun/10">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-sm font-bold text-slate">
+                  ALLOWED_ORIGINS
+                </h2>
+                <p className="mt-0.5 font-body text-xs text-slate-light">
+                  CORS icin izin verilen kaynaklar - bu ekrandan degil, Railway&apos;deki
+                  Variables (ortam degiskenleri) uzerinden yonetiliyor. Deger burada
+                  gosterilmez.
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-sun/30 px-2 py-0.5 font-body text-xs text-slate">
+                Sadece bilgi
+              </span>
+            </div>
+          </Card>
+        )}
+
         {isLoading ? (
           <p className="font-body text-slate-light">Yükleniyor...</p>
         ) : (
-          settings.map((setting) => (
-            <Card key={setting.key}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <h2 className="font-display text-sm font-bold text-slate">{setting.label}</h2>
-                  <p className="mt-0.5 font-body text-xs text-slate-light">
-                    {setting.description}
-                  </p>
-                  {setting.isDefault && (
-                    <span className="mt-1 inline-block rounded-full bg-sky-light px-2 py-0.5 font-body text-xs text-sky">
-                      Varsayılan değer kullanılıyor
-                    </span>
-                  )}
+          settings
+            .filter((setting) => {
+              const q = searchQuery.trim().toLowerCase();
+              if (!q) return true;
+              return (
+                setting.label.toLowerCase().includes(q) ||
+                setting.key.toLowerCase().includes(q)
+              );
+            })
+            .map((setting) => (
+              <Card key={setting.key}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h2 className="font-display text-sm font-bold text-slate">
+                      {setting.label}{" "}
+                      {/* Kullanici istegi: parametre adinin yaninda
+                          kendi anahtari (key) da gorunsun - hangi env
+                          degiskenine/ayara karsilik geldigi net olsun. */}
+                      <span className="font-body text-xs font-normal text-slate-light">
+                        ({setting.key})
+                      </span>
+                    </h2>
+                    <p className="mt-0.5 font-body text-xs text-slate-light">
+                      {setting.description}
+                    </p>
+                    {setting.isDefault && (
+                      <span className="mt-1 inline-block rounded-full bg-sky-light px-2 py-0.5 font-body text-xs text-sky">
+                        Varsayılan değer kullanılıyor
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Input
+                      value={editValues[setting.key] ?? ""}
+                      onChange={(e) =>
+                        setEditValues((prev) => ({ ...prev, [setting.key]: e.target.value }))
+                      }
+                      className="w-24"
+                      inputMode="numeric"
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleSave(setting.key)}
+                      disabled={savingKey === setting.key}
+                    >
+                      {savingKey === setting.key ? "..." : "Kaydet"}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Input
-                    value={editValues[setting.key] ?? ""}
-                    onChange={(e) =>
-                      setEditValues((prev) => ({ ...prev, [setting.key]: e.target.value }))
-                    }
-                    className="w-24"
-                    inputMode="numeric"
-                  />
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleSave(setting.key)}
-                    disabled={savingKey === setting.key}
-                  >
-                    {savingKey === setting.key ? "..." : "Kaydet"}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))
+              </Card>
+            ))
         )}
 
         {error && <p className="font-body text-sm text-coral">{error}</p>}
