@@ -180,7 +180,12 @@ type TranslationKey =
   | "mesajlarim.deleteConfirm"
   | "mesajlarim.delete"
   | "havuz.searchPlaceholder"
-  | "havuz.noResults";
+  | "havuz.noResults"
+  | "giris.kvkkLabel"
+  | "giris.consentLabel"
+  | "giris.kvkkLinkText"
+  | "giris.consentLinkText"
+  | "giris.viewLink";
 
 export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, string>>> = {
   tr: {
@@ -293,6 +298,11 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajlarim.delete": "Sil",
     "havuz.searchPlaceholder": "Başlık, soru veya kategori ara...",
     "havuz.noResults": "Aramanla eşleşen bir soru bulunamadı.",
+    "giris.kvkkLinkText": "KVKK Aydınlatma Metni",
+    "giris.kvkkLabel": "KVKK Aydınlatma Metni'ni okudum ve anladım.",
+    "giris.consentLinkText": "Açık Rıza Metni",
+    "giris.consentLabel": "Açık Rıza Metni'ni okudum ve onaylıyorum.",
+    "giris.viewLink": "(görüntüle)",
   },
   en: {
     "nav.pool": "Pool",
@@ -404,6 +414,11 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajlarim.delete": "Delete",
     "havuz.searchPlaceholder": "Search by title, question, or category...",
     "havuz.noResults": "No questions match your search.",
+    "giris.kvkkLinkText": "Privacy Disclosure Notice",
+    "giris.kvkkLabel": "I have read and understood the Privacy Disclosure Notice.",
+    "giris.consentLinkText": "Explicit Consent Form",
+    "giris.consentLabel": "I have read and agree to the Explicit Consent Form.",
+    "giris.viewLink": "(view)",
   },
 };
 

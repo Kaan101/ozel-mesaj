@@ -12,6 +12,7 @@ import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { AvatarPicker } from "@/components/ui/AvatarPicker";
 import { AvatarId } from "@/components/ui/Avatar";
 import { useLanguage } from "@/lib/language-context";
+import { KVKK_AYDINLATMA_METNI, ACIK_RIZA_METNI } from "@/lib/legal-texts";
 
 type Step = "phone" | "otp" | "checking" | "avatar";
 
@@ -27,6 +28,15 @@ function GirisFormContent() {
 
   const [step, setStep] = useState<Step>("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
+  // Kullanici istegi: girise izin vermeden once KVKK aydinlatma metni
+  // ve acik riza metni onayi zorunlu.
+  const [acceptedKvkk, setAcceptedKvkk] = useState(false);
+  const [acceptedConsent, setAcceptedConsent] = useState(false);
+  // Kullanici istegi: KVKK Aydinlatma Metni ve Acik Riza Metni
+  // onaylanmadan girise izin verilmemeli.
+  const [kvkkChecked, setKvkkChecked] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [expandedText, setExpandedText] = useState<"kvkk" | "consent" | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,7 +106,11 @@ function GirisFormContent() {
     try {
       const data = await apiFetch<{ mockCode?: string }>("/auth/otp/request", {
         method: "POST",
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({
+          phoneNumber,
+          kvkkConsentAccepted: kvkkChecked,
+          explicitConsentAccepted: consentChecked,
+        }),
         skipAuth: true,
       });
       // Kullanici geri bildirimi: MOCK modda (SMS_MOCK_MODE=true) backend
@@ -211,11 +225,60 @@ function GirisFormContent() {
                 onChange={setPhoneNumber}
                 onCountryChange={setLanguageFromCountry}
               />
+
+              {/* Kullanici istegi: girise izin vermeden once KVKK
+                  aydinlatma metni ve acik riza metni onayi zorunlu. */}
+              <div className="space-y-2">
+                <label className="flex items-start gap-2 font-body text-xs text-slate-light">
+                  <input
+                    type="checkbox"
+                    checked={acceptedKvkk}
+                    onChange={(e) => setAcceptedKvkk(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-sky"
+                  />
+                  <span>
+                    {t("giris.kvkkLabel")}{" "}
+                    <a
+                      href="/yasal/kvkk-aydinlatma"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sky underline underline-offset-2"
+                    >
+                      {t("giris.viewLink")}
+                    </a>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 font-body text-xs text-slate-light">
+                  <input
+                    type="checkbox"
+                    checked={acceptedConsent}
+                    onChange={(e) => setAcceptedConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-sky"
+                  />
+                  <span>
+                    {t("giris.consentLabel")}{" "}
+                    <a
+                      href="/yasal/acik-riza"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sky underline underline-offset-2"
+                    >
+                      {t("giris.viewLink")}
+                    </a>
+                  </span>
+                </label>
+              </div>
+
               {error && <p className="font-body text-sm text-coral">{error}</p>}
               <Button
                 className="w-full"
                 onClick={handleRequestOtp}
-                disabled={isSubmitting || phoneNumber.trim().length < 10}
+                disabled={
+                  isSubmitting ||
+                  phoneNumber.trim().length < 10 ||
+                  !acceptedKvkk ||
+                  !acceptedConsent
+                }
               >
                 {isSubmitting ? t("giris.sending") : t("giris.sendCode")}
               </Button>
