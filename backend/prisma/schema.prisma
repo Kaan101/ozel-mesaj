@@ -200,6 +200,10 @@ model PoolAttempt {
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  // Kullanici istegi: her bir iletisim (yanit) kendi icinde
+  // silinebilsin - soruyu silmekten bagimsiz olarak.
+  hiddenByOwner Boolean @default(false) @map("hidden_by_owner")
+
   @@index([poolEntryId])
   @@index([attempterUserId])
   @@index([status])
