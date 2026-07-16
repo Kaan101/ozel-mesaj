@@ -1,4 +1,4 @@
-import { IsBoolean, IsString, MinLength } from "class-validator";
+import { IsBoolean, IsOptional, IsString, MinLength } from "class-validator";
 
 export class SendMessageDto {
   @IsString()
@@ -7,4 +7,9 @@ export class SendMessageDto {
 
   @IsBoolean()
   isAnonymous: boolean;
+
+  // Kullanici istegi: her yanit icin de ayri ayri secilebilir.
+  @IsOptional()
+  @IsBoolean()
+  destroyAfterRead?: boolean;
 }

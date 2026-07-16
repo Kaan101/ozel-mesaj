@@ -91,6 +91,7 @@ export class ThreadService {
               senderUserId: initiatorUserId,
               body: dto.body,
               isAnonymous: dto.isAnonymous,
+              destroyAfterRead: dto.destroyAfterRead ?? false,
             },
           ],
         },
@@ -534,7 +535,13 @@ export class ThreadService {
   // Gorev 5.5: Yanit gonderme. Hem Katman 1 (kimin gonderdigini bilmek
   // icin, controller'da JwtAuthGuard ile saglanir) hem Katman 2 (dogru
   // thread'e erisim, ThreadAccessGuard ile saglanir) gerektirir.
-  async sendMessage(threadId: string, senderUserId: string, body: string, isAnonymous: boolean) {
+  async sendMessage(
+    threadId: string,
+    senderUserId: string,
+    body: string,
+    isAnonymous: boolean,
+    destroyAfterRead: boolean = false
+  ) {
     // Kullanici istegi: bloke edilmis (askiya alinmis) bir kullanici
     // mevcut bir konusmada da mesaj GONDEREMEZ.
     const sender = await this.prisma.user.findUnique({ where: { id: senderUserId } });
@@ -548,6 +555,7 @@ export class ThreadService {
         senderUserId,
         body,
         isAnonymous,
+        destroyAfterRead,
       },
     });
 

@@ -76,6 +76,9 @@ export default function MesajGosterPage() {
   // Gorev 13.1 + 13.2: Yanit yazma + kimlik gosterme anahtari.
   const [replyBody, setReplyBody] = useState("");
   const [replyAnonymous, setReplyAnonymous] = useState(true);
+  // Kullanici istegi: her yanit icin ayri ayri "okunduktan sonra
+  // silinsin" secilebilsin.
+  const [replyDestroyAfterRead, setReplyDestroyAfterRead] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
   // Gorev 13.3: Engelle/Sikayet Et.
@@ -206,7 +209,11 @@ export default function MesajGosterPage() {
     try {
       const sent = await apiFetch<{ id: string }>(`/threads/${threadId}/messages`, {
         method: "POST",
-        body: JSON.stringify({ body: replyBody, isAnonymous: replyAnonymous }),
+        body: JSON.stringify({
+          body: replyBody,
+          isAnonymous: replyAnonymous,
+          destroyAfterRead: replyDestroyAfterRead,
+        }),
         // threadToken varsa (alici yolu) X-Thread-Access-Token gonderilir.
         // Yoksa (sahip kisayolu) ThreadWriteGuard, normal Katman 1
         // access_token'la sahiplik uzerinden zaten izin verir.
@@ -438,6 +445,15 @@ export default function MesajGosterPage() {
               checked={replyAnonymous}
               onChange={setReplyAnonymous}
               label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
+            />
+            {/* Kullanici istegi: mesaj okunduktan sonra uygulamadan
+                silinsin secenegi - hukuki ispat icin sifreli arsiv
+                kopyasi yine de kalir. */}
+            <Toggle
+              id="reply-destroy-after-read-toggle"
+              checked={replyDestroyAfterRead}
+              onChange={setReplyDestroyAfterRead}
+              label="Okunduktan sonra silinsin"
             />
             {replyError && <p className="font-body text-sm text-coral">{replyError}</p>}
             <Button className="w-full" onClick={handleReply} disabled={isReplying || !replyBody}>

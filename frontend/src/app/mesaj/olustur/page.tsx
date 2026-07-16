@@ -34,6 +34,10 @@ export default function MesajOlusturPage() {
   const [questionText, setQuestionText] = useState("");
   const [lockSecret, setLockSecret] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(true);
+  // Kullanici istegi: gonderen isterse mesaj okunduktan sonra
+  // uygulamadan silinsin - hukuki ispat icin sifreli arsivde
+  // (MessageAudit) yine de kalir.
+  const [destroyAfterRead, setDestroyAfterRead] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +91,7 @@ export default function MesajOlusturPage() {
           lockSecret: addQuestion ? lockSecret : undefined,
           questionText: addQuestion ? questionText : undefined,
           isAnonymous,
+          destroyAfterRead,
         }),
       });
       setSentThreadId(data.threadId);
@@ -194,6 +199,16 @@ export default function MesajOlusturPage() {
             checked={isAnonymous}
             onChange={setIsAnonymous}
             label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
+          />
+
+          {/* Kullanici istegi: mesaj okunduktan sonra uygulamadan
+              silinsin secenegi - hukuki ispat icin sifreli arsiv
+              kopyasi (MessageAudit) yine de kalir. */}
+          <Toggle
+            id="destroy-after-read-toggle"
+            checked={destroyAfterRead}
+            onChange={setDestroyAfterRead}
+            label="Okunduktan sonra silinsin"
           />
 
           {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala

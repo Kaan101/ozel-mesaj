@@ -49,4 +49,12 @@ export class CreateThreadDto {
 
   @IsBoolean()
   isAnonymous: boolean;
+
+  // Kullanici istegi: gonderen isterse mesaj okunduktan sonra
+  // uygulamadan (canli tabloya) silinsin - ama hukuki ispat icin
+  // sifreli arsiv kopyasi (MessageAudit) HER ZAMAN kalir, bu
+  // secenekten etkilenmez.
+  @IsOptional()
+  @IsBoolean()
+  destroyAfterRead?: boolean;
 }

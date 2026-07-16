@@ -91,6 +91,12 @@ export class ThreadController {
     @Body() dto: SendMessageDto
   ) {
     const senderUserId = (request as any).user.sub;
-    return this.threadService.sendMessage(id, senderUserId, dto.body, dto.isAnonymous);
+    return this.threadService.sendMessage(
+      id,
+      senderUserId,
+      dto.body,
+      dto.isAnonymous,
+      dto.destroyAfterRead ?? false
+    );
   }
 }
