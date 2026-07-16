@@ -66,4 +66,28 @@ export class PoolController {
     const attemptingUserId = (request as any).user.sub;
     return this.poolService.attemptEntry(id, attemptingUserId, dto.answer);
   }
+
+  // Kullanici istegi: "Tum Yanitlari Goster" modundaki sorularima
+  // gelen, henuz kabul/reddedilmemis yanitlari listeler.
+  @UseGuards(JwtAuthGuard)
+  @Get("attempts/pending")
+  async listPendingAttempts(@Req() request: Request) {
+    const ownerUserId = (request as any).user.sub;
+    return this.poolService.listPendingAttemptsForOwner(ownerUserId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("attempts/:id/accept")
+  async acceptAttempt(@Req() request: Request, @Param("id") id: string) {
+    const ownerUserId = (request as any).user.sub;
+    return this.poolService.acceptAttempt(id, ownerUserId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("attempts/:id/reject")
+  async rejectAttempt(@Req() request: Request, @Param("id") id: string) {
+    const ownerUserId = (request as any).user.sub;
+    await this.poolService.rejectAttempt(id, ownerUserId);
+    return { message: "Yanit reddedildi." };
+  }
 }

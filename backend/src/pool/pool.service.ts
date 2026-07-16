@@ -43,6 +43,7 @@ export class PoolService {
         answerHash,
         category: dto.category ?? null,
         visibility: dto.visibility,
+        matchMode: dto.matchMode ?? "exact",
       },
     });
 
@@ -89,6 +90,7 @@ export class PoolService {
         questionText: true,
         category: true,
         visibility: true,
+        matchMode: true,
         createdAt: true,
       },
     });
@@ -133,6 +135,20 @@ export class PoolService {
       data: { attemptCount: { increment: 1 } },
     });
 
+    // Kullanici istegi: "Tum Yanitlari Goster" modunda dogru/yanlis
+    // ayrimi yapmadan HER yanit soru sahibine incelemek uzere dusuyor -
+    // hicbir thread otomatik olusmuyor, sahip kabul/reddedene kadar.
+    if (entry.matchMode === "review") {
+      const attempt = await this.prisma.poolAttempt.create({
+        data: {
+          poolEntryId,
+          attempterUserId: attemptingUserId,
+          answerText: answer,
+        },
+      });
+      return { success: null, pending: true, attemptId: attempt.id };
+    }
+
     const isMatch = await compareSecret(answer, entry.answerHash);
     if (!isMatch) {
       return { success: false };
@@ -167,5 +183,94 @@ export class PoolService {
     );
 
     return { success: true, threadId: thread.id, threadAccessToken };
+  }
+
+  // Kullanici istegi: "Tum Yanitlari Goster" modundaki sorularimda
+  // bekleyen (henuz kabul/reddedilmemis) yanitlari listeler - baglam
+  // icin soru basligi ve yanit veren kisinin avatari da dahil edilir
+  // (kimligi degil - Bolum 8 gizlilik modeli).
+  async listPendingAttemptsForOwner(ownerUserId: string) {
+    const attempts = await this.prisma.poolAttempt.findMany({
+      where: {
+        status: "pending",
+        poolEntry: { ownerUserId },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        answerText: true,
+        createdAt: true,
+        attempterUserId: true,
+        attempter: { select: { avatarId: true } },
+        poolEntry: { select: { id: true, title: true, questionText: true } },
+      },
+    });
+
+    return attempts.map((a) => ({
+      id: a.id,
+      answerText: a.answerText,
+      createdAt: a.createdAt,
+      attempterAvatarId: a.attempter.avatarId,
+      poolEntryId: a.poolEntry.id,
+      poolEntryTitle: a.poolEntry.title,
+      poolEntryQuestion: a.poolEntry.questionText,
+    }));
+  }
+
+  // Kullanici istegi: sahip bir yaniti kabul ederse, o yanit veren
+  // kisiyle AYRI bir mesaj kutusu (thread) acilir - baska bir kisinin
+  // yaniti farkli bir thread'de kalir, birbirine karismaz.
+  async acceptAttempt(attemptId: string, ownerUserId: string) {
+    const attempt = await this.prisma.poolAttempt.findUnique({
+      where: { id: attemptId },
+      include: { poolEntry: true },
+    });
+
+    if (!attempt || attempt.poolEntry.ownerUserId !== ownerUserId) {
+      throw new NotFoundException("Yanit bulunamadi.");
+    }
+
+    if (attempt.status !== "pending") {
+      throw new HttpException("Bu yanit zaten degerlendirilmis.", HttpStatus.CONFLICT);
+    }
+
+    // lockType "none" - sahip zaten bilerek kabul etti, alici (yanit
+    // veren) tekrar bir sey girmeden dogrudan erisebilir.
+    const thread = await this.prisma.messageThread.create({
+      data: {
+        originType: "pool",
+        initiatorUserId: ownerUserId,
+        recipientUserId: attempt.attempterUserId,
+        lockType: "none",
+        questionText: attempt.poolEntry.questionText,
+      },
+    });
+
+    await this.prisma.poolAttempt.update({
+      where: { id: attemptId },
+      data: { status: "accepted", threadId: thread.id },
+    });
+
+    return { threadId: thread.id };
+  }
+
+  async rejectAttempt(attemptId: string, ownerUserId: string): Promise<void> {
+    const attempt = await this.prisma.poolAttempt.findUnique({
+      where: { id: attemptId },
+      include: { poolEntry: true },
+    });
+
+    if (!attempt || attempt.poolEntry.ownerUserId !== ownerUserId) {
+      throw new NotFoundException("Yanit bulunamadi.");
+    }
+
+    if (attempt.status !== "pending") {
+      throw new HttpException("Bu yanit zaten degerlendirilmis.", HttpStatus.CONFLICT);
+    }
+
+    await this.prisma.poolAttempt.update({
+      where: { id: attemptId },
+      data: { status: "rejected" },
+    });
   }
 }

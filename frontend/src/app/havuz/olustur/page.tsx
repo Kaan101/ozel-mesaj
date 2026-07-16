@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 
 type Visibility = "public" | "unlisted";
+type MatchMode = "exact" | "review";
 
 // Gorev 12.1 + 12.2: Havuz sorusu olusturma formu, gorunurluk secimi
 // (herkese acik / gizli link) ile. Katman 1 auth gerektirir (Bolum 4, 9).
@@ -24,6 +25,7 @@ export default function HavuzOlusturPage() {
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<Visibility>("public");
+  const [matchMode, setMatchMode] = useState<MatchMode>("exact");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,7 @@ export default function HavuzOlusturPage() {
           answer,
           category: category.trim() || undefined,
           visibility,
+          matchMode,
         }),
       });
       setCreatedId(data.poolEntryId);
@@ -193,6 +196,38 @@ export default function HavuzOlusturPage() {
               {visibility === "public"
                 ? t("havuzOlustur.publicDesc")
                 : t("havuzOlustur.unlistedDesc")}
+            </p>
+          </div>
+
+          {/* Kullanici istegi: "Kesin Eslessin" (varsayilan) vs "Tum
+              Yanitlari Goster" (her yanit incelemek uzere sana dusar,
+              kabul/reddedersin). */}
+          <div>
+            <label className="font-display text-sm font-semibold text-slate">
+              Eşleşme Şekli
+            </label>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMatchMode("exact")}
+                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
+                  ${matchMode === "exact" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
+              >
+                Kesin Eşleşsin
+              </button>
+              <button
+                type="button"
+                onClick={() => setMatchMode("review")}
+                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
+                  ${matchMode === "review" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
+              >
+                Tüm Yanıtları Göster
+              </button>
+            </div>
+            <p className="mt-1.5 font-body text-xs text-slate-light">
+              {matchMode === "exact"
+                ? "Sadece doğru cevabı bilen kişiyle otomatik olarak mesajlaşma başlar."
+                : "Doğru/yanlış fark etmeksizin gelen her yanıt sana \"Havuz Yanıtlarım\" ekranında düşer, istersen kabul eder istersen reddedersin. Her yanıt veren kişi için ayrı bir mesaj kutusu açılır."}
             </p>
           </div>
 

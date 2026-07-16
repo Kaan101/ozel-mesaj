@@ -16,6 +16,7 @@ interface PoolEntryDetail {
   questionText: string;
   category: string | null;
   visibility: string;
+  matchMode: string;
   createdAt: string;
 }
 
@@ -28,7 +29,7 @@ interface DisplayMessage {
   createdAt: string;
 }
 
-type ViewState = "loading" | "question" | "attempting" | "matched" | "not-found";
+type ViewState = "loading" | "question" | "attempting" | "matched" | "pending" | "not-found";
 
 // Gorev 12.4: Havuz sorusu detayi + cevap deneme ekrani. Dogru cevap
 // verilirse anlik olarak soru sahibiyle mesajlasma penceresi acilir
@@ -97,13 +98,22 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
     setView("attempting");
     try {
       const data = await apiFetch<{
-        success: boolean;
+        success: boolean | null;
+        pending?: boolean;
         threadId?: string;
         threadAccessToken?: string;
       }>(`/pool/entries/${entryId}/attempt`, {
         method: "POST",
         body: JSON.stringify({ answer }),
       });
+
+      // Kullanici istegi: "Tum Yanitlari Goster" modunda her yanit
+      // (dogru/yanlis fark etmeksizin) inceleme icin soru sahibine
+      // dusuyor - burada anlik bir esleseme/thread OLUSMAZ.
+      if (data.pending) {
+        setView("pending");
+        return;
+      }
 
       if (!data.success) {
         setError("Bu sefer olmadı, tekrar dene.");
@@ -160,6 +170,26 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
       <main className="min-h-screen bg-mint flex items-center justify-center px-4">
         <Card className="max-w-sm text-center">
           <p className="font-body text-coral">Bu soru bulunamadı.</p>
+        </Card>
+      </main>
+    );
+  }
+
+  // Kullanici istegi: "Tum Yanitlari Goster" modunda yanit gonderildikten
+  // sonra anlik esleseme olmuyor - soru sahibinin incelemesi bekleniyor.
+  if (view === "pending") {
+    return (
+      <main className="min-h-screen bg-mint flex items-center justify-center px-4 py-12">
+        <Card lifted className="max-w-sm text-center space-y-3">
+          <div className="text-5xl">📨</div>
+          <h1 className="font-display text-2xl font-bold text-slate">Yanıtın iletildi</h1>
+          <p className="font-body text-sm text-slate-light">
+            Soru sahibi yanıtını inceleyecek. Kabul ederse, seninle bir mesajlaşma
+            penceresi açılacak — bunu &quot;Mesajlarım&quot; ekranından takip edebilirsin.
+          </p>
+          <Button className="w-full" onClick={() => router.push("/mesajlarim")}>
+            Mesajlarıma Git
+          </Button>
         </Card>
       </main>
     );
@@ -248,6 +278,12 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
           <p className="font-display text-lg font-semibold text-slate text-center">
             {entry?.questionText}
           </p>
+          {entry?.matchMode === "review" && (
+            <p className="font-body text-xs text-slate-light text-center bg-sky-light/40 rounded-xl px-3 py-2">
+              Bu soruda yanıtlar soru sahibi tarafından tek tek incelenir — otomatik
+              eşleşme yok, gönderdiğin yanıt sahibinin onayına sunulur.
+            </p>
+          )}
           <Input
             label="Cevabın"
             value={answer}

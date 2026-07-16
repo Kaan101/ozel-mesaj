@@ -47,6 +47,7 @@ model User {
   receivedThreads  MessageThread[] @relation("ThreadRecipient")
   sentMessages     Message[]
   poolEntries      PoolEntry[]
+  poolAttempts     PoolAttempt[]
   blockedUsers     Block[]         @relation("Blocker")
   blockedByUsers   Block[]         @relation("Blocked")
   reports          Report[]
@@ -156,6 +157,49 @@ enum PoolVisibility {
   unlisted
 }
 
+enum PoolMatchMode {
+  exact
+  review
+}
+
+enum PoolAttemptStatus {
+  pending
+  accepted
+  rejected
+}
+
+// Kullanici istegi: "Tum Yanitlari Goster" modundaki sorularda, her
+// yanit (dogru/yanlis fark etmeksizin) burada BEKLEMEDE olarak
+// kaydedilir. Soru sahibi kabul ederse bir MessageThread olusur,
+// reddederse hicbir sey olmaz. Farkli kisiler ayni soruya yanit
+// verirse, her biri icin AYRI bir kayit (ve kabul edilirse ayri bir
+// thread) olusur.
+model PoolAttempt {
+  id String @id @default(uuid()) @db.Uuid
+
+  poolEntryId String    @map("pool_entry_id") @db.Uuid
+  poolEntry   PoolEntry @relation(fields: [poolEntryId], references: [id])
+
+  attempterUserId String @map("attempter_user_id") @db.Uuid
+  attempter       User   @relation(fields: [attempterUserId], references: [id])
+
+  // NOT: bu mod icin cevap BILEREK duz metin saklanir - soru sahibinin
+  // yaniti okuyup "kabul/reddet" karari verebilmesi gerekiyor (exact
+  // modundaki hash'leme burada gecerli degil).
+  answerText String @map("answer_text")
+
+  status PoolAttemptStatus @default(pending)
+  // Kabul edildiyse, olusturulan thread'in ID'si (referans/izlenebilirlik icin).
+  threadId String? @map("thread_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([poolEntryId])
+  @@index([attempterUserId])
+  @@index([status])
+  @@map("pool_attempts")
+}
+
 model PoolEntry {
   id      String @id @default(uuid()) @db.Uuid
 
@@ -170,8 +214,17 @@ model PoolEntry {
   category   String?        @map("category")
   visibility PoolVisibility @default(public)
 
+  // Kullanici istegi: "Kesin Eslessin" (varsayilan - dogru cevap
+  // otomatik eslestirir) vs "Tum Yanitlari Goster" (herhangi bir
+  // yanit, dogru/yanlis fark etmeksizin, soru sahibine INCELEME icin
+  // dusar - sahip kabul/reddeder, kabul edilirse ayri bir mesaj
+  // kutusu acilir).
+  matchMode PoolMatchMode @default(exact) @map("match_mode")
+
   // Rate-limit/brute-force takibi için (Bölüm 10).
   attemptCount Int @default(0) @map("attempt_count")
+
+  attempts PoolAttempt[]
 
   createdAt DateTime @default(now()) @map("created_at")
 

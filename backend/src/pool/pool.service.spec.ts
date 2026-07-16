@@ -32,6 +32,7 @@ describe("PoolService", () => {
             },
             messageThread: { create: jest.fn() },
             threadUnlock: { upsert: jest.fn() },
+            poolAttempt: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
           },
         },
         { provide: RedisService, useValue: { incr: jest.fn() } },
@@ -148,6 +149,24 @@ describe("PoolService", () => {
         threadId: "thread-1",
         threadAccessToken: "thread-token",
       });
+    });
+    it("review modunda dogru/yanlis fark etmeksizin bekleyen yanit olusturur, thread acmaz", async () => {
+      redis.incr.mockResolvedValue(1);
+      const { hashSecret } = await import("../common/bcrypt.util");
+      prisma.poolEntry.findUnique.mockResolvedValue({
+        id: "entry-1",
+        ownerUserId: "owner-1",
+        answerHash: await hashSecret("dogru-cevap"),
+        questionText: "Soru?",
+        matchMode: "review",
+      });
+      prisma.poolAttempt.create.mockResolvedValue({ id: "attempt-1" });
+
+      const result = await service.attemptEntry("entry-1", "user-3", "her-turlu-cevap");
+
+      expect(prisma.poolAttempt.create).toHaveBeenCalledTimes(1);
+      expect(prisma.messageThread.create).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: null, pending: true, attemptId: "attempt-1" });
     });
   });
 });

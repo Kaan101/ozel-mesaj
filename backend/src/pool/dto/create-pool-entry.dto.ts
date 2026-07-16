@@ -23,4 +23,11 @@ export class CreatePoolEntryDto {
 
   @IsIn(["public", "unlisted"])
   visibility: "public" | "unlisted";
+
+  // Kullanici istegi: "exact" (varsayilan) = dogru cevap otomatik
+  // eslesir. "review" = tum yanitlar (dogru/yanlis fark etmeksizin)
+  // soru sahibine incelemek uzere dusar.
+  @IsOptional()
+  @IsIn(["exact", "review"])
+  matchMode?: "exact" | "review";
 }
