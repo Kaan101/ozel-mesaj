@@ -102,6 +102,51 @@ export class PoolService {
     return entry;
   }
 
+  // Kullanici istegi: havuza biraktigim sorular, ayri bir menu yerine
+  // dogrudan "Mesajlarim" listesinde ("Gonderdiklerim" altinda) gorunur -
+  // "Havuz Sorusu" etiketiyle. Review modundaki sorular icin bekleyen
+  // yanitlar da burada gomulu olarak donulur (ayri bir sayfaya gerek
+  // kalmadan kabul/reddedilebilsin diye).
+  async listMyPoolEntries(ownerUserId: string) {
+    const entries = await this.prisma.poolEntry.findMany({
+      where: { ownerUserId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        questionText: true,
+        matchMode: true,
+        attemptCount: true,
+        createdAt: true,
+        attempts: {
+          where: { status: "pending" },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            answerText: true,
+            createdAt: true,
+            attempter: { select: { avatarId: true } },
+          },
+        },
+      },
+    });
+
+    return entries.map((e) => ({
+      id: e.id,
+      title: e.title,
+      questionText: e.questionText,
+      matchMode: e.matchMode,
+      attemptCount: e.attemptCount,
+      createdAt: e.createdAt,
+      pendingAttempts: e.attempts.map((a) => ({
+        id: a.id,
+        answerText: a.answerText,
+        createdAt: a.createdAt,
+        attempterAvatarId: a.attempter.avatarId,
+      })),
+    }));
+  }
+
   private attemptRateLimitKey(poolEntryId: string): string {
     return `pool-attempt-rl:${poolEntryId}`;
   }

@@ -44,14 +44,6 @@ export function SiteHeader() {
         <Link href="/havuz" className="font-body text-sm text-slate-light hover:text-slate">
           {t("nav.pool")}
         </Link>
-        {isAuthenticated && (
-          <Link
-            href="/havuz-yanitlarim"
-            className="font-body text-sm text-slate-light hover:text-slate"
-          >
-            Yanıtlarım
-          </Link>
-        )}
         <Link href="/mesajlarim" className="font-body text-sm text-slate-light hover:text-slate">
           {t("nav.myMessages")}
         </Link>

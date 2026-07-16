@@ -33,6 +33,17 @@ export class PoolController {
     };
   }
 
+  // Kullanici istegi: havuza biraktigim sorular Mesajlarim listesine
+  // entegre edilecek - bu endpoint o listeyi besler. DIKKAT: "mine"
+  // route'u ":id" route'undan ONCE tanimlanmali (routing cakismasi
+  // onlemi, daha once /threads/mine icin de uyguladigimiz desen).
+  @UseGuards(JwtAuthGuard)
+  @Get("entries/mine")
+  async listMyEntries(@Req() request: Request) {
+    const ownerUserId = (request as any).user.sub;
+    return this.poolService.listMyPoolEntries(ownerUserId);
+  }
+
   // Gorev 6.2: Herkese acik listeleme - auth gerektirmez (Bolum 4, 9).
   @Get("entries")
   async listEntries(
