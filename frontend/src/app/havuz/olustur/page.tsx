@@ -178,16 +178,16 @@ export default function HavuzOlusturPage() {
               <button
                 type="button"
                 onClick={() => setVisibility("public")}
-                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${visibility === "public" ? "bg-meadow text-white" : "bg-meadow-light text-slate"}`}
+                className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
+                  ${visibility === "public" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
               >
                 {t("havuzOlustur.public")}
               </button>
               <button
                 type="button"
                 onClick={() => setVisibility("unlisted")}
-                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${visibility === "unlisted" ? "bg-meadow text-white" : "bg-meadow-light text-slate"}`}
+                className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
+                  ${visibility === "unlisted" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
               >
                 {t("havuzOlustur.unlisted")}
               </button>
@@ -210,16 +210,16 @@ export default function HavuzOlusturPage() {
               <button
                 type="button"
                 onClick={() => setMatchMode("exact")}
-                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${matchMode === "exact" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
+                className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
+                  ${matchMode === "exact" ? "border-sky text-sky" : "border-sky-light text-slate"}`}
               >
                 Kesin Eşleşsin
               </button>
               <button
                 type="button"
                 onClick={() => setMatchMode("review")}
-                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${matchMode === "review" ? "bg-sky text-white" : "bg-sky-light text-slate"}`}
+                className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
+                  ${matchMode === "review" ? "border-sky text-sky" : "border-sky-light text-slate"}`}
               >
                 Tüm Yanıtları Göster
               </button>

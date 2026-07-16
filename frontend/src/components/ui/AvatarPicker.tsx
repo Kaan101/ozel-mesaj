@@ -18,8 +18,8 @@ export function AvatarPicker({
           key={id}
           type="button"
           onClick={() => onChange(id)}
-          className={`flex flex-col items-center gap-1 rounded-2xl border-2 p-2 transition-colors ${
-            value === id ? "border-sky bg-sky-light" : "border-sky-light bg-white hover:border-sky"
+          className={`flex flex-col items-center gap-1 rounded-2xl border-2 p-2 transition-colors bg-white ${
+            value === id ? "border-sky" : "border-sky-light hover:border-sky"
           }`}
         >
           <Avatar avatarId={id} size={56} />
