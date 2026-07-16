@@ -67,4 +67,26 @@ export class SafetyController {
     await this.safetyService.updateReportStatus(id, dto.status, dto.resolutionNote);
     return { message: "Şikayet güncellendi." };
   }
+
+  // Kullanici istegi: bloke yonetim ekrani - bildirilen kullanicilari
+  // telefon numaralariyla listeler.
+  @UseGuards(AdminGuard)
+  @Get("reported-users")
+  async listReportedUsers() {
+    return this.safetyService.listReportedUsers();
+  }
+
+  @UseGuards(AdminGuard)
+  @Post("users/:id/suspend")
+  async suspendUser(@Param("id") id: string) {
+    await this.safetyService.suspendUser(id);
+    return { message: "Kullanıcı bloke edildi." };
+  }
+
+  @UseGuards(AdminGuard)
+  @Post("users/:id/reactivate")
+  async reactivateUser(@Param("id") id: string) {
+    await this.safetyService.reactivateUser(id);
+    return { message: "Bloke kaldırıldı." };
+  }
 }

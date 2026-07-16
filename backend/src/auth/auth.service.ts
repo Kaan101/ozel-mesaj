@@ -177,6 +177,17 @@ export class AuthService {
       },
     });
 
+    // Kullanici istegi (bug duzeltmesi): "suspended" durumu ONCEDEN
+    // higbir yerde uygulanmiyordu - admin ya da otomatik esik (Bolum
+    // 10) ile askiya alinan bir hesap yine de giris yapabiliyordu.
+    // Artik giriste kontrol edilip reddediliyor.
+    if (user.status === "suspended") {
+      throw new HttpException(
+        "Hesabın askıya alındı. Detaylı bilgi için bizimle iletişime geç.",
+        HttpStatus.FORBIDDEN
+      );
+    }
+
     await this.auditLog.log({
       eventType: "otp_verified",
       userId: user.id,

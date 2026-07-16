@@ -1,8 +1,9 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../common/prisma.service";
 import { SettingsService } from "../settings/settings.service";
 import { AuditLogService } from "../audit/audit-log.service";
 import { hashPhoneNumber } from "../common/hash.util";
+import { decryptReversible } from "../common/encryption.util";
 
 @Injectable()
 export class SafetyService {
@@ -206,5 +207,81 @@ export class SafetyService {
         },
       });
     }
+  }
+
+  // Kullanici istegi: bir bloke yonetim ekrani icin - sikayet edilmis
+  // (Bildir) kullanicilari, telefon numaralariyla birlikte listeler.
+  // "Bildirilen" kisi, sikayeti YAPAN degil, o thread'deki KARSI
+  // taraftir (sikayet genelde initiator'a - mesaji baslatana - karsi
+  // yapilir, bkz. Report modeli/reportThread).
+  async listReportedUsers() {
+    const reports = await this.prisma.report.findMany({
+      select: {
+        id: true,
+        status: true,
+        thread: {
+          select: { initiatorUserId: true },
+        },
+      },
+    });
+
+    // Kullanici basina sikayet sayisini topla (ayni kisi birden fazla
+    // kez bildirilmis olabilir).
+    const countsByUserId = new Map<string, { total: number; pending: number }>();
+    for (const r of reports) {
+      const targetUserId = r.thread.initiatorUserId;
+      const current = countsByUserId.get(targetUserId) ?? { total: 0, pending: 0 };
+      current.total += 1;
+      if (r.status === "pending") current.pending += 1;
+      countsByUserId.set(targetUserId, current);
+    }
+
+    const userIds = [...countsByUserId.keys()];
+    if (userIds.length === 0) return [];
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, phoneNumberEncrypted: true, status: true },
+    });
+
+    return users
+      .map((u) => {
+        const counts = countsByUserId.get(u.id)!;
+        return {
+          userId: u.id,
+          phoneNumber: u.phoneNumberEncrypted ? decryptReversible(u.phoneNumberEncrypted) : null,
+          status: u.status,
+          totalReports: counts.total,
+          pendingReports: counts.pending,
+        };
+      })
+      .sort((a, b) => b.totalReports - a.totalReports);
+  }
+
+  // Kullanici istegi: gerekirse bloke edilebilsin - kullanicinin
+  // hesabi askiya alinir (giris yapamaz, bkz. AuthService.verifyOtp).
+  async suspendUser(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("Kullanici bulunamadi.");
+
+    await this.prisma.user.update({ where: { id: userId }, data: { status: "suspended" } });
+
+    await this.auditLog.log({
+      eventType: "user_suspended_by_admin",
+      userId,
+    });
+  }
+
+  // Kullanici istegi: bloke geri alinabilsin.
+  async reactivateUser(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("Kullanici bulunamadi.");
+
+    await this.prisma.user.update({ where: { id: userId }, data: { status: "active" } });
+
+    await this.auditLog.log({
+      eventType: "user_reactivated_by_admin",
+      userId,
+    });
   }
 }
