@@ -80,4 +80,18 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: "E-posta Bildirim Secenegi Goster (1=Acik, 0=Kapali)",
     description: "'Ona Mesaj Gonder' formunda opsiyonel e-posta bildirim alaninin gorunup gorunmeyecegini kontrol eder.",
   },
+  {
+    key: "AUTO_LOGIN_SESSION_DAYS",
+    envFallback: "AUTO_LOGIN_SESSION_DAYS",
+    defaultValue: 90,
+    label: "Otomatik Giris Suresi (Gun)",
+    description: "'Beni Hatirla / Otomatik Giris' secilirse, kullanici bu sure boyunca tekrar kod girmeden giris yapabilir. Sure sonunda yeniden dogrulama istenir.",
+  },
+  {
+    key: "OTP_REQUEST_DAILY_LIMIT",
+    envFallback: "OTP_REQUEST_DAILY_LIMIT",
+    defaultValue: 10,
+    label: "Gunluk Kod Isteme Siniri",
+    description: "Ayni telefon numarasi icin gunde en fazla kac kez yeni dogrulama kodu istenebilir (spam/smishing onleme, dakika/saat limitlerine ek).",
+  },
 ];

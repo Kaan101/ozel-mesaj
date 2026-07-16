@@ -1,4 +1,4 @@
-import { IsString, Matches } from "class-validator";
+import { IsBoolean, IsOptional, IsString, Matches } from "class-validator";
 
 export class VerifyOtpDto {
   @IsString()
@@ -10,4 +10,10 @@ export class VerifyOtpDto {
   @IsString()
   @Matches(/^[0-9]{4,6}$/, { message: "Kod 4-6 haneli rakamlardan olusmali" })
   code: string;
+
+  // Kullanici istegi: "Otomatik Giris/Beni Hatirla" secilirse, refresh
+  // token cok daha uzun sureli (AUTO_LOGIN_SESSION_DAYS) verilir.
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
 }

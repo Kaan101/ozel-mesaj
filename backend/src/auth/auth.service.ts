@@ -31,6 +31,10 @@ export class AuthService {
     return `otp-rl-hour:${phoneHash}`;
   }
 
+  private rateLimitDayKey(phoneHash: string): string {
+    return `otp-rl-day:${phoneHash}`;
+  }
+
   // Gorev 3.7: Ayni numaraya dakikada N'den, saatte M'den fazla OTP
   // istegi engellenir (Bolum 8 "Rate limiting", Bolum 10 spam/smishing
   // onleme). Limit asilirsa 429 doner.
@@ -53,15 +57,40 @@ export class AuthService {
         HttpStatus.TOO_MANY_REQUESTS
       );
     }
+
+    // Kullanici istegi: gunluk kod isteme siniri (sistem parametresi) -
+    // dakika/saat limitlerine ek olarak, ayni numaraya gunde en fazla
+    // N kez yeni kod gonderilebilir (spam/smishing onleme).
+    const dailyLimit = await this.settings.getNumber("OTP_REQUEST_DAILY_LIMIT");
+    const dayCount = await this.redis.incr(this.rateLimitDayKey(phoneHash), 86400);
+    if (dayCount > dailyLimit) {
+      throw new HttpException(
+        "Bu numara icin gunluk kod isteme sinirina ulasildi. Lutfen yarin tekrar deneyin.",
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
   }
 
   // Gorev 3.2 + 3.3 + 3.7: Telefon numarasini hash'ler, rate limit
   // kontrolu yapar, 4 haneli kod uretir, Redis'e TTL:5dk ile yazar,
   // sonra SmsService uzerinden gonderir.
   async requestOtp(
-    phoneNumber: string
+    phoneNumber: string,
+    consent: { kvkkConsentAccepted: boolean; explicitConsentAccepted: boolean }
   ): Promise<{ phoneHash: string; ttlSeconds: number; mockCode?: string }> {
     const phoneHash = hashPhoneNumber(phoneNumber);
+
+    // Kullanici istegi: KVKK Aydinlatma Metni ve Acik Riza Metni
+    // onaylanmadan girise izin verilmez - onayin kendisi de hukuki
+    // ispat amaciyla gunluge yazilir (Bolum: "Audit Log").
+    await this.auditLog.log({
+      eventType: "kvkk_consent_given",
+      metadata: {
+        phoneHash,
+        kvkkConsentAccepted: consent.kvkkConsentAccepted,
+        explicitConsentAccepted: consent.explicitConsentAccepted,
+      },
+    });
 
     await this.enforceRateLimit(phoneHash);
 
@@ -99,9 +128,18 @@ export class AuthService {
   // siniri yoktu - Bolum 3, Adim 3'teki "5 deneme sonrasi kilitleme"
   // gereksinimini karsilamiyorduk. 5 yanlis denemeden sonra 15 dakika
   // kilitleniyor (thread-unlock'taki ayni desen, Bolum 8, 10).
+  //
+  // Kullanici istegi: (a) basarili dogrulamadan sonra kod ARTIK
+  // SILINMIYOR - suresi (OTP_TTL_SECONDS) dolana ya da yeni bir kod
+  // istenene kadar tekrar tekrar "sifre gibi" kullanilabilir. (b)
+  // "Otomatik Giris/Beni Hatirla" isaretlenirse, refresh token normal
+  // (30 gun) yerine sistem parametresiyle belirlenen cok daha uzun bir
+  // sure (varsayilan 90 gun) gecerli olur - bu sure sonunda yeniden
+  // kod girisi istenir.
   async verifyOtp(
     phoneNumber: string,
-    code: string
+    code: string,
+    rememberMe: boolean = false
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const phoneHash = hashPhoneNumber(phoneNumber);
     const maxAttempts = await this.settings.getNumber("OTP_VERIFY_MAX_ATTEMPTS");
@@ -124,8 +162,9 @@ export class AuthService {
       throw new UnauthorizedException("Kod hatali veya suresi dolmus.");
     }
 
-    // Basarili girisde hem OTP kodu hem deneme sayaci temizlenir.
-    await this.redis.del(this.otpKey(phoneHash));
+    // Basarili girisde sadece deneme sayaci temizlenir - kodun kendisi
+    // BILEREK silinmiyor (kullanici istegi: ayni kod, suresi dolana
+    // kadar tekrar giris icin kullanilabilsin).
     await this.redis.del(attemptsKey);
 
     const user = await this.prisma.user.upsert({
@@ -141,6 +180,7 @@ export class AuthService {
     await this.auditLog.log({
       eventType: "otp_verified",
       userId: user.id,
+      metadata: { rememberMe },
     });
 
     const accessToken = await this.jwt.signAsync(
@@ -151,11 +191,15 @@ export class AuthService {
       }
     );
 
+    const refreshExpiresIn = rememberMe
+      ? `${await this.settings.getNumber("AUTO_LOGIN_SESSION_DAYS")}d`
+      : (process.env.JWT_REFRESH_EXPIRES_IN ?? "30d");
+
     const refreshToken = await this.jwt.signAsync(
       { sub: user.id },
       {
         secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "30d",
+        expiresIn: refreshExpiresIn,
       }
     );
 

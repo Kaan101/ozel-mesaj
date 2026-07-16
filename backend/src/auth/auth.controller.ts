@@ -12,7 +12,10 @@ export class AuthController {
 
   @Post("otp/request")
   async requestOtp(@Body() dto: RequestOtpDto) {
-    const { ttlSeconds, mockCode } = await this.authService.requestOtp(dto.phoneNumber);
+    const { ttlSeconds, mockCode } = await this.authService.requestOtp(dto.phoneNumber, {
+      kvkkConsentAccepted: dto.kvkkConsentAccepted,
+      explicitConsentAccepted: dto.explicitConsentAccepted,
+    });
 
     // Guvenlik: response'ta ASLA telefon numarasi veya hash'i donmez.
     // mockCode SADECE SMS_MOCK_MODE=true iken doluyor (yukarida
@@ -29,7 +32,8 @@ export class AuthController {
   async verifyOtp(@Body() dto: VerifyOtpDto) {
     const { accessToken, refreshToken } = await this.authService.verifyOtp(
       dto.phoneNumber,
-      dto.code
+      dto.code,
+      dto.rememberMe ?? false
     );
 
     return {

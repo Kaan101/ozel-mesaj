@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
@@ -13,44 +12,55 @@ import { AvatarPicker } from "@/components/ui/AvatarPicker";
 import { AvatarId } from "@/components/ui/Avatar";
 import { useLanguage } from "@/lib/language-context";
 
-type Step = "phone" | "otp" | "checking" | "avatar";
+type Step = "form" | "checking" | "avatar";
 
 const RESEND_COOLDOWN_SECONDS = 60;
+const REMEMBERED_PHONE_KEY = "remembered_phone_number";
 
-// Gorev 10.1 + 10.2 + 10.3: Telefon numarasi girisi + OTP dogrulama
-// ekrani, geri sayimli "yeniden gonder" ve hata durumlari ile.
+// Kullanici istegi (revize): telefon+kod tek ekranda birlikte -
+// "Giris" butonu birincil aksiyon (telefon+varsa kod ile dogrudan
+// giris dener), "Kod Gonder" altta ikincil bir aksiyon. Kod, basarili
+// girisden sonra ARTIK silinmiyor (backend) - kullanici "Beni
+// Hatirla/Otomatik Giris" secmediyse bile ayni kodu (suresi dolana
+// kadar) tekrar tekrar giris icin kullanabilir. Telefon numarasi
+// localStorage'da hatirlanir, bir sonraki ziyarette otomatik doldurulur.
 function GirisFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { t, language, setLanguageFromCountry } = useLanguage();
+  const { t, setLanguageFromCountry } = useLanguage();
 
-  const [step, setStep] = useState<Step>("phone");
+  const [step, setStep] = useState<Step>("form");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [code, setCode] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   // Kullanici istegi: girise izin vermeden once KVKK aydinlatma metni
   // ve acik riza metni onayi zorunlu.
   const [acceptedKvkk, setAcceptedKvkk] = useState(false);
   const [acceptedConsent, setAcceptedConsent] = useState(false);
-  // Kullanici istegi: KVKK Aydinlatma Metni ve Acik Riza Metni
-  // onaylanmadan girise izin verilmemeli.
-  const [kvkkChecked, setKvkkChecked] = useState(false);
-  const [consentChecked, setConsentChecked] = useState(false);
-  const [expandedText, setExpandedText] = useState<"kvkk" | "consent" | null>(null);
-  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [selectedAvatarId, setSelectedAvatarId] = useState<AvatarId>("genc-erkek");
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Kullanici istegi: daha once girilmis bir telefon numarasi varsa
+  // (localStorage) otomatik doldur.
+  useEffect(() => {
+    const remembered = localStorage.getItem(REMEMBERED_PHONE_KEY);
+    if (remembered) setPhoneNumber(remembered);
+  }, []);
+
   // Kullanici geri bildirimi: zaten gecerli bir oturumu varsa (token
   // hala gecerliyse), /giris sayfasi tekrar form gostermemeli - dogrudan
   // hedef sayfaya (varsa ?next, yoksa ana sayfaya) yonlendirilmeli.
   useEffect(() => {
-    // "avatar" adimindaysak yonlendirmeyelim - kullanici az once
-    // giris yapti (isAuthenticated true oldu) ama once avatar
+    // "avatar"/"checking" adimindaysak yonlendirmeyelim - kullanici az
+    // once giris yapti (isAuthenticated true oldu) ama once avatar
     // secimini tamamlamasi gerekiyor.
     if (!authLoading && isAuthenticated && step !== "avatar" && step !== "checking") {
       const next = searchParams.get("next") ?? "/";
@@ -83,13 +93,13 @@ function GirisFormContent() {
   function describeError(err: unknown): string {
     if (err instanceof ApiError) {
       if (err.status === 429) {
-        return "Çok sık istek gönderdin. Lütfen bir dakika sonra tekrar dene.";
+        return "Çok sık istek gönderdin. Lütfen bir süre sonra tekrar dene.";
       }
       if (err.status === 423) {
         return "Çok fazla yanlış deneme yaptın. Lütfen 15 dakika sonra tekrar dene.";
       }
       if (err.status === 401) {
-        return "Kod hatalı ya da süresi dolmuş. Kontrol edip tekrar dene.";
+        return "Kod hatalı ya da süresi dolmuş. Kontrol edip tekrar dene, ya da yeni bir kod iste.";
       }
       if (err.status === 400) {
         const message = (err.body as any)?.message;
@@ -99,16 +109,22 @@ function GirisFormContent() {
     return "Bir şeyler ters gitti. Lütfen tekrar dene.";
   }
 
-  async function handleRequestOtp() {
+  const canAttempt =
+    phoneNumber.trim().length >= 10 && acceptedKvkk && acceptedConsent;
+
+  // Kullanici istegi: "Kod Gonder" artik ikincil bir aksiyon - kod
+  // gerektiginde/unutulunca kullanilir, giris denemesini TETIKLEMEZ.
+  async function handleSendCode() {
     setError(null);
-    setIsSubmitting(true);
+    setInfoMessage(null);
+    setIsSendingCode(true);
     try {
       const data = await apiFetch<{ mockCode?: string }>("/auth/otp/request", {
         method: "POST",
         body: JSON.stringify({
           phoneNumber,
-          kvkkConsentAccepted: kvkkChecked,
-          explicitConsentAccepted: consentChecked,
+          kvkkConsentAccepted: acceptedKvkk,
+          explicitConsentAccepted: acceptedConsent,
         }),
         skipAuth: true,
       });
@@ -118,28 +134,43 @@ function GirisFormContent() {
       if (data.mockCode) {
         setCode(data.mockCode);
       }
-      setStep("otp");
+      setInfoMessage("Kod gönderildi. Telefonuna gelen kodu gir.");
       startCooldown();
     } catch (err) {
       setError(describeError(err));
     } finally {
-      setIsSubmitting(false);
+      setIsSendingCode(false);
     }
   }
 
-  async function handleVerifyOtp() {
+  // Kullanici istegi: birincil aksiyon - telefon + (varsa) kod ile
+  // dogrudan giris dener. Kod alani bossa kullaniciyi once kod
+  // istemeye yonlendirir.
+  async function handleLogin() {
     setError(null);
-    setIsSubmitting(true);
+    setInfoMessage(null);
+
+    if (!code.trim()) {
+      setError("Önce \"Kod Gönder\"e basıp telefonuna gelen kodu gir.");
+      return;
+    }
+
+    setIsLoggingIn(true);
     try {
       const data = await apiFetch<{ access_token: string; refresh_token: string }>(
         "/auth/otp/verify",
         {
           method: "POST",
-          body: JSON.stringify({ phoneNumber, code }),
+          body: JSON.stringify({ phoneNumber, code, rememberMe }),
           skipAuth: true,
         }
       );
       login(data.access_token, data.refresh_token);
+
+      // Kullanici istegi: telefon numarasini bir sonraki ziyaret icin
+      // hatirla.
+      localStorage.setItem(REMEMBERED_PHONE_KEY, phoneNumber);
+
       // Kullanici geri bildirimi (bug duzeltmesi): login() cagrisi
       // isAuthenticated'i senkron olmayan bir sekilde true yapiyor,
       // bu da asagidaki "zaten giris yapmissa yonlendir" useEffect'inin
@@ -161,9 +192,10 @@ function GirisFormContent() {
       const next = searchParams.get("next") ?? "/";
       router.push(next);
     } catch (err) {
+      setStep("form");
       setError(describeError(err));
     } finally {
-      setIsSubmitting(false);
+      setIsLoggingIn(false);
     }
   }
 
@@ -184,8 +216,7 @@ function GirisFormContent() {
   }
 
   // Yonlendirme gerceklesene kadar formun bir an gorunmesini (flicker)
-  // onlemek icin. Avatar adimindaysak (yeni giris yapilmis, henuz
-  // avatar secilmemis) bu ekrani BOS gostermeyelim.
+  // onlemek icin. Avatar/checking adimindaysak bu ekrani BOS gostermeyelim.
   if ((authLoading || isAuthenticated) && step !== "avatar" && step !== "checking") {
     return <main className="min-h-screen bg-mint" />;
   }
@@ -196,27 +227,19 @@ function GirisFormContent() {
         <div className="text-center">
           <ConnectionIllustration className="w-40 h-auto mx-auto" />
           <h1 className="font-display text-2xl font-bold text-slate mt-4">
-            {step === "phone"
+            {step === "form"
               ? t("giris.title.phone")
-              : step === "otp"
-                ? t("giris.title.otp")
-                : step === "checking"
-                  ? t("giris.title.checking")
-                  : t("giris.title.avatar")}
+              : step === "checking"
+                ? t("giris.title.checking")
+                : t("giris.title.avatar")}
           </h1>
           <p className="font-body text-sm text-slate-light mt-1">
-            {step === "phone"
-              ? t("giris.subtitle.phone")
-              : step === "otp"
-                ? language === "en"
-                  ? `${t("giris.subtitle.otp")} ${phoneNumber}.`
-                  : `${phoneNumber} ${t("giris.subtitle.otp")}`
-                : t("giris.subtitle.avatar")}
+            {step === "form" ? t("giris.subtitle.phone") : t("giris.subtitle.avatar")}
           </p>
         </div>
 
         <Card lifted>
-          {step === "phone" ? (
+          {step === "form" ? (
             <div className="space-y-4">
               <PhoneInput
                 label={t("giris.phoneLabel")}
@@ -224,6 +247,36 @@ function GirisFormContent() {
                 onChange={setPhoneNumber}
                 onCountryChange={setLanguageFromCountry}
               />
+
+              {/* Kullanici istegi: kod alani her zaman gorunur - daha
+                  once gonderilmis (henuz suresi dolmamis) bir kod
+                  varsa dogrudan buraya girilip "Giris"e basilabilir. */}
+              <div>
+                <label className="font-display text-sm font-semibold text-slate">
+                  {t("giris.otpLabel")}
+                </label>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="1234"
+                  className="mt-1.5 w-full rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-mono text-center text-2xl tracking-[0.5em] text-slate focus:outline-none focus:border-sky"
+                  inputMode="numeric"
+                  maxLength={6}
+                />
+              </div>
+
+              {/* Kullanici istegi: "Otomatik Giris/Beni Hatirla" -
+                  isaretlenirse kod/oturum cok daha uzun sureli
+                  (sistem parametresi, varsayilan 90 gun) gecerli olur. */}
+              <label className="flex items-center gap-2 font-body text-sm text-slate">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 shrink-0 accent-sky"
+                />
+                Otomatik giriş yap (beni hatırla)
+              </label>
 
               {/* Kullanici istegi: girise izin vermeden once KVKK
                   aydinlatma metni ve acik riza metni onayi zorunlu. */}
@@ -269,18 +322,36 @@ function GirisFormContent() {
               </div>
 
               {error && <p className="font-body text-sm text-coral">{error}</p>}
+              {infoMessage && !error && (
+                <p className="font-body text-sm text-meadow-hover">{infoMessage}</p>
+              )}
+
+              {/* Kullanici istegi: birincil aksiyon artik "Giris". */}
               <Button
                 className="w-full"
-                onClick={handleRequestOtp}
-                disabled={
-                  isSubmitting ||
-                  phoneNumber.trim().length < 10 ||
-                  !acceptedKvkk ||
-                  !acceptedConsent
-                }
+                onClick={handleLogin}
+                disabled={isLoggingIn || !canAttempt}
               >
-                {isSubmitting ? t("giris.sending") : t("giris.sendCode")}
+                {isLoggingIn ? t("giris.verifying") : "Giriş"}
               </Button>
+
+              {/* Kullanici istegi: "Kod Gonder" altta ikincil bir aksiyon. */}
+              <div className="text-center">
+                {cooldown > 0 ? (
+                  <p className="font-body text-sm text-slate-light">
+                    {t("giris.resend")} ({cooldown}s)
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendCode}
+                    disabled={isSendingCode || !canAttempt}
+                    className="font-body text-sm text-sky underline underline-offset-2 disabled:opacity-50"
+                  >
+                    {isSendingCode ? t("giris.sending") : t("giris.sendCode")}
+                  </button>
+                )}
+              </div>
             </div>
           ) : step === "avatar" ? (
             <div className="space-y-4">
@@ -290,59 +361,8 @@ function GirisFormContent() {
                 {isSavingAvatar ? t("giris.saving") : t("giris.continue")}
               </Button>
             </div>
-          ) : step === "checking" ? (
-            <p className="font-body text-sm text-slate-light text-center py-6">{t("giris.checking")}</p>
           ) : (
-            <div className="space-y-4">
-              <Input
-                label={t("giris.otpLabel")}
-                placeholder="1234"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="font-mono text-center text-2xl tracking-[0.5em]"
-                inputMode="numeric"
-                maxLength={4}
-                autoFocus
-              />
-              {error && <p className="font-body text-sm text-coral">{error}</p>}
-              <Button
-                className="w-full"
-                onClick={handleVerifyOtp}
-                disabled={isSubmitting || code.trim().length < 4}
-              >
-                {isSubmitting ? t("giris.verifying") : t("giris.verify")}
-              </Button>
-
-              {/* Gorev 10.2: Geri sayimli "yeniden gonder" */}
-              <div className="text-center">
-                {cooldown > 0 ? (
-                  <p className="font-body text-sm text-slate-light">
-                    {t("giris.resend")} ({cooldown}s)
-                  </p>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleRequestOtp}
-                    disabled={isSubmitting}
-                    className="font-body text-sm text-sky underline underline-offset-2 disabled:opacity-50"
-                  >
-                    {t("giris.resend")}
-                  </button>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("phone");
-                  setCode("");
-                  setError(null);
-                }}
-                className="w-full font-body text-xs text-slate-light underline underline-offset-2"
-              >
-                {t("giris.changeNumber")}
-              </button>
-            </div>
+            <p className="font-body text-sm text-slate-light text-center py-6">{t("giris.checking")}</p>
           )}
         </Card>
       </div>

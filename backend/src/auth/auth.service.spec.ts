@@ -61,6 +61,8 @@ describe("AuthService", () => {
                 OTP_RATE_LIMIT_PER_MINUTE: 1,
                 OTP_RATE_LIMIT_PER_HOUR: 5,
                 OTP_VERIFY_MAX_ATTEMPTS: 5,
+                OTP_REQUEST_DAILY_LIMIT: 10,
+                AUTO_LOGIN_SESSION_DAYS: 90,
               };
               return Promise.resolve(defaults[key] ?? 0);
             }),
@@ -89,7 +91,7 @@ describe("AuthService", () => {
     it("rate limit asilmadiysa kod uretip SMS gonderir", async () => {
       redis.incr.mockResolvedValue(1); // hem dakika hem saat sayaci limit altinda
 
-      const result = await service.requestOtp("+905551234567");
+      const result = await service.requestOtp("+905551234567", { kvkkConsentAccepted: true, explicitConsentAccepted: true });
 
       expect(redis.set).toHaveBeenCalledTimes(1);
       expect(sms.send).toHaveBeenCalledTimes(1);
@@ -99,7 +101,7 @@ describe("AuthService", () => {
     it("dakikalik rate limit asilirsa 429 firlatir", async () => {
       redis.incr.mockResolvedValueOnce(2); // limit (1) asildi
 
-      await expect(service.requestOtp("+905551234567")).rejects.toThrow(HttpException);
+      await expect(service.requestOtp("+905551234567", { kvkkConsentAccepted: true, explicitConsentAccepted: true })).rejects.toThrow(HttpException);
       expect(sms.send).not.toHaveBeenCalled();
     });
   });
@@ -137,7 +139,10 @@ describe("AuthService", () => {
 
       const result = await service.verifyOtp("+905551234567", "1234");
 
-      expect(redis.del).toHaveBeenCalledTimes(2); // otp kodu + deneme sayaci
+      // Kullanici istegi: basarili girisde OTP kodu ARTIK silinmiyor
+      // (suresi dolana/yeni kod istenene kadar tekrar kullanilabilir) -
+      // sadece deneme sayaci temizleniyor.
+      expect(redis.del).toHaveBeenCalledTimes(1); // sadece deneme sayaci
       expect(prisma.user.upsert).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         accessToken: "access-token",
