@@ -61,8 +61,9 @@ export class ThreadController {
   // yeterli - hicbir sir donmuyor.
   @UseGuards(JwtAuthGuard)
   @Get(":id")
-  async getThreadMeta(@Param("id") id: string) {
-    return this.threadService.getThreadMeta(id);
+  async getThreadMeta(@Req() request: Request, @Param("id") id: string) {
+    const requestingUserId = (request as any).user?.sub;
+    return this.threadService.getThreadMeta(id, requestingUserId);
   }
 
   // Gorev 5.4 (revize): Thread'e ait mesajlari listeler. Ya thread_access_token

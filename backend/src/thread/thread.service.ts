@@ -10,6 +10,7 @@ import { AuditLogService } from "../audit/audit-log.service";
 import { hashPhoneNumber } from "../common/hash.util";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { encryptReversible } from "../common/encryption.util";
+import { formatDayMonth } from "../common/date-format.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 
 @Injectable()
@@ -220,7 +221,17 @@ export class ThreadService {
   // ise ne soruluyor" bilgisini gormesi lazim (unlock denemeden once).
   // Hicbir sir (lockSecretHash) dis dunyaya donmez - sadece guvenli
   // metadata (Bolum 3, Adim 3).
-  async getThreadMeta(threadId: string) {
+  // Gorev 11.5 icin gerekli ek: alici, unlock denemeden once kilit
+  // tipini (parola/soru) ve soru metnini gormeli. Sadece Katman 1
+  // yeterli - hicbir sir donmuyor.
+  //
+  // Kullanici istegi: mesaj detay sayfasindaki baslik, Mesajlarim
+  // listesindeki AYNI zengin baslikla (SORU - CEVAP + tarih) eslessin.
+  // Guvenlik duzeltmesi: bu zengin baslik SADECE thread'in gercek
+  // katilimcisina (initiator/recipient) donulur - baskasi bu endpoint'i
+  // cagirirsa (JwtAuthGuard tek basina katilimci oldugunu garantilemez)
+  // sadece minimal/guvenli alanlari gorur.
+  async getThreadMeta(threadId: string, requestingUserId?: string) {
     const thread = await this.prisma.messageThread.findUnique({
       where: { id: threadId },
       select: {
@@ -228,7 +239,15 @@ export class ThreadService {
         originType: true,
         lockType: true,
         questionText: true,
+        answerTextDisplay: true,
         createdAt: true,
+        initiatorUserId: true,
+        recipientUserId: true,
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { body: true },
+        },
       },
     });
 
@@ -236,7 +255,44 @@ export class ThreadService {
       throw new NotFoundException("Thread bulunamadi.");
     }
 
-    return thread;
+    const isParticipant =
+      requestingUserId === thread.initiatorUserId || requestingUserId === thread.recipientUserId;
+
+    if (!isParticipant) {
+      // Katilimci degilse (beklenmeyen durum) - hicbir icerik/baslik
+      // sizdirilmaz, sadece guvenli minimal alanlar.
+      return {
+        id: thread.id,
+        originType: thread.originType,
+        lockType: thread.lockType,
+        questionText: thread.questionText,
+        createdAt: thread.createdAt,
+        displayTitle: null,
+      };
+    }
+
+    const role = requestingUserId === thread.initiatorUserId ? "initiator" : "recipient";
+    const canShowBody = thread.lockType === "none" || role === "initiator";
+
+    let displayTitle: string | null = canShowBody ? (thread.messages[0]?.body ?? null) : null;
+    if (thread.originType === "pool" && thread.questionText && thread.answerTextDisplay) {
+      displayTitle =
+        role === "initiator"
+          ? `${thread.questionText} - ${thread.answerTextDisplay}`
+          : thread.questionText;
+    }
+    if (displayTitle) {
+      displayTitle = `${displayTitle} (${formatDayMonth(thread.createdAt)})`;
+    }
+
+    return {
+      id: thread.id,
+      originType: thread.originType,
+      lockType: thread.lockType,
+      questionText: thread.questionText,
+      createdAt: thread.createdAt,
+      displayTitle,
+    };
   }
 
   // Kullanicinin (initiator veya recipient olarak) dahil oldugu tum
@@ -311,6 +367,13 @@ export class ThreadService {
             role === "initiator"
               ? `${t.questionText} - ${t.answerTextDisplay}`
               : t.questionText;
+        }
+
+        // Kullanici istegi: basliga "(07 Temmuz)" formatinda sabit bir
+        // tarih ekleniyor - bu iletisimin ne zaman basladigini gosterir,
+        // sonraki mesajlardan etkilenmez.
+        if (displayTitle) {
+          displayTitle = `${displayTitle} (${formatDayMonth(t.createdAt)})`;
         }
 
         return {

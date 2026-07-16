@@ -16,6 +16,7 @@ interface ThreadMeta {
   lockType: "password" | "question";
   questionText: string | null;
   createdAt: string;
+  displayTitle: string | null;
 }
 
 interface DisplayMessage {
@@ -96,8 +97,9 @@ export default function MesajGosterPage() {
   // yoksa genel etiket) eslessin.
   useEffect(() => {
     if (view !== "messages") return;
-    const title =
-      meta?.lockType === "question" && meta.questionText
+    const title = meta?.displayTitle
+      ? `${meta.displayTitle} · YouHaveMi`
+      : meta?.lockType === "question" && meta.questionText
         ? `${meta.questionText} · YouHaveMi`
         : "Sana Bir Mesaj Var · YouHaveMi";
     document.title = title;
@@ -317,12 +319,14 @@ export default function MesajGosterPage() {
     // gosterilemiyor - onun yerine "hangi mesajdi" bilgisini, bu
     // mesaji ilk gordugun/olusturdugun tarih-saat ile ayirt ediyoruz.
     const firstMessageDate = messages[0]?.createdAt;
-    // Kullanici geri bildirimi: baslik olarak genel "Sana Bir Mesaj Var"
-    // yerine, soru modundaysa dogrudan soru metni gosterilsin.
+    // Kullanici istegi: detay sayfasindaki baslik, Mesajlarim
+    // listesindeki AYNI zengin baslikla (tarih dahil) eslesir -
+    // backend'den gelen displayTitle kullanilir.
     const pageTitle =
-      meta?.lockType === "question" && meta.questionText
+      meta?.displayTitle ??
+      (meta?.lockType === "question" && meta.questionText
         ? meta.questionText
-        : "Sana Bir Mesaj Var";
+        : "Sana Bir Mesaj Var");
 
     return (
       <main className="min-h-screen bg-mint px-4 py-12">
