@@ -244,7 +244,7 @@ export class ThreadService {
         initiatorUserId: true,
         recipientUserId: true,
         messages: {
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: "asc" },
           take: 1,
           select: { body: true },
         },
@@ -334,6 +334,23 @@ export class ThreadService {
       },
     });
 
+    // Kullanici istegi: dogrudan mesajlarda da baslik ILK mesaja
+    // sabitlenir - yeni mesajlar geldikce basligi DEGISTIRMEZ (havuz
+    // eslesmelerindeki "sabit baslik" mantigiyla tutarli). Prisma'nin
+    // "distinct" ozelligi, orderBy ile birlikte her thread icin TEK
+    // sorguda "ilk" satiri getirmemizi sagliyor.
+    const threadIds = threads.map((t) => t.id);
+    const firstMessages =
+      threadIds.length > 0
+        ? await this.prisma.message.findMany({
+            where: { threadId: { in: threadIds } },
+            orderBy: { createdAt: "asc" },
+            distinct: ["threadId"],
+            select: { threadId: true, body: true },
+          })
+        : [];
+    const firstMessageByThreadId = new Map(firstMessages.map((m) => [m.threadId, m.body]));
+
     const mapped = threads
       .map((t) => {
         const role = t.initiatorUserId === userId ? "initiator" : "recipient";
@@ -361,7 +378,9 @@ export class ThreadService {
         // liste basligi SABIT olmali - soru sahibine "Soru - Cevap",
         // yanit verene sadece "Soru" - sonraki mesajlasmalar bu basligi
         // DEGISTIRMEZ (latest-message mantigi burada gecerli degil).
-        let displayTitle: string | null = canShowBody ? (t.messages[0]?.body ?? null) : null;
+        let displayTitle: string | null = canShowBody
+          ? (firstMessageByThreadId.get(t.id) ?? null)
+          : null;
         if (t.originType === "pool" && t.questionText && t.answerTextDisplay) {
           displayTitle =
             role === "initiator"
