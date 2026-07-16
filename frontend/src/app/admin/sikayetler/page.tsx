@@ -12,24 +12,24 @@ interface Report {
   reporterUserId: string;
   reason: string | null;
   status: string;
+  resolutionNote: string | null;
   createdAt: string;
+  resolvedAt: string | null;
   firstMessageBody: string | null;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
-// Kullanici istegi: sikayetleri gorebilecegi ve yonetebilecegi bir
-// ekran. Ayni ADMIN_SECRET korumasini kullanir (diger admin
-// ekranlarindaki sessionStorage anahtariyla paylasilir).
+// Kullanici istegi (revize): sikayetler sonuclandiginda SILINMEZ -
+// tablo hâlinde (bloke ekraniyla ayni desen), AKTIF sikayetler ustte,
+// sonuclandirilanlar (incelendi/reddedildi) altta ayri bir tabloda
+// gosterilir. Sikayet tarihi + inceleme tarihi + aciklamalar dahil.
 export default function AdminSikayetlerPage() {
   const [adminKey, setAdminKey] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  // Kullanici istegi: her sikayet icin ayri bir aciklama taslagi -
-  // sonuclandirirken bu metin, sikayeti yapan kisiye sistem mesaji
-  // olarak gonderilir.
   const [resolutionNotes, setResolutionNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -103,80 +103,175 @@ export default function AdminSikayetlerPage() {
     );
   }
 
+  const activeReports = reports.filter((r) => r.status === "pending");
+  const resolvedReports = reports.filter((r) => r.status !== "pending");
+
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="mx-auto max-w-4xl space-y-6">
         <Link href="/admin" className="font-body text-sm text-sky underline underline-offset-2">
           ← Yönetim Paneli
         </Link>
-        <h1 className="font-display text-2xl font-bold text-slate">
-          Şikayetler ({reports.length} bekliyor)
-        </h1>
-        <p className="font-body text-sm text-slate-light">
-          Bir şikayeti incelediğinde ya da gereksiz bulduğunda işaretleyebilirsin — kuyruktan çıkar.
-        </p>
+        <h1 className="font-display text-2xl font-bold text-slate">Şikayetler</h1>
 
         {error && <p className="font-body text-sm text-coral">{error}</p>}
 
         {isLoading ? (
           <p className="font-body text-slate-light">Yükleniyor...</p>
-        ) : reports.length === 0 ? (
-          <Card>
-            <p className="font-body text-slate-light text-center py-6">
-              Bekleyen şikayet yok. 🎉
-            </p>
-          </Card>
         ) : (
-          reports.map((report) => (
-            <Card key={report.id} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-body text-xs text-slate-light">
-                  {new Date(report.createdAt).toLocaleString("tr-TR")}
-                </span>
-                <span className="rounded-full bg-sun/30 px-2 py-0.5 font-body text-xs text-slate">
-                  {report.status}
-                </span>
-              </div>
-              {report.reason && (
-                <p className="font-body text-sm text-slate">
-                  <strong>Sebep:</strong> {report.reason}
-                </p>
+          <>
+            {/* Aktif şikayetler - üstte */}
+            <div className="space-y-2">
+              <h2 className="font-display text-sm font-bold text-slate-light uppercase tracking-wide">
+                Aktif Şikayetler ({activeReports.length})
+              </h2>
+              {activeReports.length === 0 ? (
+                <Card>
+                  <p className="font-body text-slate-light text-center py-6">
+                    Bekleyen şikayet yok. 🎉
+                  </p>
+                </Card>
+              ) : (
+                <Card className="overflow-x-auto p-0">
+                  <table className="w-full border-collapse border border-slate-light/60 font-body text-sm">
+                    <thead>
+                      <tr className="bg-mint">
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          Şikayet Tarihi
+                        </th>
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          Sebep
+                        </th>
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          Mesaj
+                        </th>
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          Sonuç Açıklaması
+                        </th>
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          İşlem
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeReports.map((report) => (
+                        <tr key={report.id}>
+                          <td className="border border-slate-light/60 px-3 py-3 text-slate-light whitespace-nowrap align-top">
+                            {new Date(report.createdAt).toLocaleString("tr-TR")}
+                          </td>
+                          <td className="border border-slate-light/60 px-3 py-3 text-slate align-top">
+                            {report.reason || "—"}
+                          </td>
+                          <td className="border border-slate-light/60 px-3 py-3 text-slate-light align-top max-w-[200px]">
+                            {report.firstMessageBody ? `"${report.firstMessageBody}"` : "—"}
+                          </td>
+                          <td className="border border-slate-light/60 px-3 py-3 align-top">
+                            <textarea
+                              value={resolutionNotes[report.id] ?? ""}
+                              onChange={(e) =>
+                                setResolutionNotes((prev) => ({
+                                  ...prev,
+                                  [report.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="Örn: İncelendi, gerekli işlem yapıldı."
+                              rows={2}
+                              className="w-full min-w-[160px] rounded-xl border-2 border-sky-light bg-white px-2 py-1.5 font-body text-xs text-slate focus:outline-none focus:border-sky"
+                            />
+                          </td>
+                          <td className="border border-slate-light/60 px-3 py-3 align-top">
+                            <div className="flex flex-col gap-1.5">
+                              <button
+                                onClick={() => handleUpdateStatus(report.id, "reviewed")}
+                                className="rounded-full bg-meadow px-3 py-1.5 font-body text-xs font-semibold text-white hover:bg-meadow-hover whitespace-nowrap"
+                              >
+                                İncelendi
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(report.id, "dismissed")}
+                                className="rounded-full border-2 border-slate-light/40 bg-white px-3 py-1.5 font-body text-xs text-slate hover:bg-mint whitespace-nowrap"
+                              >
+                                Reddet
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
               )}
-              {report.firstMessageBody && (
-                <p className="font-body text-sm text-slate-light rounded-xl bg-mint p-2">
-                  &quot;{report.firstMessageBody}&quot;
-                </p>
+            </div>
+
+            {/* Sonuçlandırılmış şikayetler - altta */}
+            <div className="space-y-2">
+              <h2 className="font-display text-sm font-bold text-slate-light uppercase tracking-wide">
+                Sonuçlandırılmış Şikayetler ({resolvedReports.length})
+              </h2>
+              {resolvedReports.length === 0 ? (
+                <Card>
+                  <p className="font-body text-slate-light text-center py-6">
+                    Henüz sonuçlandırılmış şikayet yok.
+                  </p>
+                </Card>
+              ) : (
+                <Card className="overflow-x-auto p-0">
+                  <table className="w-full border-collapse border border-slate-light/60 font-body text-sm">
+                    <thead>
+                      <tr className="bg-mint">
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          Şikayet Tarihi
+                        </th>
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          İnceleme Tarihi
+                        </th>
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          Sebep
+                        </th>
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          Açıklama
+                        </th>
+                        <th className="border border-slate-light/60 px-3 py-3 text-left text-slate font-bold">
+                          Durum
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resolvedReports.map((report) => (
+                        <tr key={report.id}>
+                          <td className="border border-slate-light/60 px-3 py-3 text-slate-light whitespace-nowrap">
+                            {new Date(report.createdAt).toLocaleString("tr-TR")}
+                          </td>
+                          <td className="border border-slate-light/60 px-3 py-3 text-slate-light whitespace-nowrap">
+                            {report.resolvedAt
+                              ? new Date(report.resolvedAt).toLocaleString("tr-TR")
+                              : "—"}
+                          </td>
+                          <td className="border border-slate-light/60 px-3 py-3 text-slate">
+                            {report.reason || "—"}
+                          </td>
+                          <td className="border border-slate-light/60 px-3 py-3 text-slate-light">
+                            {report.resolutionNote || "—"}
+                          </td>
+                          <td className="border border-slate-light/60 px-3 py-3">
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                report.status === "reviewed"
+                                  ? "bg-meadow-light text-meadow-hover"
+                                  : "bg-coral-light text-coral"
+                              }`}
+                            >
+                              {report.status === "reviewed" ? "İncelendi" : "Reddedildi"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
               )}
-              <p className="font-body text-xs text-slate-light break-all">
-                Thread: {report.threadId}
-              </p>
-              <div>
-                <label className="font-body text-xs font-semibold text-slate">
-                  Sonuç Açıklaması (şikayet edene sistem mesajı olarak gönderilir)
-                </label>
-                <textarea
-                  value={resolutionNotes[report.id] ?? ""}
-                  onChange={(e) =>
-                    setResolutionNotes((prev) => ({ ...prev, [report.id]: e.target.value }))
-                  }
-                  placeholder="Örn: İncelememiz sonucunda gerekli işlem yapılmıştır."
-                  rows={2}
-                  className="mt-1 w-full rounded-xl border-2 border-sky-light bg-white px-3 py-2 font-body text-sm text-slate focus:outline-none focus:border-sky"
-                />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button variant="secondary" onClick={() => handleUpdateStatus(report.id, "reviewed")}>
-                  İncelendi
-                </Button>
-                <button
-                  onClick={() => handleUpdateStatus(report.id, "dismissed")}
-                  className="rounded-full border-2 border-slate-light/40 bg-white px-4 py-1.5 font-body text-sm text-slate hover:bg-mint"
-                >
-                  Reddet
-                </button>
-              </div>
-            </Card>
-          ))
+            </div>
+          </>
         )}
       </div>
     </main>

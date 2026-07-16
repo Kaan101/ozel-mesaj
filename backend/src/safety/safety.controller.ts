@@ -53,7 +53,7 @@ export class SafetyController {
   @UseGuards(AdminGuard)
   @Get("reports")
   async listReports() {
-    return this.safetyService.listPendingReports();
+    return this.safetyService.listAllReports();
   }
 
   // Kullanici istegi: sikayetleri "incelendi" veya "reddedildi" olarak

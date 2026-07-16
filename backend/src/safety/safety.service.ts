@@ -146,17 +146,22 @@ export class SafetyService {
   // Kullanici istegi: yonetim ekraninda baglam gorebilmek icin thread'in
   // ilk mesaj metnini de dahil ediyoruz (moderasyon amacli - normal
   // kullanicilarin gordugu API'lerde bu yapilmaz).
-  async listPendingReports() {
+  // Kullanici istegi (revize): sikayetler sonuclandiginda SILINMEZ -
+  // tum sikayetler (aktif + sonuclandirilmis) donulur, frontend'de
+  // durumuna gore iki ayri tabloya bolunur (aktif ustte, sonuclanan
+  // altta).
+  async listAllReports() {
     const reports = await this.prisma.report.findMany({
-      where: { status: "pending" },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         threadId: true,
         reporterUserId: true,
         reason: true,
         status: true,
+        resolutionNote: true,
         createdAt: true,
+        resolvedAt: true,
         thread: {
           select: {
             messages: {
@@ -175,7 +180,9 @@ export class SafetyService {
       reporterUserId: r.reporterUserId,
       reason: r.reason,
       status: r.status,
+      resolutionNote: r.resolutionNote,
       createdAt: r.createdAt,
+      resolvedAt: r.resolvedAt,
       firstMessageBody: r.thread.messages[0]?.body ?? null,
     }));
   }
@@ -192,7 +199,7 @@ export class SafetyService {
   ): Promise<void> {
     const report = await this.prisma.report.update({
       where: { id: reportId },
-      data: { status, resolutionNote: resolutionNote ?? null },
+      data: { status, resolutionNote: resolutionNote ?? null, resolvedAt: new Date() },
       select: { threadId: true },
     });
 
