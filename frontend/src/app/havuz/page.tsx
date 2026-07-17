@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api-client";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/lib/language-context";
+import { PoolIllustration } from "@/components/ui/PoolIllustration";
 
 interface PoolEntry {
   id: string;
@@ -103,6 +104,10 @@ export default function HavuzPage() {
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-2xl space-y-6">
+        {/* Kullanici istegi: ana sayfadaki gibi sicak, illustrasyonlu bir
+            his - Havuz'un "kesif" temasini yansitan gorsel. */}
+        <PoolIllustration className="mx-auto w-full max-w-xs h-auto" />
+
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold text-slate">{t("havuz.title")}</h1>

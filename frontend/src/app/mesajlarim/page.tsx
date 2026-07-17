@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
+import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 
 interface MyThread {
   id: string;
@@ -174,10 +175,11 @@ export default function MesajlarimPage() {
         {isLoading ? (
           <p className="font-body text-slate-light">{t("mesajlarim.loading")}</p>
         ) : isEmpty ? (
-          <Card>
-            <p className="font-body text-slate-light text-center py-6">
-              {t("mesajlarim.empty")}
-            </p>
+          <Card className="text-center space-y-3">
+            {/* Kullanici istegi: ana sayfadaki gibi sicak, illustrasyonlu
+                bir his - bos durumda kullaniciyi tesvik eder. */}
+            <ConnectionIllustration className="mx-auto w-full max-w-[220px] h-auto" />
+            <p className="font-body text-slate-light">{t("mesajlarim.empty")}</p>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -237,7 +239,7 @@ function ThreadCard({
       <Link href={`/mesaj/${thread.id}`} onClick={() => onOpen(thread.id)}>
         <Card
           className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass} ${
-            isNew ? "bg-meadow-light/40" : ""
+            isNew ? "bg-meadow-light/60" : ""
           }`}
         >
           <div className="flex items-start justify-between gap-2">
@@ -342,7 +344,7 @@ function PoolEntryCard({
       <Link href={`/havuz/${entry.id}`}>
         <Card
           className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 border-slate-light/50 ${
-            hasPending ? "bg-meadow-light/40" : ""
+            hasPending ? "bg-meadow-light/60" : ""
           }`}
         >
           <div className="flex items-start justify-between gap-2">
