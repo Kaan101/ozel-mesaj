@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput } from "@/components/ui/PhoneInput";
+import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
 // mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
@@ -145,6 +146,10 @@ export default function MesajOlusturPage() {
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
+        {/* Kullanici istegi: ana sayfa/Havuz/Mesajlarim ile ayni sicak,
+            illustrasyonlu his - forma da eklendi. */}
+        <ConnectionIllustration className="mx-auto w-full max-w-[220px] h-auto" />
+
         <div>
           <h1 className="font-display text-2xl font-bold text-slate">
             {t("mesajOlustur.title")}

@@ -170,15 +170,16 @@ export default function MesajlarimPage() {
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
+        {/* Kullanici istegi: Havuz'daki gibi sayfanin en tepesinde her
+            zaman gorunsun - sadece bos durumda degil. */}
+        <ConnectionIllustration className="mx-auto w-full max-w-[220px] h-auto" />
+
         <h1 className="font-display text-2xl font-bold text-slate">{t("mesajlarim.title")}</h1>
 
         {isLoading ? (
           <p className="font-body text-slate-light">{t("mesajlarim.loading")}</p>
         ) : isEmpty ? (
-          <Card className="text-center space-y-3">
-            {/* Kullanici istegi: ana sayfadaki gibi sicak, illustrasyonlu
-                bir his - bos durumda kullaniciyi tesvik eder. */}
-            <ConnectionIllustration className="mx-auto w-full max-w-[220px] h-auto" />
+          <Card className="text-center">
             <p className="font-body text-slate-light">{t("mesajlarim.empty")}</p>
           </Card>
         ) : (
