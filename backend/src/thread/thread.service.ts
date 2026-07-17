@@ -512,13 +512,24 @@ export class ThreadService {
     });
 
     const now = new Date();
-    const unreadIds = messages.filter((m) => m.readAt === null).map((m) => m.id);
+    // Kullanici istegi (bug duzeltmesi): "okunduktan sonra sil"
+    // sayaci SADECE karsi taraf (alici) mesaji actiginda baslamali.
+    // Onceden, GONDERENIN KENDI mesajini goruntulemesi bile "okundu"
+    // sayiliyordu - bu, mesajin gonderenin kendi ekraninda bile
+    // erkenden silinmesine sebep olabiliyordu. Kimlik biliniyorsa
+    // (requestingUserId), sadece BASKASININ gonderdigi mesajlar
+    // "okundu" olarak isaretlenir.
+    const unreadIds = messages
+      .filter((m) => m.readAt === null && (!requestingUserId || m.senderUserId !== requestingUserId))
+      .map((m) => m.id);
     if (unreadIds.length > 0) {
       await this.prisma.message.updateMany({
         where: { id: { in: unreadIds } },
         data: { readAt: now },
       });
     }
+
+    const unreadIdSet = new Set(unreadIds);
 
     return messages.map((message) => ({
       id: message.id,
@@ -527,7 +538,11 @@ export class ThreadService {
       isSystemMessage: message.isSystemMessage,
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
       senderAvatarId: message.sender?.avatarId ?? null,
-      readAt: message.readAt ?? now,
+      // Bug duzeltmesi: sadece bu istekte GERCEKTEN "okundu" olarak
+      // isaretlenen mesajlar icin "now" gosterilir - gonderenin kendi
+      // mesajini goruntulemesi durumunda (readAt DB'de hala null),
+      // yanlislikla "okunmus" gibi gosterilmemeli.
+      readAt: unreadIdSet.has(message.id) ? now : message.readAt,
       createdAt: message.createdAt,
     }));
   }
