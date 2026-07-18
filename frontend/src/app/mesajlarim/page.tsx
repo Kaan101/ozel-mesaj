@@ -240,7 +240,7 @@ function ThreadCard({
       <Link href={`/mesaj/${thread.id}`} onClick={() => onOpen(thread.id)}>
         <Card
           className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass} ${
-            isNew ? "bg-meadow-light/30" : ""
+            isNew ? "bg-meadow-light" : ""
           }`}
         >
           <div className="flex items-start justify-between gap-2">
@@ -340,7 +340,7 @@ function PoolEntryCard({
       <Link href={`/havuz/${entry.id}`}>
         <Card
           className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 border-slate-light/50 ${
-            hasPending ? "bg-meadow-light/30" : ""
+            hasPending ? "bg-meadow-light" : ""
           }`}
         >
           <div className="flex items-start justify-between gap-2">
