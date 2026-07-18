@@ -40,19 +40,26 @@ interface MyPoolEntry {
   pendingAttempts: PendingAttempt[];
 }
 
-const SEEN_IDS_KEY = "seen_thread_ids";
+// Kullanici istegi (bug duzeltmesi): eskiden sadece "bu thread'i bir
+// kez actim mi" (Set<string>) tutuluyordu - bu yuzden bir konusmayi
+// actiktan SONRA yeni bir mesaj gelse bile bir daha "yeni" gorunmuyordu.
+// Artik her thread icin "en son GORDUGUM mesaj zamani" (Map) tutuluyor
+// ve bu, thread'in GERCEK son mesaj zamaniyla (lastMessageAt)
+// karsilastiriliyor - boylece acildiktan sonra gelen her yeni mesaj
+// tekrar yesil olarak isaretlenir.
+const SEEN_MAP_KEY = "seen_thread_last_message_at";
 
-function loadSeenIds(): Set<string> {
+function loadSeenMap(): Record<string, string> {
   try {
-    const raw = localStorage.getItem(SEEN_IDS_KEY);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
+    const raw = localStorage.getItem(SEEN_MAP_KEY);
+    return raw ? JSON.parse(raw) : {};
   } catch {
-    return new Set();
+    return {};
   }
 }
 
-function saveSeenIds(ids: Set<string>) {
-  localStorage.setItem(SEEN_IDS_KEY, JSON.stringify([...ids]));
+function saveSeenMap(map: Record<string, string>) {
+  localStorage.setItem(SEEN_MAP_KEY, JSON.stringify(map));
 }
 
 // "İletişim" = bu listedeki her satır (bir konuşma ya da bir havuz
@@ -74,7 +81,7 @@ export default function MesajlarimPage() {
   const [threads, setThreads] = useState<MyThread[]>([]);
   const [poolEntries, setPoolEntries] = useState<MyPoolEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const [seenMap, setSeenMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -83,7 +90,7 @@ export default function MesajlarimPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    setSeenIds(loadSeenIds());
+    setSeenMap(loadSeenMap());
   }, []);
 
   function fetchAll() {
@@ -112,11 +119,14 @@ export default function MesajlarimPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
-  function handleOpenThread(threadId: string) {
-    const updated = new Set(seenIds);
-    updated.add(threadId);
-    setSeenIds(updated);
-    saveSeenIds(updated);
+  // Kullanici istegi (bug duzeltmesi): thread'e girildiginde, o ANKI
+  // lastMessageAt kaydedilir - boylece SONRADAN gelen (bu tarihten
+  // daha yeni) bir mesaj, thread'i otomatik olarak tekrar "yeni"
+  // (yesil) yapar.
+  function handleOpenThread(threadId: string, lastMessageAt: string) {
+    const updated = { ...seenMap, [threadId]: lastMessageAt };
+    setSeenMap(updated);
+    saveSeenMap(updated);
   }
 
   async function handleDeleteThread(threadId: string) {
@@ -189,7 +199,7 @@ export default function MesajlarimPage() {
                 <ThreadCard
                   key={`thread-${item.data.id}`}
                   thread={item.data}
-                  seenIds={seenIds}
+                  seenMap={seenMap}
                   onOpen={handleOpenThread}
                   onDelete={handleDeleteThread}
                   t={t}
@@ -218,26 +228,34 @@ export default function MesajlarimPage() {
 // bagimsiz iki sinyal.
 function ThreadCard({
   thread,
-  seenIds,
+  seenMap,
   onOpen,
   onDelete,
   t,
   language,
 }: {
   thread: MyThread;
-  seenIds: Set<string>;
-  onOpen: (id: string) => void;
+  seenMap: Record<string, string>;
+  onOpen: (id: string, lastMessageAt: string) => void;
   onDelete: (id: string) => void;
   t: ReturnType<typeof useLanguage>["t"];
   language: string;
 }) {
-  const isNew = !seenIds.has(thread.id);
+  // Kullanici istegi (bug duzeltmesi): "yeni" olma durumu, thread'in
+  // GERCEK son mesaj zamaniyla (lastMessageAt) en son GORDUGUMUZ
+  // zaman karsilastirilarak hesaplanir - sadece "daha once actim mi"
+  // degil. Boylece actiktan SONRA gelen bir mesaj tekrar "yeni" sayilir.
+  const lastSeenAt = seenMap[thread.id];
+  const isNew = !lastSeenAt || new Date(thread.lastMessageAt) > new Date(lastSeenAt);
   const isReceived = thread.role === "recipient";
   const borderClass = isReceived ? "border-meadow" : "border-slate-light/50";
 
   return (
     <div className="relative group">
-      <Link href={`/mesaj/${thread.id}`} onClick={() => onOpen(thread.id)}>
+      <Link
+        href={`/mesaj/${thread.id}`}
+        onClick={() => onOpen(thread.id, thread.lastMessageAt)}
+      >
         <Card
           className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass}`}
           style={isNew ? { backgroundColor: "#DCF3E9" } : undefined}
