@@ -239,9 +239,8 @@ function ThreadCard({
     <div className="relative group">
       <Link href={`/mesaj/${thread.id}`} onClick={() => onOpen(thread.id)}>
         <Card
-          className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass} ${
-            isNew ? "bg-meadow-light" : ""
-          }`}
+          className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass}`}
+          style={isNew ? { backgroundColor: "#DCF3E9" } : undefined}
         >
           <div className="flex items-start justify-between gap-2">
             {thread.counterpartAvatarId && (
@@ -339,9 +338,8 @@ function PoolEntryCard({
     <div className="relative group">
       <Link href={`/havuz/${entry.id}`}>
         <Card
-          className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 border-slate-light/50 ${
-            hasPending ? "bg-meadow-light" : ""
-          }`}
+          className="hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 border-slate-light/50"
+          style={hasPending ? { backgroundColor: "#DCF3E9" } : undefined}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
