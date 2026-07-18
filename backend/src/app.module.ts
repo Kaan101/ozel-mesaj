@@ -3,6 +3,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./common/prisma.module";
+import { GlobalJwtModule } from "./common/global-jwt.module";
 import { RedisService } from "./common/redis.service";
 import { ThreadModule } from "./thread/thread.module";
 import { JobsModule } from "./jobs/jobs.module";
@@ -18,6 +19,7 @@ import { AuditRequestInterceptor } from "./audit/audit-request.interceptor";
 @Module({
   imports: [
     PrismaModule,
+    GlobalJwtModule,
     AuthModule,
     ThreadModule,
     JobsModule,

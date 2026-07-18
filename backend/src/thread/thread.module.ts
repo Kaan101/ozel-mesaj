@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
 import { ThreadController } from "./thread.controller";
 import { ThreadService } from "./thread.service";
 import { RedisService } from "../common/redis.service";
@@ -13,14 +12,8 @@ import { ThreadAccessOrOwnerGuard } from "./guards/thread-access-or-owner.guard"
 import { ThreadWriteGuard } from "./guards/thread-write.guard";
 
 @Module({
-  imports: [
-    SmsModule,
-    EmailModule,
-    JwtModule.register({}),
-    AuthModule,
-    SafetyModule,
-    SettingsModule,
-  ],
+  // JwtService artik GlobalJwtModule uzerinden global olarak saglaniyor.
+  imports: [SmsModule, EmailModule, AuthModule, SafetyModule, SettingsModule],
   controllers: [ThreadController],
   providers: [
     ThreadService,

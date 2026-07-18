@@ -1,12 +1,13 @@
 import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
 import { PoolController } from "./pool.controller";
 import { PoolService } from "./pool.service";
 import { RedisService } from "../common/redis.service";
 import { AuthModule } from "../auth/auth.module";
+import { SettingsModule } from "../settings/settings.module";
 
 @Module({
-  imports: [JwtModule.register({}), AuthModule],
+  // JwtService artik GlobalJwtModule uzerinden global olarak saglaniyor.
+  imports: [AuthModule, SettingsModule],
   controllers: [PoolController],
   providers: [PoolService, RedisService],
 })
