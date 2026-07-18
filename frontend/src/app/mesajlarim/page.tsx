@@ -240,7 +240,7 @@ function ThreadCard({
       <Link href={`/mesaj/${thread.id}`} onClick={() => onOpen(thread.id)}>
         <Card
           className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass} ${
-            isNew ? "bg-meadow-light/60" : ""
+            isNew ? "bg-meadow-light/30" : ""
           }`}
         >
           <div className="flex items-start justify-between gap-2">
@@ -286,11 +286,6 @@ function ThreadCard({
               >
                 {thread.originType === "pool" ? t("mesajlarim.pool") : t("mesajlarim.direct")}
               </span>
-              {isNew && (
-                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
-                  1
-                </span>
-              )}
             </div>
           </div>
         </Card>
@@ -345,7 +340,7 @@ function PoolEntryCard({
       <Link href={`/havuz/${entry.id}`}>
         <Card
           className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 border-slate-light/50 ${
-            hasPending ? "bg-meadow-light/60" : ""
+            hasPending ? "bg-meadow-light/30" : ""
           }`}
         >
           <div className="flex items-start justify-between gap-2">
