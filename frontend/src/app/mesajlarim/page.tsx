@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/language-context";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
+import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 
 interface MyThread {
   id: string;
@@ -251,81 +252,92 @@ function ThreadCard({
   const borderClass = isReceived ? "border-meadow" : "border-slate-light/50";
 
   return (
-    <div className="relative group">
-      <Link
-        href={`/mesaj/${thread.id}`}
-        onClick={() => onOpen(thread.id, thread.lastMessageAt)}
-      >
-        <Card
-          className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass}`}
-          style={isNew ? { backgroundColor: "#DCF3E9" } : undefined}
+    <SwipeToDelete
+      deleteLabel={t("mesajlarim.delete")}
+      onDelete={() => {
+        if (confirm(t("mesajlarim.deleteConfirm"))) {
+          onDelete(thread.id);
+        }
+      }}
+    >
+      <div className="relative group">
+        <Link
+          href={`/mesaj/${thread.id}`}
+          onClick={() => onOpen(thread.id, thread.lastMessageAt)}
         >
-          <div className="flex items-start justify-between gap-2">
-            {thread.counterpartAvatarId && (
-              <div className="shrink-0">
-                <Avatar avatarId={thread.counterpartAvatarId} size={40} />
+          <Card
+            className={`hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 ${borderClass}`}
+            style={isNew ? { backgroundColor: "#DCF3E9" } : undefined}
+          >
+            <div className="flex items-start justify-between gap-2">
+              {thread.counterpartAvatarId && (
+                <div className="shrink-0">
+                  <Avatar avatarId={thread.counterpartAvatarId} size={40} />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h3
+                  className={`font-display text-base text-slate ${
+                    isNew ? "font-bold" : "font-normal"
+                  }`}
+                >
+                  {thread.firstMessageBody
+                    ? thread.firstMessageBody
+                    : thread.lockType === "question" && thread.questionText
+                      ? thread.questionText
+                      : t("mesajlarim.passwordProtected")}
+                </h3>
+                <p className="mt-1 font-body text-xs text-slate-light">
+                  {thread.role === "initiator" && thread.recipientPhoneDisplay
+                    ? `${t("mesajlarim.to")} ${thread.recipientPhoneDisplay}`
+                    : thread.role === "initiator"
+                      ? t("mesajlarim.youSent")
+                      : t("mesajlarim.sentToYou")}
+                  {" · "}
+                  {new Date(thread.lastMessageAt).toLocaleString(
+                    language === "en" ? "en-US" : "tr-TR"
+                  )}
+                </p>
               </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <h3
-                className={`font-display text-base text-slate ${
-                  isNew ? "font-bold" : "font-normal"
-                }`}
-              >
-                {thread.firstMessageBody
-                  ? thread.firstMessageBody
-                  : thread.lockType === "question" && thread.questionText
-                    ? thread.questionText
-                    : t("mesajlarim.passwordProtected")}
-              </h3>
-              <p className="mt-1 font-body text-xs text-slate-light">
-                {thread.role === "initiator" && thread.recipientPhoneDisplay
-                  ? `${t("mesajlarim.to")} ${thread.recipientPhoneDisplay}`
-                  : thread.role === "initiator"
-                    ? t("mesajlarim.youSent")
-                    : t("mesajlarim.sentToYou")}
-                {" · "}
-                {new Date(thread.lastMessageAt).toLocaleString(
-                  language === "en" ? "en-US" : "tr-TR"
-                )}
-              </p>
-            </div>
 
-            {/* Kullanici geri bildirimi: yeni mesaj gostergesi
-                her satirin kendi ustunde, WhatsApp benzeri. */}
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <span
-                className={`rounded-full px-3 py-1 font-body text-xs ${
-                  thread.originType === "pool"
-                    ? "bg-sky-light text-sky"
-                    : "bg-meadow-light text-meadow-hover"
-                }`}
-              >
-                {thread.originType === "pool" ? t("mesajlarim.pool") : t("mesajlarim.direct")}
-              </span>
+              {/* Kullanici geri bildirimi: yeni mesaj gostergesi
+                  her satirin kendi ustunde, WhatsApp benzeri. */}
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <span
+                  className={`rounded-full px-3 py-1 font-body text-xs ${
+                    thread.originType === "pool"
+                      ? "bg-sky-light text-sky"
+                      : "bg-meadow-light text-meadow-hover"
+                  }`}
+                >
+                  {thread.originType === "pool" ? t("mesajlarim.pool") : t("mesajlarim.direct")}
+                </span>
+              </div>
             </div>
-          </div>
-        </Card>
-      </Link>
+          </Card>
+        </Link>
 
-      {/* Kullanici geri bildirimi: mesaj silme (kendi
-          listesinden gizleme) ozelligi. Ikon kucultulup sag
-          alta tasindi. */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (confirm(t("mesajlarim.deleteConfirm"))) {
-            onDelete(thread.id);
-          }
-        }}
-        className="absolute right-2 bottom-2 rounded-full p-0.5 text-[10px] text-slate-light hover:bg-coral-light hover:text-coral"
-        aria-label={t("mesajlarim.delete")}
-      >
-        🗑️
-      </button>
-    </div>
+        {/* Kullanici geri bildirimi: mesaj silme (kendi
+            listesinden gizleme) ozelligi. Ikon kucultulup sag
+            alta tasindi - masaustu (fare) kullanicilar icin.
+            Kullanici istegi: mobilde kaydirinca da ayni islem
+            (SwipeToDelete) yapilabilir. */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (confirm(t("mesajlarim.deleteConfirm"))) {
+              onDelete(thread.id);
+            }
+          }}
+          className="absolute right-2 bottom-2 rounded-full p-0.5 text-[10px] text-slate-light hover:bg-coral-light hover:text-coral"
+          aria-label={t("mesajlarim.delete")}
+        >
+          🗑️
+        </button>
+      </div>
+    </SwipeToDelete>
   );
 }
 
@@ -353,54 +365,63 @@ function PoolEntryCard({
   const hasPending = entry.pendingAttempts.length > 0;
 
   return (
-    <div className="relative group">
-      <Link href={`/havuz/${entry.id}`}>
-        <Card
-          className="hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 border-slate-light/50"
-          style={hasPending ? { backgroundColor: "#DCF3E9" } : undefined}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <h3
-                className={`font-display text-base text-slate ${
-                  hasPending ? "font-bold" : "font-normal"
-                }`}
-              >
-                {entry.title}
-              </h3>
-              <p className="mt-0.5 font-body text-xs text-slate-light">{entry.questionText}</p>
-              <p className="mt-1 font-body text-xs text-slate-light">
-                {new Date(entry.createdAt).toLocaleString(language === "en" ? "en-US" : "tr-TR")}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <span className="rounded-full bg-sun/30 px-3 py-1 font-body text-xs text-slate">
-                Havuz Sorusu
-              </span>
-              {hasPending && (
-                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
-                  {entry.pendingAttempts.length}
+    <SwipeToDelete
+      deleteLabel="Sil"
+      onDelete={() => {
+        if (confirm("Bu soruyu kaldırmak istediğine emin misin? Bir daha görünmeyecek.")) {
+          onDelete(entry.id);
+        }
+      }}
+    >
+      <div className="relative group">
+        <Link href={`/havuz/${entry.id}`}>
+          <Card
+            className="hover:shadow-soft-lifted transition-shadow cursor-pointer pr-10 border-2 border-slate-light/50"
+            style={hasPending ? { backgroundColor: "#DCF3E9" } : undefined}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h3
+                  className={`font-display text-base text-slate ${
+                    hasPending ? "font-bold" : "font-normal"
+                  }`}
+                >
+                  {entry.title}
+                </h3>
+                <p className="mt-0.5 font-body text-xs text-slate-light">{entry.questionText}</p>
+                <p className="mt-1 font-body text-xs text-slate-light">
+                  {new Date(entry.createdAt).toLocaleString(language === "en" ? "en-US" : "tr-TR")}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <span className="rounded-full bg-sun/30 px-3 py-1 font-body text-xs text-slate">
+                  Havuz Sorusu
                 </span>
-              )}
+                {hasPending && (
+                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-meadow px-1.5 font-body text-xs font-bold text-white">
+                    {entry.pendingAttempts.length}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        </Card>
-      </Link>
+          </Card>
+        </Link>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (confirm("Bu soruyu kaldırmak istediğine emin misin? Bir daha görünmeyecek.")) {
-            onDelete(entry.id);
-          }
-        }}
-        className="absolute right-2 bottom-2 rounded-full p-0.5 text-[10px] text-slate-light hover:bg-coral-light hover:text-coral"
-        aria-label="Sil"
-      >
-        🗑️
-      </button>
-    </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (confirm("Bu soruyu kaldırmak istediğine emin misin? Bir daha görünmeyecek.")) {
+              onDelete(entry.id);
+            }
+          }}
+          className="absolute right-2 bottom-2 rounded-full p-0.5 text-[10px] text-slate-light hover:bg-coral-light hover:text-coral"
+          aria-label="Sil"
+        >
+          🗑️
+        </button>
+      </div>
+    </SwipeToDelete>
   );
 }
