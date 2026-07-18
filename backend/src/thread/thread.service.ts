@@ -298,7 +298,7 @@ export class ThreadService {
           : thread.questionText;
     }
     if (displayTitle) {
-      displayTitle = `${displayTitle} (${formatDayMonth(thread.createdAt)})`;
+      displayTitle = `${displayTitle} - ${formatDayMonth(thread.createdAt)}`;
     }
 
     return {
@@ -408,7 +408,7 @@ export class ThreadService {
         // tarih ekleniyor - bu iletisimin ne zaman basladigini gosterir,
         // sonraki mesajlardan etkilenmez.
         if (displayTitle) {
-          displayTitle = `${displayTitle} (${formatDayMonth(t.createdAt)})`;
+          displayTitle = `${displayTitle} - ${formatDayMonth(t.createdAt)}`;
         }
 
         return {
@@ -544,6 +544,9 @@ export class ThreadService {
       // yanlislikla "okunmus" gibi gosterilmemeli.
       readAt: unreadIdSet.has(message.id) ? now : message.readAt,
       createdAt: message.createdAt,
+      // Kullanici istegi: "silinecek" mesajlar konusma ekraninda daha
+      // soluk gosterilsin diye frontend'e bu bilgi de gonderilir.
+      destroyAfterRead: message.destroyAfterRead,
     }));
   }
 
