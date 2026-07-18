@@ -10,7 +10,7 @@ export class CreatePoolEntryDto {
   question: string;
 
   @IsString()
-  @MinLength(4, { message: "answer en az 4 karakter olmali (brute-force zorlugu icin)." })
+  @MinLength(1)
   answer: string;
 
   // Kullanici istegi: kategori artik sabit bir listeye bagli degil,

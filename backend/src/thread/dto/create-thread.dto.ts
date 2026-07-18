@@ -38,7 +38,7 @@ export class CreateThreadDto {
   // Soru modunda: dogru cevap.
   @ValidateIf((o) => o.lockType !== "none")
   @IsString()
-  @MinLength(4, { message: "lockSecret en az 4 karakter olmali (brute-force zorlugu icin)." })
+  @MinLength(1)
   lockSecret?: string;
 
   // Sadece lockType 'question' oldugunda zorunlu (Bolum 3, 7).
