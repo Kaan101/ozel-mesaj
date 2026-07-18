@@ -48,6 +48,7 @@ model User {
   sentMessages     Message[]
   poolEntries      PoolEntry[]
   poolAttempts     PoolAttempt[]
+  pushSubscriptions PushSubscription[]
   blockedUsers     Block[]         @relation("Blocker")
   blockedByUsers   Block[]         @relation("Blocked")
   reports          Report[]
@@ -428,6 +429,25 @@ model MessageAudit {
 
   @@index([threadId])
   @@map("message_audits")
+}
+
+// Kullanici istegi: gercek Web Push bildirimleri - her cihaz/tarayici
+// icin ayri bir abonelik kaydi (bir kullanicinin birden fazla cihazi
+// olabilir). endpoint + p256dh + auth, tarayicinin Push API'sinden
+// gelen degerlerdir; bunlarla sunucu VAPID ile imzali bildirim gonderir.
+model PushSubscription {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  endpoint String @unique
+  p256dh   String
+  auth     String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 

@@ -4,6 +4,7 @@ import { JwtService } from "@nestjs/jwt";
 import { PoolService } from "./pool.service";
 import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
+import { NotificationService } from "../notifications/notification.service";
 
 // Gorev 6.6: Senaryo B (havuz/kesisme) akisinin tum backend adimlarini
 // (soru olusturma, listeleme, cevap denemesi + rate limit) kapsayan
@@ -37,6 +38,7 @@ describe("PoolService", () => {
         },
         { provide: RedisService, useValue: { incr: jest.fn() } },
         { provide: JwtService, useValue: { signAsync: jest.fn() } },
+        { provide: NotificationService, useValue: { notifyUser: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

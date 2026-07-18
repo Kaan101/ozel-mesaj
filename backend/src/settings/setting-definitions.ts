@@ -122,4 +122,11 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: "Bir Iletisimdeki Maksimum Mesaj Sayisi",
     description: "Bir mesajlasma (thread) icinde en fazla kac mesaj birikebilir - bu sayiya ulasilinca yeni mesaj gonderimi reddedilir (asiri buyumeyi/kotuye kullanimi onlemek icin). 0 girilirse sinirsiz.",
   },
+  {
+    key: "PUSH_NOTIFICATIONS_ENABLED",
+    envFallback: "PUSH_NOTIFICATIONS_ENABLED",
+    defaultValue: 1,
+    label: "Push Bildirimleri (1=Acik, 0=Kapali)",
+    description: "Yeni mesaj/havuz yaniti geldiginde tarayici push bildirimi gonderilsin mi.",
+  },
 ];

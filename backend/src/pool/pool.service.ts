@@ -4,6 +4,7 @@ import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SettingsService } from "../settings/settings.service";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
+import { NotificationService } from "../notifications/notification.service";
 import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
 
 @Injectable()
@@ -12,7 +13,8 @@ export class PoolService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly settings: SettingsService,
-    private readonly jwt: JwtService
+    private readonly jwt: JwtService,
+    private readonly notifications: NotificationService
   ) {}
 
   // Kullanici istegi: kategori artik serbest metin - sabit liste
@@ -314,6 +316,14 @@ export class PoolService {
           answerText: answer,
         },
       });
+      this.notifications
+        .notifyUser(
+          entry.ownerUserId,
+          "Havuz sorusuna yanıt geldi",
+          "Bir havuz sorusuna yeni bir yanıt geldi.",
+          "/mesajlarim"
+        )
+        .catch(() => {});
       return { success: null, pending: true, attemptId: attempt.id };
     }
 
@@ -431,6 +441,15 @@ export class PoolService {
       where: { id: attemptId },
       data: { status: "accepted", threadId: thread.id },
     });
+
+    this.notifications
+      .notifyUser(
+        attempt.attempterUserId,
+        "Yanıtın kabul edildi",
+        "Havuz sorusuna verdiğin yanıt kabul edildi, yeni bir mesajlaşma açıldı.",
+        `/mesaj/${thread.id}`
+      )
+      .catch(() => {});
 
     return { threadId: thread.id };
   }

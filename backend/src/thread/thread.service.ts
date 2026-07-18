@@ -11,6 +11,7 @@ import { hashPhoneNumber } from "../common/hash.util";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { encryptReversible } from "../common/encryption.util";
 import { formatDayMonth } from "../common/date-format.util";
+import { NotificationService } from "../notifications/notification.service";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 
 @Injectable()
@@ -23,7 +24,8 @@ export class ThreadService {
     private readonly safety: SafetyService,
     private readonly settings: SettingsService,
     private readonly auditLog: AuditLogService,
-    private readonly jwt: JwtService
+    private readonly jwt: JwtService,
+    private readonly notifications: NotificationService
   ) {}
 
   // Gorev 5.1: Alici telefonu + mesaj + kilit tipi alir, thread ve ilk
@@ -139,6 +141,17 @@ export class ThreadService {
         `Sana özel bir mesaj var. Görmek için: ${appUrl}/mesaj/${thread.id}`
       );
     }
+
+    // Kullanici istegi: alıcıya push bildirimi - icerik BILEREK genel
+    // tutulur, mesaj metni bildirimde gorunmez.
+    this.notifications
+      .notifyUser(
+        recipient.id,
+        "Sana bir mesaj var",
+        "YouHaveMi üzerinden sana özel bir mesaj gönderildi.",
+        `/mesaj/${thread.id}`
+      )
+      .catch(() => {});
 
     return { threadId: thread.id };
   }
@@ -605,6 +618,29 @@ export class ThreadService {
       userId: senderUserId,
       threadId,
     });
+
+    // Kullanici istegi: karsi tarafa push bildirimi gonder. Bildirim
+    // icerigi BILEREK genel tutulur - mesaj metni asla bildirimde
+    // gorunmez (kilit ekraninda da gorunebilecegi icin gizlilik
+    // acisindan hassas).
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: threadId },
+      select: { initiatorUserId: true, recipientUserId: true },
+    });
+    if (thread) {
+      const recipientUserId =
+        thread.initiatorUserId === senderUserId ? thread.recipientUserId : thread.initiatorUserId;
+      if (recipientUserId) {
+        this.notifications
+          .notifyUser(
+            recipientUserId,
+            "Yeni mesajın var",
+            "Bir mesaja yanıt geldi.",
+            `/mesaj/${threadId}`
+          )
+          .catch(() => {});
+      }
+    }
 
     return {
       id: message.id,

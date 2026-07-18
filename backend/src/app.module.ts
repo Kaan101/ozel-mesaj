@@ -11,6 +11,7 @@ import { SafetyModule } from "./safety/safety.module";
 import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { AuditModule } from "./audit/audit.module";
+import { NotificationModule } from "./notifications/notification.module";
 import { GlobalRateLimitGuard } from "./settings/guards/global-rate-limit.guard";
 import { AuditRequestInterceptor } from "./audit/audit-request.interceptor";
 
@@ -25,6 +26,7 @@ import { AuditRequestInterceptor } from "./audit/audit-request.interceptor";
     UsersModule,
     SettingsModule,
     AuditModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [
