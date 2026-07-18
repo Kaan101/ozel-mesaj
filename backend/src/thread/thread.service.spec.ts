@@ -47,6 +47,7 @@ describe("ThreadService", () => {
               findMany: jest.fn(),
               findFirst: jest.fn(),
               updateMany: jest.fn(),
+              count: jest.fn().mockResolvedValue(0),
             },
             messageAudit: { create: jest.fn() },
             threadUnlock: { upsert: jest.fn(), findUnique: jest.fn() },

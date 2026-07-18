@@ -567,6 +567,18 @@ export class ThreadService {
       throw new ForbiddenException("Hesabın askıya alındığı için mesaj gönderemezsin.");
     }
 
+    // Kullanici istegi: bir iletisimde birikebilecek maksimum mesaj
+    // sayisi - asiri buyumeyi/kotuye kullanimi onlemek icin.
+    const maxMessageCount = await this.settings.getNumber("THREAD_MAX_MESSAGE_COUNT");
+    if (maxMessageCount > 0) {
+      const currentCount = await this.prisma.message.count({ where: { threadId } });
+      if (currentCount >= maxMessageCount) {
+        throw new ForbiddenException(
+          "Bu iletişim maksimum mesaj sayısına ulaştı, yeni mesaj gönderilemiyor."
+        );
+      }
+    }
+
     const message = await this.prisma.message.create({
       data: {
         threadId,

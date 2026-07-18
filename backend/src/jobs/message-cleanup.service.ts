@@ -34,5 +34,23 @@ export class MessageCleanupService {
     if (result.count > 0) {
       this.logger.log(`${result.count} mesaj destroy_after_read kurali geregi silindi.`);
     }
+
+    // Kullanici istegi: gonderilen mesajlarin GENEL bir yasam suresi
+    // (gun bazinda) - "okunduktan sonra sil"den bagimsiz, okunma
+    // durumu ne olursa olsun belirli bir sureyi gecen HER mesaj
+    // silinir. Hukuki ispat icin sifreli arsiv kopyasi (MessageAudit)
+    // bundan ETKILENMEZ.
+    const lifespanDays = await this.settings.getNumber("MESSAGE_LIFESPAN_DAYS");
+    if (lifespanDays > 0) {
+      const lifespanThreshold = new Date(Date.now() - lifespanDays * 24 * 60 * 60 * 1000);
+      const lifespanResult = await this.prisma.message.deleteMany({
+        where: { createdAt: { lte: lifespanThreshold } },
+      });
+      if (lifespanResult.count > 0) {
+        this.logger.log(
+          `${lifespanResult.count} mesaj, yasam suresi (${lifespanDays} gun) doldugu icin silindi.`
+        );
+      }
+    }
   }
 }

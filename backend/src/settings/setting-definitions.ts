@@ -94,4 +94,32 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: "Gunluk Kod Isteme Siniri",
     description: "Ayni telefon numarasi icin gunde en fazla kac kez yeni dogrulama kodu istenebilir (spam/smishing onleme, dakika/saat limitlerine ek).",
   },
+  {
+    key: "POOL_ENTRY_LIFESPAN_DAYS",
+    envFallback: "POOL_ENTRY_LIFESPAN_DAYS",
+    defaultValue: 90,
+    label: "Havuz Sorusu Yasam Omru (Gun)",
+    description: "Bir havuz sorusu, olusturulmasindan bu kadar gun sonra otomatik olarak kaldirilir (ilgili mesajlasmalar/thread'ler ETKILENMEZ, sadece soru gizlenir). 0 girilirse otomatik kaldirma devre disi kalir.",
+  },
+  {
+    key: "THREAD_MAX_LIFESPAN_DAYS",
+    envFallback: "THREAD_MAX_LIFESPAN_DAYS",
+    defaultValue: 365,
+    label: "Iletisimin Maksimum Yasam Suresi (Gun)",
+    description: "Bir iletisim (mesajlasma/konusma), olusturulmasindan bu kadar gun sonra her iki taraf icin de otomatik olarak arsivlenir (Mesajlarim listesinden kalkar, mesajlarin kendisi SILINMEZ). 0 girilirse devre disi kalir.",
+  },
+  {
+    key: "MESSAGE_LIFESPAN_DAYS",
+    envFallback: "MESSAGE_LIFESPAN_DAYS",
+    defaultValue: 365,
+    label: "Mesaj Yasam Suresi (Gun)",
+    description: "Gonderilen bir mesaj, bu kadar gun sonra uygulamadan kalici olarak silinir (okunma durumundan bagimsiz - 'okunduktan sonra sil' secenegiyle karistirilmamali). Hukuki ispat icin sifreli arsiv kopyasi (MessageAudit) bundan ETKILENMEZ. 0 girilirse devre disi kalir.",
+  },
+  {
+    key: "THREAD_MAX_MESSAGE_COUNT",
+    envFallback: "THREAD_MAX_MESSAGE_COUNT",
+    defaultValue: 500,
+    label: "Bir Iletisimdeki Maksimum Mesaj Sayisi",
+    description: "Bir mesajlasma (thread) icinde en fazla kac mesaj birikebilir - bu sayiya ulasilinca yeni mesaj gonderimi reddedilir (asiri buyumeyi/kotuye kullanimi onlemek icin). 0 girilirse sinirsiz.",
+  },
 ];
