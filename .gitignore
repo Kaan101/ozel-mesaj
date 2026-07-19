@@ -29,3 +29,6 @@ coverage/
 
 # Prisma (varsa lokal db dosyası)
 *.sqlite
+
+.vercel
+.env*
