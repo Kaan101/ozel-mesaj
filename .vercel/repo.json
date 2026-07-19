@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_Un2TJxiAXEoui6NdbTsbIHjgwa2l",
+      "name": "ozel-mesaj-frontend",
+      "directory": "frontend",
+      "orgId": "team_xI1kZJtOlGv8jTBkOyF7APWG"
+    }
+  ]
+}
