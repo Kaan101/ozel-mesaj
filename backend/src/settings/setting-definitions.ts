@@ -129,4 +129,11 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: "Push Bildirimleri (1=Acik, 0=Kapali)",
     description: "Yeni mesaj/havuz yaniti geldiginde tarayici push bildirimi gonderilsin mi.",
   },
+  {
+    key: "PUSH_NOTIFICATION_MAX_WIDTH_PX",
+    envFallback: "PUSH_NOTIFICATION_MAX_WIDTH_PX",
+    defaultValue: 768,
+    label: "Bildirim Icin Maksimum Ekran Genisligi (px)",
+    description: "Tarayici penceresi bu genislikten (piksel) DAHA GENISSE (orn. masaustu), bildirim izni istenmez - sadece mobil boyuttaki ekranlarda calisir. 0 girilirse genislik kontrolu devre disi kalir (her boyutta calisir).",
+  },
 ];

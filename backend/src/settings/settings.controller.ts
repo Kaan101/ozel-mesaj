@@ -16,6 +16,16 @@ export class SettingsController {
     return { enabled: value === 1 };
   }
 
+  // Kullanici istegi: bildirim izni istemeden once frontend'in kontrol
+  // edecegi iki parametre - (1) bildirimler tamamen acik mi, (2)
+  // ekran genisligi esigi (mobil disinda calismasin diye).
+  @Get("public/push-notification-config")
+  async getPushNotificationConfig() {
+    const enabled = await this.settingsService.getNumber("PUSH_NOTIFICATIONS_ENABLED");
+    const maxWidthPx = await this.settingsService.getNumber("PUSH_NOTIFICATION_MAX_WIDTH_PX");
+    return { enabled: enabled === 1, maxWidthPx };
+  }
+
   @UseGuards(AdminGuard)
   @Get()
   async list() {

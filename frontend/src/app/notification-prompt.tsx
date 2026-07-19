@@ -34,9 +34,24 @@ export function NotificationPrompt() {
     const dismissed = localStorage.getItem(DISMISSED_KEY);
     if (dismissed) return;
 
-    if (Notification.permission === "default") {
-      setShowPrompt(true);
-    }
+    if (Notification.permission !== "default") return;
+
+    // Kullanici istegi: iki sistem parametresine gore karar verilir -
+    // (1) bildirimler genel olarak acik mi, (2) ekran genisligi belirli
+    // bir esigi (varsayilan 768px, mobil disinda) asiyorsa hic
+    // sorulmasin. 0 girilirse genislik kontrolu devre disi kalir.
+    apiFetch<{ enabled: boolean; maxWidthPx: number }>(
+      "/admin/settings/public/push-notification-config",
+      { skipAuth: true }
+    )
+      .then(({ enabled, maxWidthPx }) => {
+        if (!enabled) return;
+        if (maxWidthPx > 0 && window.innerWidth > maxWidthPx) return;
+        setShowPrompt(true);
+      })
+      .catch(() => {
+        // Ayar okunamazsa guvenli tarafta kal - sormaman
+      });
   }, [isAuthenticated]);
 
   async function handleAllow() {
