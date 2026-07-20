@@ -26,7 +26,7 @@ export default function HavuzOlusturPage() {
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<Visibility>("public");
-  const [matchMode, setMatchMode] = useState<MatchMode>("exact");
+  const [matchMode, setMatchMode] = useState<MatchMode>("review");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -219,19 +219,19 @@ export default function HavuzOlusturPage() {
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
-                onClick={() => setMatchMode("exact")}
+                onClick={() => setMatchMode("review")}
                 className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${matchMode === "exact" ? "border-sky text-sky" : "border-sky-light text-slate"}`}
+                  ${matchMode === "review" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
               >
-                Kesin Eşleşsin
+                Tüm Yanıtları Göster
               </button>
               <button
                 type="button"
-                onClick={() => setMatchMode("review")}
+                onClick={() => setMatchMode("exact")}
                 className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${matchMode === "review" ? "border-sky text-sky" : "border-sky-light text-slate"}`}
+                  ${matchMode === "exact" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
               >
-                Tüm Yanıtları Göster
+                Kesin Eşleşsin
               </button>
             </div>
             <p className="mt-1.5 font-body text-xs text-slate-light">
