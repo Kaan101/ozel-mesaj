@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../common/prisma.service";
 
 @Injectable()
@@ -20,8 +20,42 @@ export class UsersService {
       status: user.status,
       createdAt: user.createdAt,
       lastSeenAt: user.lastSeenAt,
+      // Kullanici istegi: platform sadece 18+ icin calisir - doğum
+      // tarihi henuz girilmemisse frontend bu adimi gostermeli.
+      needsBirthDate: !user.birthDate,
     };
   }
+
+  // Kullanici istegi: platform sadece 18 yas ve uzerindeki kullanicilar
+  // icin calisir. Yas hesaplanir; 18'den kucukse hesap askiya alinir
+  // (mevcut "suspended" mekanizmasi - giris/mesaj gonderme zaten
+  // engelli hale gelir, bkz. AuthService.verifyOtp/ThreadService).
+  async setBirthDate(userId: string, birthDateStr: string): Promise<{ isAdult: boolean }> {
+    const birthDate = new Date(birthDateStr);
+    if (isNaN(birthDate.getTime()) || birthDate > new Date()) {
+      throw new BadRequestException("Geçerli bir doğum tarihi giriniz.");
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const hasHadBirthdayThisYear =
+      today.getMonth() > birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+    if (!hasHadBirthdayThisYear) age -= 1;
+
+    const isAdult = age >= 18;
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        birthDate,
+        // 18 alti ise hesap dogrudan askiya alinir - mevcut
+        // suspended kontrolleri (giris, mesaj gonderme) devreye girer.
+        ...(isAdult ? {} : { status: "suspended" }),
+      },
+    });
+
+    return { isAdult };
 
   // Gorev 8.2 (genisletildi): displayName ve avatar tercihi
   // guncellenebilir (Bolum 9). Avatar gercek kimlik tasimaz, sadece
