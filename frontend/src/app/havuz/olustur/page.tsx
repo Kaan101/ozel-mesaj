@@ -20,13 +20,12 @@ export default function HavuzOlusturPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { t } = useLanguage();
 
-  const [title, setTitle] = useState("");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<Visibility>("public");
-  const [matchMode, setMatchMode] = useState<MatchMode>("exact");
+  const [matchMode, setMatchMode] = useState<MatchMode>("review");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +66,10 @@ export default function HavuzOlusturPage() {
       const data = await apiFetch<{ poolEntryId: string }>("/pool/entries", {
         method: "POST",
         body: JSON.stringify({
-          title,
+          // Kullanici istegi: ayri bir "baslik" alani kaldirildi -
+          // backend'in yine de bir baslik bekledigi icin, soru
+          // metninden otomatik turetiliyor (kullanici bunu gormez).
+          title: question.slice(0, 60),
           question,
           answer,
           category: category.trim() || undefined,
@@ -112,7 +114,6 @@ export default function HavuzOlusturPage() {
             type="button"
             onClick={() => {
               setCreatedId(null);
-              setTitle("");
               setQuestion("");
               setAnswer("");
             }}
@@ -138,12 +139,6 @@ export default function HavuzOlusturPage() {
         </div>
 
         <Card lifted className="space-y-5">
-          <Input
-            label={t("havuzOlustur.titleLabel")}
-            placeholder={t("havuzOlustur.titlePlaceholder")}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
           <Input
             label={t("havuzOlustur.questionLabel")}
             placeholder={t("havuzOlustur.questionPlaceholder")}
@@ -219,19 +214,19 @@ export default function HavuzOlusturPage() {
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
-                onClick={() => setMatchMode("exact")}
+                onClick={() => setMatchMode("review")}
                 className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${matchMode === "exact" ? "border-sky text-sky" : "border-sky-light text-slate"}`}
+                  ${matchMode === "review" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
               >
-                Kesin Eşleşsin
+                Tüm Yanıtları Göster
               </button>
               <button
                 type="button"
-                onClick={() => setMatchMode("review")}
+                onClick={() => setMatchMode("exact")}
                 className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${matchMode === "review" ? "border-sky text-sky" : "border-sky-light text-slate"}`}
+                  ${matchMode === "exact" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
               >
-                Tüm Yanıtları Göster
+                Kesin Eşleşsin
               </button>
             </div>
             <p className="mt-1.5 font-body text-xs text-slate-light">
@@ -246,7 +241,7 @@ export default function HavuzOlusturPage() {
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={isSubmitting || !title || !question || !answer}
+            disabled={isSubmitting || !question || !answer}
           >
             {isSubmitting ? t("havuzOlustur.publishing") : t("havuzOlustur.publish")}
           </Button>
