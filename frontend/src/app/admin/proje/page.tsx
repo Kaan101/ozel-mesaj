@@ -286,7 +286,7 @@ export default function AdminProjePage() {
             <p className="font-body text-slate-light text-center py-6">Görev yok.</p>
           </Card>
         ) : (
-          <div className="overflow-x-auto rounded-bubble bg-white shadow-soft">
+          <Card className="overflow-x-auto p-0">
             <table className="w-full border-collapse border border-slate-light/60 text-left">
               <thead>
                 <tr className="bg-mint">
@@ -413,7 +413,7 @@ export default function AdminProjePage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </div>
     </main>
