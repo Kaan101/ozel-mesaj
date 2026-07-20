@@ -56,6 +56,7 @@ export class UsersService {
     });
 
     return { isAdult };
+  }
 
   // Gorev 8.2 (genisletildi): displayName ve avatar tercihi
   // guncellenebilir (Bolum 9). Avatar gercek kimlik tasimaz, sadece
