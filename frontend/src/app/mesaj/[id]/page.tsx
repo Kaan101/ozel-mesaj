@@ -28,6 +28,7 @@ interface DisplayMessage {
   isSystemMessage?: boolean;
   senderUserId?: string;
   senderAvatarId?: string | null;
+  senderDisplayName?: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -537,8 +538,16 @@ export default function MesajGosterPage() {
               >
                 <div className="flex items-start gap-3">
                   {msg.senderAvatarId && (
-                    <div className="shrink-0">
+                    <div className="shrink-0 text-center">
                       <Avatar avatarId={msg.senderAvatarId} size={36} />
+                      {/* Kullanici istegi: anonim olmayan mesajlarda,
+                          gonderenin /ayarlar'da girdigi gorunen ad
+                          avatarin altinda gosterilir. */}
+                      {msg.senderDisplayName && (
+                        <p className="mt-1 max-w-[48px] truncate font-body text-[10px] text-slate-light">
+                          {msg.senderDisplayName}
+                        </p>
+                      )}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
