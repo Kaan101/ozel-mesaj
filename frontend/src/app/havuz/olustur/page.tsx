@@ -8,6 +8,7 @@ import { useLanguage } from "@/lib/language-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { useAutoRedirect } from "@/lib/use-auto-redirect";
 
 type Visibility = "public" | "unlisted";
 type MatchMode = "exact" | "review";
@@ -30,6 +31,10 @@ export default function HavuzOlusturPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
+
+  // Kullanici istegi: havuz sorusu gonderildikten sonra, dugmeye
+  // basilmazsa belirli bir sure sonra otomatik olarak Havuz'a yonlensin.
+  const redirectSecondsLeft = useAutoRedirect("/havuz", 6, !!createdId);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -98,6 +103,11 @@ export default function HavuzOlusturPage() {
           <Button className="w-full" onClick={() => router.push("/havuz")}>
             {t("havuzOlustur.goToPool")}
           </Button>
+          {/* Kullanici istegi: dugmeye basilmazsa otomatik yonlendirme
+              sayaci gosterilir. */}
+          <p className="font-body text-xs text-slate-light">
+            {redirectSecondsLeft} saniye içinde Havuz&apos;a yönlendirileceksin.
+          </p>
           <button
             type="button"
             onClick={() => {
