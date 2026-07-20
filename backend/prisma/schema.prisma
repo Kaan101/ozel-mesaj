@@ -156,6 +156,13 @@ model Message {
   destroyAfterRead  Boolean   @default(false) @map("destroy_after_read")
   createdAt         DateTime  @default(now()) @map("created_at")
 
+  // Kullanici istegi: gonderen kendi mesajini konusmadan silebilsin -
+  // gercekten SILINMEZ (yumusak silme), sadece konusma gorunumunden
+  // kalkar. Sifreli arsiv kopyasi (MessageAudit) ve genel islem
+  // gunlugu (AuditLog) bundan HIC ETKILENMEZ - hukuki ispat icin
+  // erisim her zaman mumkun kalir.
+  deletedAt DateTime? @map("deleted_at")
+
   @@index([threadId])
   @@map("messages")
 }
