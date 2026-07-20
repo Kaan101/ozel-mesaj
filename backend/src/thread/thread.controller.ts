@@ -80,6 +80,16 @@ export class ThreadController {
     return this.threadService.getMessages(id, requestingUserId);
   }
 
+  // Kullanici istegi: alici "Mesaji Goster"e bastiginda cagrilir -
+  // Katman 1 (gercek kimlik) auth zorunlu.
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/reveal")
+  async revealThread(@Req() request: Request, @Param("id") id: string) {
+    const requestingUserId = (request as any).user.sub;
+    await this.threadService.revealThread(id, requestingUserId);
+    return { message: "Onaylandi." };
+  }
+
   // Gorev 5.5 (revize): Yanit gonderme. ThreadWriteGuard tek basina hem
   // kimligi (senderUserId icin) hem yazma yetkisini (thread_access_token
   // VEYA sahiplik) kontrol eder (Bolum 9, UX iyilestirmesi).

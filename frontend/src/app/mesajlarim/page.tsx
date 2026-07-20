@@ -23,6 +23,7 @@ interface MyThread {
   createdAt: string;
   lastMessageAt: string;
   role: "initiator" | "recipient";
+  needsReveal: boolean;
 }
 
 interface PendingAttempt {
@@ -291,11 +292,13 @@ function ThreadCard({
                     isNew ? "font-bold" : "font-normal"
                   }`}
                 >
-                  {thread.firstMessageBody
-                    ? thread.firstMessageBody
-                    : thread.lockType === "question" && thread.questionText
-                      ? thread.questionText
-                      : t("mesajlarim.passwordProtected")}
+                  {thread.needsReveal
+                    ? "Sana bir mesaj var"
+                    : thread.firstMessageBody
+                      ? thread.firstMessageBody
+                      : thread.lockType === "question" && thread.questionText
+                        ? thread.questionText
+                        : t("mesajlarim.passwordProtected")}
                 </h3>
                 <p className="mt-1 font-body text-xs text-slate-light">
                   {thread.role === "initiator" && thread.recipientPhoneDisplay
