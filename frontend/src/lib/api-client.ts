@@ -35,6 +35,19 @@ export async function apiFetch<T = unknown>(
     ...(headers as Record<string, string>),
   };
 
+  // Kullanici istegi: hukuki ispat/gunlukleme icin ekran cozunurlugu
+  // ve saat dilimi de her istekte gonderilir - sunucu (audit
+  // interceptor) bunlari okuyup gunluge yazar. Sadece tarayicida
+  // calisirken eklenir (SSR/build sirasinda window yoktur).
+  if (typeof window !== "undefined") {
+    finalHeaders["X-Screen-Resolution"] = `${window.screen.width}x${window.screen.height}`;
+    try {
+      finalHeaders["X-Timezone"] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      // Tarayici desteklemiyorsa sessizce atla.
+    }
+  }
+
   if (!skipAuth) {
     const accessToken = getAccessToken();
     if (accessToken) {

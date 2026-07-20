@@ -7,6 +7,11 @@ interface LogEventInput {
   threadId?: string;
   ipAddress?: string;
   userAgent?: string;
+  acceptLanguage?: string;
+  country?: string;
+  city?: string;
+  screenResolution?: string;
+  timezone?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -29,6 +34,11 @@ export class AuditLogService {
           threadId: input.threadId ?? null,
           ipAddress: input.ipAddress ?? null,
           userAgent: input.userAgent ?? null,
+          acceptLanguage: input.acceptLanguage ?? null,
+          country: input.country ?? null,
+          city: input.city ?? null,
+          screenResolution: input.screenResolution ?? null,
+          timezone: input.timezone ?? null,
           metadata: (input.metadata as any) ?? undefined,
         },
       });

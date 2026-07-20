@@ -2,6 +2,7 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nes
 import { Request } from "express";
 import { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
+import * as geoip from "geoip-lite";
 import { AuditLogService } from "./audit-log.service";
 
 // Kullanici istegi: TUM API isteklerini (yontem, yol, durum kodu, IP,
@@ -31,13 +32,28 @@ export class AuditRequestInterceptor implements NestInterceptor {
     if (request.path === "/health") return;
 
     const userId = (request as any).user?.sub;
+    const ip = request.ip ?? request.socket?.remoteAddress;
 
+    // Kullanici istegi: IP'den yaklasik ulke/sehir - harici bir API'ye
+    // istek atmadan, yerel (offline) bir veritabaniyla calisan
+    // geoip-lite kutuphanesi kullanilir. Localhost/private IP'lerde
+    // (test/gelistirme ortaminda) sonuc bulunamaz, bu normaldir.
+    const geo = ip ? geoip.lookup(ip) : null;
+
+    // Kullanici istegi: ekran cozunurlugu ve saat dilimi tarayicidan
+    // gelir - frontend (bkz. api-client.ts) bunlari her istekte ozel
+    // header olarak gonderir, biz burada okuyoruz.
     this.auditLog
       .log({
         eventType: `http_${request.method.toLowerCase()}`,
         userId,
-        ipAddress: request.ip ?? request.socket?.remoteAddress,
+        ipAddress: ip,
         userAgent: request.headers["user-agent"],
+        acceptLanguage: request.headers["accept-language"],
+        country: geo?.country,
+        city: geo?.city,
+        screenResolution: request.headers["x-screen-resolution"] as string | undefined,
+        timezone: request.headers["x-timezone"] as string | undefined,
         metadata: {
           path: request.path,
           outcome,

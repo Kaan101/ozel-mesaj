@@ -13,6 +13,11 @@ interface LogEntry {
   threadId: string | null;
   ipAddress: string | null;
   userAgent: string | null;
+  acceptLanguage: string | null;
+  country: string | null;
+  city: string | null;
+  screenResolution: string | null;
+  timezone: string | null;
   metadata: any;
   createdAt: string;
 }
@@ -209,6 +214,19 @@ export default function AdminGunluklerPage() {
               {log.ipAddress && (
                 <p className="font-body text-xs text-slate-light">
                   IP: {log.ipAddress} {log.userAgent && `· ${log.userAgent.slice(0, 60)}`}
+                </p>
+              )}
+              {/* Kullanici istegi: tarayici dili, IP'den yaklasik
+                  sehir/ulke, ekran cozunurlugu ve saat dilimi de
+                  gunlukte gosterilir. */}
+              {(log.country || log.city || log.acceptLanguage || log.screenResolution || log.timezone) && (
+                <p className="font-body text-xs text-slate-light">
+                  {(log.city || log.country) && (
+                    <>Konum: {[log.city, log.country].filter(Boolean).join(", ")} · </>
+                  )}
+                  {log.acceptLanguage && <>Dil: {log.acceptLanguage} · </>}
+                  {log.screenResolution && <>Ekran: {log.screenResolution} · </>}
+                  {log.timezone && <>Saat Dilimi: {log.timezone}</>}
                 </p>
               )}
               {log.metadata && (
