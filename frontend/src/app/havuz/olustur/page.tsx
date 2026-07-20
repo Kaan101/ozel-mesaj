@@ -20,7 +20,6 @@ export default function HavuzOlusturPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { t } = useLanguage();
 
-  const [title, setTitle] = useState("");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [category, setCategory] = useState("");
@@ -67,7 +66,10 @@ export default function HavuzOlusturPage() {
       const data = await apiFetch<{ poolEntryId: string }>("/pool/entries", {
         method: "POST",
         body: JSON.stringify({
-          title,
+          // Kullanici istegi: ayri bir "baslik" alani kaldirildi -
+          // backend'in yine de bir baslik bekledigi icin, soru
+          // metninden otomatik turetiliyor (kullanici bunu gormez).
+          title: question.slice(0, 60),
           question,
           answer,
           category: category.trim() || undefined,
@@ -112,7 +114,6 @@ export default function HavuzOlusturPage() {
             type="button"
             onClick={() => {
               setCreatedId(null);
-              setTitle("");
               setQuestion("");
               setAnswer("");
             }}
@@ -138,12 +139,6 @@ export default function HavuzOlusturPage() {
         </div>
 
         <Card lifted className="space-y-5">
-          <Input
-            label={t("havuzOlustur.titleLabel")}
-            placeholder={t("havuzOlustur.titlePlaceholder")}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
           <Input
             label={t("havuzOlustur.questionLabel")}
             placeholder={t("havuzOlustur.questionPlaceholder")}
@@ -246,7 +241,7 @@ export default function HavuzOlusturPage() {
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={isSubmitting || !title || !question || !answer}
+            disabled={isSubmitting || !question || !answer}
           >
             {isSubmitting ? t("havuzOlustur.publishing") : t("havuzOlustur.publish")}
           </Button>
