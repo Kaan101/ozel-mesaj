@@ -395,6 +395,14 @@ model AuditLog {
   ipAddress String? @map("ip_address")
   userAgent String? @map("user_agent")
 
+  // Kullanici istegi: ek cihaz/istek bilgileri - hukuki ispat icin
+  // daha zengin bir kayit.
+  acceptLanguage   String? @map("accept_language") // tarayici dil tercihi
+  country          String? // IP'den yaklasik ulke (geoip-lite ile, harici API'ye ihtiyac yok)
+  city             String? // IP'den yaklasik sehir
+  screenResolution String? @map("screen_resolution") // orn. "1920x1080" - frontend'den header ile gelir
+  timezone         String? // orn. "Europe/Istanbul" - frontend'den header ile gelir
+
   // Olaya ozel ek bilgi (JSON) - orn. hangi telefon numarasina OTP
   // gonderildi, hangi kilit tipiyle thread acildi, vb.
   metadata Json?
