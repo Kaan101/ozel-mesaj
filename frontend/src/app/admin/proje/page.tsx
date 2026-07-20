@@ -286,20 +286,20 @@ export default function AdminProjePage() {
             <p className="font-body text-slate-light text-center py-6">Görev yok.</p>
           </Card>
         ) : (
-          <div className="overflow-x-auto rounded-bubble bg-white shadow-soft">
-            <table className="w-full text-left">
+          <Card className="overflow-x-auto p-0">
+            <table className="w-full border-collapse border border-slate-light/60 text-left">
               <thead>
-                <tr className="border-b border-sky-light/50">
-                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                <tr className="bg-mint">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
                     Başlık
                   </th>
-                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
                     Öncelik
                   </th>
-                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
                     Durum
                   </th>
-                  <th className="px-4 py-2 font-display text-xs font-bold text-slate-light">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
                     Tarih
                   </th>
                 </tr>
@@ -309,15 +309,17 @@ export default function AdminProjePage() {
                   <Fragment key={task.id}>
                     <tr
                       onClick={() => toggleExpand(task)}
-                      className="cursor-pointer border-b border-sky-light/30 last:border-0 hover:bg-mint/50"
+                      className="cursor-pointer hover:bg-mint/50"
                     >
-                      <td className="px-4 py-2 font-body text-sm text-slate">{task.title}</td>
-                      <td className="px-4 py-2">
+                      <td className="border border-slate-light/60 px-4 py-2 font-body text-sm text-slate">
+                        {task.title}
+                      </td>
+                      <td className="border border-slate-light/60 px-4 py-2">
                         <span className="rounded-full bg-whisper-light px-2 py-0.5 font-body text-xs text-slate">
                           {PRIORITY_LABELS[task.priority]}
                         </span>
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="border border-slate-light/60 px-4 py-2">
                         <span
                           className={`rounded-full px-2 py-0.5 font-body text-xs ${STATUS_COLORS[task.status]}`}
                         >
@@ -330,15 +332,15 @@ export default function AdminProjePage() {
                                 : "İptal"}
                         </span>
                       </td>
-                      <td className="px-4 py-2 font-body text-xs text-slate-light whitespace-nowrap">
+                      <td className="border border-slate-light/60 px-4 py-2 font-body text-xs text-slate-light whitespace-nowrap">
                         {task.dueDate
                           ? new Date(task.dueDate).toLocaleDateString("tr-TR")
                           : "—"}
                       </td>
                     </tr>
                     {expandedTaskId === task.id && (
-                      <tr className="border-b border-sky-light/30 last:border-0 bg-mint/40">
-                        <td colSpan={4} className="px-4 py-3">
+                      <tr className="bg-mint/40">
+                        <td colSpan={4} className="border border-slate-light/60 px-4 py-3">
                           <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                             <input
                               value={editTitle}
@@ -411,7 +413,7 @@ export default function AdminProjePage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </div>
     </main>
