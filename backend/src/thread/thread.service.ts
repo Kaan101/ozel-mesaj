@@ -554,7 +554,7 @@ export class ThreadService {
         // Avatar gercek kimlik tasimaz (sadece cizgisel bir gorsel
         // tercih) - bu yuzden anonim mesajlarda bile gosterilebilir,
         // sadece senderUserId (gercek kimlik baglantisi) gizlenir.
-        sender: { select: { avatarId: true } },
+        sender: { select: { avatarId: true, displayName: true } },
       },
     });
 
@@ -585,6 +585,13 @@ export class ThreadService {
       isSystemMessage: message.isSystemMessage,
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
       senderAvatarId: message.sender?.avatarId ?? null,
+      // Kullanici istegi: anonim OLMAYAN mesajlarda, gonderenin
+      // /ayarlar'da girdigi gorunen ad avatarin altinda gosterilir -
+      // anonim mesajlarda (isAnonymous=true) hicbir zaman gonderilmez.
+      senderDisplayName:
+        message.isAnonymous || message.isSystemMessage
+          ? null
+          : (message.sender?.displayName ?? null),
       // Bug duzeltmesi: sadece bu istekte GERCEKTEN "okundu" olarak
       // isaretlenen mesajlar icin "now" gosterilir - gonderenin kendi
       // mesajini goruntulemesi durumunda (readAt DB'de hala null),
