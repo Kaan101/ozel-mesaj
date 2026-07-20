@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
+import { useAutoRedirect } from "@/lib/use-auto-redirect";
 
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
 // mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
@@ -43,6 +44,11 @@ export default function MesajOlusturPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentThreadId, setSentThreadId] = useState<string | null>(null);
+
+  // Kullanici istegi: dogrudan mesaj gonderildikten sonra, dugmeye
+  // basilmazsa belirli bir sure sonra otomatik olarak Mesajlarim'a
+  // yonlensin.
+  const redirectSecondsLeft = useAutoRedirect("/mesajlarim", 6, !!sentThreadId);
   // Kullanici istegi: e-posta secenegi bir sistem parametresiyle
   // acilip kapatilabilsin - varsayilan olarak acik kabul ediyoruz,
   // backend'den gercek deger gelene kadar (flicker'i onlemek icin).
@@ -119,9 +125,14 @@ export default function MesajOlusturPage() {
           <p className="font-body text-sm text-slate-light">
             {recipientPhone} {t("mesajOlustur.sentDesc")}
           </p>
-          <Button className="w-full" onClick={() => router.push("/")}>
+          <Button className="w-full" onClick={() => router.push("/mesajlarim")}>
             {t("mesajOlustur.backHome")}
           </Button>
+          {/* Kullanici istegi: dugmeye basilmazsa otomatik yonlendirme
+              sayaci gosterilir. */}
+          <p className="font-body text-xs text-slate-light">
+            {redirectSecondsLeft} saniye içinde Mesajlarım&apos;a yönlendirileceksin.
+          </p>
           <button
             type="button"
             onClick={() => {
