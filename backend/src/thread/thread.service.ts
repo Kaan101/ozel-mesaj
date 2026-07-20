@@ -273,6 +273,7 @@ export class ThreadService {
         initiatorUserId: true,
         recipientUserId: true,
         messages: {
+          where: { deletedAt: null },
           orderBy: { createdAt: "asc" },
           take: 1,
           select: { body: true },
@@ -356,6 +357,7 @@ export class ThreadService {
         // degil - aksi halde yeni gelen yanitlar listeye hic yansimaz
         // (kullanici geri bildirimi).
         messages: {
+          where: { deletedAt: null },
           orderBy: { createdAt: "desc" },
           take: 1,
           select: { body: true, createdAt: true },
@@ -372,7 +374,7 @@ export class ThreadService {
     const firstMessages =
       threadIds.length > 0
         ? await this.prisma.message.findMany({
-            where: { threadId: { in: threadIds } },
+            where: { threadId: { in: threadIds }, deletedAt: null },
             orderBy: { createdAt: "asc" },
             distinct: ["threadId"],
             select: { threadId: true, body: true },
@@ -513,6 +515,9 @@ export class ThreadService {
     const messages = await this.prisma.message.findMany({
       where: {
         threadId,
+        // Kullanici istegi: gonderen tarafindan silinmis mesajlar
+        // konusma gorunumunde gozukmez (arsiv/log kaydi etkilenmez).
+        deletedAt: null,
         ...(hiddenAtThreshold ? { createdAt: { gt: hiddenAtThreshold } } : {}),
       },
       orderBy: { createdAt: "asc" },
@@ -648,5 +653,34 @@ export class ThreadService {
       isAnonymous: message.isAnonymous,
       createdAt: message.createdAt,
     };
+  }
+
+  // Kullanici istegi: gonderilen bir iletisim (thread) icindeki tek
+  // bir mesaj, SADECE O MESAJI GONDEREN kisi tarafindan silinebilir -
+  // karsi tarafin mesajlari ya da baskasinin mesajlari silinemez.
+  // Yumusak silme (deletedAt) - MessageAudit/AuditLog kayitlari
+  // ETKILENMEZ, hukuki ispat icin her zaman erisilebilir kalir.
+  async deleteMessage(messageId: string, requestingUserId: string): Promise<void> {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { senderUserId: true, deletedAt: true },
+    });
+
+    if (!message) {
+      throw new NotFoundException("Mesaj bulunamadi.");
+    }
+
+    if (message.senderUserId !== requestingUserId) {
+      throw new ForbiddenException("Sadece kendi gonderdigin mesaji silebilirsin.");
+    }
+
+    if (message.deletedAt) {
+      return; // Zaten silinmis - sessizce gec.
+    }
+
+    await this.prisma.message.update({
+      where: { id: messageId },
+      data: { deletedAt: new Date() },
+    });
   }
 }

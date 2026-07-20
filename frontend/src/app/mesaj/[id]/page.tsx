@@ -203,6 +203,19 @@ export default function MesajGosterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, threadToken, threadId]);
 
+  // Kullanici istegi: gonderdigim bir mesaji konusmadan silebilirim -
+  // arsiv/log kaydi (MessageAudit) etkilenmez, sadece konusma
+  // gorunumunden kalkar.
+  async function handleDeleteMessage(messageId: string) {
+    if (!confirm("Bu mesajı silmek istediğine emin misin?")) return;
+    try {
+      await apiFetch(`/threads/${threadId}/messages/${messageId}`, { method: "DELETE" });
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    } catch {
+      alert("Mesaj silinemedi. Lütfen tekrar dene.");
+    }
+  }
+
   async function handleReply() {
     setReplyError(null);
     setIsReplying(true);
@@ -413,7 +426,9 @@ export default function MesajGosterPage() {
             return (
               <Card
                 key={msg.id}
-                className={isFromCounterpart ? "border-2 border-meadow" : ""}
+                className={`relative ${isFromCounterpart ? "border-2 border-meadow" : ""} ${
+                  !isFromCounterpart ? "pr-9" : ""
+                }`}
               >
                 <div className="flex items-start gap-3">
                   {msg.senderAvatarId && (
@@ -428,6 +443,19 @@ export default function MesajGosterPage() {
                     </p>
                   </div>
                 </div>
+                {/* Kullanici istegi: sadece KENDI gonderdigim mesaji
+                    silebilirim - karsi tarafin mesajinda bu buton
+                    gorunmez. */}
+                {!isFromCounterpart && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteMessage(msg.id)}
+                    className="absolute right-2 bottom-2 rounded-full p-0.5 text-[10px] text-slate-light hover:bg-coral-light hover:text-coral"
+                    aria-label="Mesajı Sil"
+                  >
+                    🗑️
+                  </button>
+                )}
               </Card>
             );
           })}

@@ -99,4 +99,18 @@ export class ThreadController {
       dto.destroyAfterRead ?? false
     );
   }
+
+  // Kullanici istegi: gonderilen bir mesaj, SADECE gonderen kisi
+  // tarafindan silinebilir - Katman 1 (gercek kimlik) auth zorunlu,
+  // thread_access_token yeterli degil.
+  @UseGuards(JwtAuthGuard)
+  @Delete(":threadId/messages/:messageId")
+  async deleteMessage(
+    @Req() request: Request,
+    @Param("messageId") messageId: string
+  ) {
+    const requestingUserId = (request as any).user.sub;
+    await this.threadService.deleteMessage(messageId, requestingUserId);
+    return { message: "Mesaj silindi." };
+  }
 }
