@@ -18,6 +18,7 @@ interface ThreadMeta {
   questionText: string | null;
   createdAt: string;
   displayTitle: string | null;
+  needsReveal: boolean;
 }
 
 interface DisplayMessage {
@@ -31,7 +32,7 @@ interface DisplayMessage {
   createdAt: string;
 }
 
-type ViewState = "loading" | "unlock" | "unlocking" | "messages" | "error";
+type ViewState = "loading" | "unlock" | "unlocking" | "reveal-gate" | "messages" | "error";
 
 // Thread access token'i, ayni tarayici sekmesi acikken hatirlamak icin
 // sessionStorage'da saklariz - boylece kullanici "Mesajlarim"dan ayni
@@ -127,10 +128,15 @@ export default function MesajGosterPage() {
         .then((msgs) => {
           setThreadToken(storedToken);
           setMessages(msgs);
-          setView("messages");
           apiFetch<ThreadMeta>(`/threads/${threadId}`)
-            .then(setMeta)
-            .catch(() => {});
+            .then((data) => {
+              setMeta(data);
+              // Kullanici istegi: alici bu iletisimi HENUZ ILK KEZ
+              // "gostermeyi" onaylamadiysa, mesajlar yerine once
+              // kapı ekranini gosteriyoruz.
+              setView(data.needsReveal ? "reveal-gate" : "messages");
+            })
+            .catch(() => setView("messages"));
         })
         .catch(() => {
           clearStoredThreadToken(threadId);
@@ -152,12 +158,14 @@ export default function MesajGosterPage() {
       apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`)
         .then((msgs) => {
           setMessages(msgs);
-          setView("messages");
           // Soru metnini de (varsa) baglam icin cekelim - bu yol
           // (sahip/daha once acmis kisi) normalde meta'yi hic cekmiyordu.
           apiFetch<ThreadMeta>(`/threads/${threadId}`)
-            .then(setMeta)
-            .catch(() => {});
+            .then((data) => {
+              setMeta(data);
+              setView(data.needsReveal ? "reveal-gate" : "messages");
+            })
+            .catch(() => setView("messages"));
         })
         .catch(fetchMeta);
     }
@@ -252,6 +260,53 @@ export default function MesajGosterPage() {
   // ozelligi eklendi - artik telefon numarasina gerek kalmadan,
   // threadId uzerinden backend karsi tarafi cozup engelliyor (Bolum 8
   // gizlilik modeliyle tutarli, bkz. yeni /safety/threads/:id/block).
+  // Kullanici istegi: alici "Mesaji Goster"e basinca cagrilir - bu
+  // iletisim icin bir daha bu kapı gosterilmez.
+  async function handleRevealMessage() {
+    try {
+      await apiFetch(`/threads/${threadId}/reveal`, { method: "POST" });
+      const msgs = threadToken
+        ? await apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`, {
+            skipAuth: true,
+            headers: { Authorization: `Bearer ${threadToken}` },
+          })
+        : await apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`);
+      setMessages(msgs);
+      setView("messages");
+    } catch {
+      setError("Bir şeyler ters gitti. Lütfen tekrar dene.");
+    }
+  }
+
+  // Kullanici istegi: kapı ekranindan (mesaji hic gormeden) engelle/
+  // sikayet edilebilsin. Islem sonrasi Mesajlarim'a donulur - zaten
+  // gorecek bir sey kalmadi.
+  async function handleBlockFromGate() {
+    if (
+      !confirm("Bu kişiyi engellemek istediğine emin misin? Bir daha sana mesaj gönderemeyecek.")
+    ) {
+      return;
+    }
+    try {
+      await apiFetch(`/safety/threads/${threadId}/block`, { method: "POST" });
+      router.push("/mesajlarim");
+    } catch {
+      setError("Engelleme işlemi başarısız oldu. Lütfen tekrar dene.");
+    }
+  }
+
+  async function handleReportFromGate() {
+    try {
+      await apiFetch(`/safety/threads/${threadId}/report`, {
+        method: "POST",
+        body: JSON.stringify({ reason: "Kullanıcı mesajı görmeden şikayet etti." }),
+      });
+      router.push("/mesajlarim");
+    } catch {
+      setError("Şikayet gönderilemedi. Lütfen tekrar dene.");
+    }
+  }
+
   async function handleBlock() {
     if (!confirm("Bu kişiyi engellemek istediğine emin misin? Bir daha sana mesaj gönderemeyecek.")) {
       return;
@@ -312,7 +367,18 @@ export default function MesajGosterPage() {
         headers: { Authorization: `Bearer ${data.thread_access_token}` },
       });
       setMessages(msgs);
-      setView("messages");
+
+      // Kullanici istegi: unlock basarili olsa bile, alici bu
+      // iletisimi HENUZ ILK KEZ "gostermeyi" onaylamadiysa once
+      // kapı ekranini gosteriyoruz. Bu cagri normal giris token'iyla
+      // yapilir (getThreadMeta thread_access_token kabul etmez).
+      try {
+        const metaData = await apiFetch<ThreadMeta>(`/threads/${threadId}`);
+        setMeta(metaData);
+        setView(metaData.needsReveal ? "reveal-gate" : "messages");
+      } catch {
+        setView("messages");
+      }
     } catch (err) {
       setError(describeError(err));
       setView("unlock");
@@ -328,6 +394,45 @@ export default function MesajGosterPage() {
       <main className="min-h-screen bg-mint flex items-center justify-center px-4">
         <Card className="max-w-sm text-center">
           <p className="font-body text-coral">{error}</p>
+        </Card>
+      </main>
+    );
+  }
+
+  // Kullanici istegi: alici bu iletisimi ILK KEZ aciyorsa, mesaj
+  // dogrudan gosterilmez - once "Mesaji Goster" ya da mesaji hic
+  // gormeden "Engelle"/"Sikayet Et" secenegi sunulur. Bir kez
+  // onaylandiktan sonra bir daha bu ekran gorunmez.
+  if (view === "reveal-gate") {
+    return (
+      <main className="min-h-screen bg-mint flex items-center justify-center px-4 py-12">
+        <Card lifted className="max-w-sm text-center space-y-4">
+          <div className="text-5xl">✉️</div>
+          <h1 className="font-display text-2xl font-bold text-slate">Sana bir mesaj var</h1>
+          <p className="font-body text-sm text-slate-light">
+            Bu, bu kişiden aldığın ilk iletişim. İstersen mesajı görmeden de bu kişiyi
+            engelleyebilir ya da şikayet edebilirsin.
+          </p>
+          {error && <p className="font-body text-sm text-coral">{error}</p>}
+          <Button className="w-full" onClick={handleRevealMessage}>
+            Mesajı Göster
+          </Button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleBlockFromGate}
+              className="flex-1 rounded-full border-2 border-slate-light/40 bg-white px-4 py-2 font-body text-sm text-slate hover:bg-mint"
+            >
+              Engelle
+            </button>
+            <button
+              type="button"
+              onClick={handleReportFromGate}
+              className="flex-1 rounded-full border-2 border-slate-light/40 bg-white px-4 py-2 font-body text-sm text-coral hover:bg-coral-light"
+            >
+              Şikayet Et
+            </button>
+          </div>
         </Card>
       </main>
     );

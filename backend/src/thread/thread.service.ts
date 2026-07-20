@@ -272,6 +272,7 @@ export class ThreadService {
         createdAt: true,
         initiatorUserId: true,
         recipientUserId: true,
+        recipientRevealedAt: true,
         messages: {
           where: { deletedAt: null },
           orderBy: { createdAt: "asc" },
@@ -298,18 +299,28 @@ export class ThreadService {
         questionText: thread.questionText,
         createdAt: thread.createdAt,
         displayTitle: null,
+        needsReveal: false,
       };
     }
 
     const role = requestingUserId === thread.initiatorUserId ? "initiator" : "recipient";
-    const canShowBody = thread.lockType === "none" || role === "initiator";
+
+    // Kullanici istegi: alici, bu iletisimi ILK KEZ aciyorsa (henuz
+    // "Mesaji Goster"e basmadiysa) mesaj icerigi HICBIR YERDE
+    // (baslik dahil) gosterilmez - once mesaji gormeden Engelle/
+    // Sikayet Et secenegi sunulur.
+    const hasRevealed = role === "initiator" || !!thread.recipientRevealedAt;
+    const needsReveal = role === "recipient" && !thread.recipientRevealedAt;
+    const canShowBody = (thread.lockType === "none" || role === "initiator") && hasRevealed;
 
     let displayTitle: string | null = canShowBody ? (thread.messages[0]?.body ?? null) : null;
     if (thread.originType === "pool" && thread.questionText && thread.answerTextDisplay) {
       displayTitle =
         role === "initiator"
           ? `${thread.questionText} - ${thread.answerTextDisplay}`
-          : thread.questionText;
+          : hasRevealed
+            ? thread.questionText
+            : null;
     }
     if (displayTitle) {
       displayTitle = `${displayTitle} - ${formatDayMonth(thread.createdAt)}`;
@@ -322,6 +333,7 @@ export class ThreadService {
       questionText: thread.questionText,
       createdAt: thread.createdAt,
       displayTitle,
+      needsReveal,
     };
   }
 
@@ -349,6 +361,7 @@ export class ThreadService {
         recipientUserId: true,
         hiddenByInitiatorAt: true,
         hiddenByRecipientAt: true,
+        recipientRevealedAt: true,
         // Kullanici geri bildirimi: karsi tarafin avatari listede de
         // gorunsun - avatar gercek kimlik tasimadigi icin sakincasiz.
         initiator: { select: { avatarId: true } },
@@ -401,7 +414,12 @@ export class ThreadService {
         // mesajin icerigini kilidi acmadan gormemeli (Bolum 8 guvenlik
         // modeli). Soru metni ise hassas degil (sadece bir ipucu,
         // cevabin kendisi degil) - bu yuzden herkese gosterilir.
-        const canShowBody = t.lockType === "none" || role === "initiator";
+        //
+        // Kullanici istegi: alici bu iletisimi HENUZ ILK KEZ
+        // "gostermeyi" onaylamadiysa (recipientRevealedAt bos), liste
+        // basligi da icerik SIZDIRMAMALI.
+        const hasRevealed = role === "initiator" || !!t.recipientRevealedAt;
+        const canShowBody = (t.lockType === "none" || role === "initiator") && hasRevealed;
         const counterpartAvatarId =
           role === "initiator" ? t.recipient?.avatarId : t.initiator.avatarId;
 
@@ -416,7 +434,9 @@ export class ThreadService {
           displayTitle =
             role === "initiator"
               ? `${t.questionText} - ${t.answerTextDisplay}`
-              : t.questionText;
+              : hasRevealed
+                ? t.questionText
+                : null;
         }
 
         // Kullanici istegi: basliga "(07 Temmuz)" formatinda sabit bir
@@ -439,6 +459,7 @@ export class ThreadService {
           createdAt: t.createdAt,
           lastMessageAt,
           role,
+          needsReveal: role === "recipient" && !t.recipientRevealedAt,
         };
       })
       .filter((t): t is NonNullable<typeof t> => t !== null);
@@ -501,6 +522,7 @@ export class ThreadService {
           recipientUserId: true,
           hiddenByInitiatorAt: true,
           hiddenByRecipientAt: true,
+          recipientRevealedAt: true,
         },
       });
       if (thread) {
@@ -508,6 +530,13 @@ export class ThreadService {
           hiddenAtThreshold = thread.hiddenByInitiatorAt;
         } else if (thread.recipientUserId === requestingUserId) {
           hiddenAtThreshold = thread.hiddenByRecipientAt;
+          // Kullanici istegi (guvenlik - savunma katmani): alici bu
+          // iletisimi HENUZ ILK KEZ "gostermeyi" onaylamadiysa,
+          // mesajlar API seviyesinde de BOS donulur - sadece
+          // frontend'in bu cagriyi gec yapmasina guvenilmez.
+          if (!thread.recipientRevealedAt) {
+            return [];
+          }
         }
       }
     }
@@ -653,6 +682,25 @@ export class ThreadService {
       isAnonymous: message.isAnonymous,
       createdAt: message.createdAt,
     };
+  }
+
+  // Kullanici istegi: alici "Mesaji Goster"e basinca cagrilir - bu
+  // iletisim icin bir daha bu kapi gosterilmez. Sadece GERCEK alici
+  // (recipientUserId) kendi icin bunu onaylayabilir.
+  async revealThread(threadId: string, requestingUserId: string): Promise<void> {
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: threadId },
+      select: { recipientUserId: true },
+    });
+
+    if (!thread || thread.recipientUserId !== requestingUserId) {
+      throw new ForbiddenException("Bu islemi sadece alici yapabilir.");
+    }
+
+    await this.prisma.messageThread.update({
+      where: { id: threadId },
+      data: { recipientRevealedAt: new Date() },
+    });
   }
 
   // Kullanici istegi: gonderilen bir iletisim (thread) icindeki tek
