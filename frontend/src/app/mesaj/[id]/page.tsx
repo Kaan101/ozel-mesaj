@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Toggle } from "@/components/ui/Toggle";
+import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 
 interface ThreadMeta {
   id: string;
@@ -423,9 +424,8 @@ export default function MesajGosterPage() {
             }
 
             const isFromCounterpart = !myMessageIds.has(msg.id);
-            return (
+            const messageCard = (
               <Card
-                key={msg.id}
                 className={`relative ${isFromCounterpart ? "border-2 border-meadow" : ""} ${
                   !isFromCounterpart ? "pr-9" : ""
                 }`}
@@ -443,9 +443,8 @@ export default function MesajGosterPage() {
                     </p>
                   </div>
                 </div>
-                {/* Kullanici istegi: sadece KENDI gonderdigim mesaji
-                    silebilirim - karsi tarafin mesajinda bu buton
-                    gorunmez. */}
+                {/* Kullanici geri bildirimi: masaustu (fare) icin
+                    kucuk sil ikonu - sadece KENDI mesajimda gorunur. */}
                 {!isFromCounterpart && (
                   <button
                     type="button"
@@ -457,6 +456,21 @@ export default function MesajGosterPage() {
                   </button>
                 )}
               </Card>
+            );
+
+            // Kullanici istegi: mobilde kaydirarak (swipe) da silinebilsin -
+            // ama SADECE kendi mesajimda (karsi tarafin mesaji swipe
+            // edilince silme secenegi cikmamali).
+            return (
+              <div key={msg.id}>
+                {isFromCounterpart ? (
+                  messageCard
+                ) : (
+                  <SwipeToDelete deleteLabel="Sil" onDelete={() => handleDeleteMessage(msg.id)}>
+                    {messageCard}
+                  </SwipeToDelete>
+                )}
+              </div>
             );
           })}
 
