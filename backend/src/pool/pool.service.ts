@@ -4,6 +4,7 @@ import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
 import { SettingsService } from "../settings/settings.service";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
+import { summarizeReactions } from "../common/reactions.util";
 import { NotificationService } from "../notifications/notification.service";
 import { CreatePoolEntryDto } from "./dto/create-pool-entry.dto";
 
@@ -117,6 +118,7 @@ export class PoolService {
         createdAt: true,
         ownerUserId: true,
         hiddenByOwner: true,
+        reactions: { select: { emoji: true, userId: true } },
       },
     });
 
@@ -124,8 +126,37 @@ export class PoolService {
       throw new NotFoundException("Soru bulunamadi.");
     }
 
-    const { ownerUserId, hiddenByOwner, ...publicFields } = entry;
-    return { ...publicFields, isOwner: requestingUserId === ownerUserId };
+    const { ownerUserId, hiddenByOwner, reactions, ...publicFields } = entry;
+    return {
+      ...publicFields,
+      isOwner: requestingUserId === ownerUserId,
+      // Kullanici istegi: havuz sorusuna da begen/begenme/emoji tepkisi.
+      reactions: summarizeReactions(reactions, requestingUserId),
+    };
+  }
+
+  // Kullanici istegi: bir havuz sorusuna begen/begenme ya da emoji
+  // tepkisi - ayni emojiye tekrar basmak tepkiyi kaldirir (toggle).
+  async reactToEntry(
+    entryId: string,
+    userId: string,
+    emoji: string
+  ): Promise<{ removed: boolean }> {
+    const existing = await this.prisma.poolEntryReaction.findUnique({
+      where: { poolEntryId_userId: { poolEntryId: entryId, userId } },
+    });
+
+    if (existing && existing.emoji === emoji) {
+      await this.prisma.poolEntryReaction.delete({ where: { id: existing.id } });
+      return { removed: true };
+    }
+
+    await this.prisma.poolEntryReaction.upsert({
+      where: { poolEntryId_userId: { poolEntryId: entryId, userId } },
+      update: { emoji },
+      create: { poolEntryId: entryId, userId, emoji },
+    });
+    return { removed: false };
   }
 
   // Kullanici istegi: soru sahibi istedigi zaman sorusunu kaldirabilir -

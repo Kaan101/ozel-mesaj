@@ -124,6 +124,18 @@ export class PoolController {
     return this.poolService.attemptEntry(id, attemptingUserId, dto.answer);
   }
 
+  // Kullanici istegi: havuz sorusuna begen/begenme ya da emoji tepkisi.
+  @UseGuards(JwtAuthGuard)
+  @Post("entries/:id/react")
+  async reactToEntry(
+    @Req() request: Request,
+    @Param("id") id: string,
+    @Body() dto: { emoji: string }
+  ) {
+    const userId = (request as any).user.sub;
+    return this.poolService.reactToEntry(id, userId, dto.emoji);
+  }
+
   // Kullanici istegi: "Tum Yanitlari Goster" modundaki sorularima
   // gelen, henuz kabul/reddedilmemis yanitlari listeler.
   @UseGuards(JwtAuthGuard)

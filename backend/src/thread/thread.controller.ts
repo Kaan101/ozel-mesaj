@@ -123,4 +123,16 @@ export class ThreadController {
     await this.threadService.deleteMessage(messageId, requestingUserId);
     return { message: "Mesaj silindi." };
   }
+
+  // Kullanici istegi: gelen mesaja begen/begenme ya da emoji tepkisi.
+  @UseGuards(JwtAuthGuard)
+  @Post(":threadId/messages/:messageId/react")
+  async reactToMessage(
+    @Req() request: Request,
+    @Param("messageId") messageId: string,
+    @Body() dto: { emoji: string }
+  ) {
+    const requestingUserId = (request as any).user.sub;
+    return this.threadService.reactToMessage(messageId, requestingUserId, dto.emoji);
+  }
 }
