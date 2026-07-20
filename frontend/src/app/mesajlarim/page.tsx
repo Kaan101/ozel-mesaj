@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
@@ -186,6 +187,14 @@ export default function MesajlarimPage() {
         <ConnectionIllustration className="mx-auto w-full max-w-[220px] h-auto" />
 
         <h1 className="font-display text-2xl font-bold text-slate">{t("mesajlarim.title")}</h1>
+
+        {/* Kullanici istegi: Mesajlarim sayfasindan da dogrudan yeni
+            mesaj olusturmaya gidebilecek bir buton. */}
+        <Link href="/mesaj/olustur">
+          <Button variant="secondary" className="w-full">
+            Yeni Mesaj
+          </Button>
+        </Link>
 
         {isLoading ? (
           <p className="font-body text-slate-light">{t("mesajlarim.loading")}</p>
