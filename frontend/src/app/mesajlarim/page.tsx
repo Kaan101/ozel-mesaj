@@ -186,15 +186,16 @@ export default function MesajlarimPage() {
             zaman gorunsun - sadece bos durumda degil. */}
         <ConnectionIllustration className="mx-auto w-full max-w-[220px] h-auto" />
 
-        <h1 className="font-display text-2xl font-bold text-slate">{t("mesajlarim.title")}</h1>
-
-        {/* Kullanici istegi: Mesajlarim sayfasindan da dogrudan yeni
-            mesaj olusturmaya gidebilecek bir buton. */}
-        <Link href="/mesaj/olustur">
-          <Button variant="secondary" className="w-full">
-            Yeni Mesaj
-          </Button>
-        </Link>
+        {/* Kullanici istegi: baslik ile "Yeni Mesaj" butonu ayni
+            satirda - buton kucultulup en saga alindi. */}
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-display text-2xl font-bold text-slate">{t("mesajlarim.title")}</h1>
+          <Link href="/mesaj/olustur">
+            <Button variant="secondary" className="!px-3 !py-1.5 !text-xs whitespace-nowrap">
+              Yeni Mesaj
+            </Button>
+          </Link>
+        </div>
 
         {isLoading ? (
           <p className="font-body text-slate-light">{t("mesajlarim.loading")}</p>
