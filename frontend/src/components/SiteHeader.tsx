@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { useAuth } from "@/lib/auth-context";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/lib/language-context";
+import { AccountMenu } from "./AccountMenu";
 
 // Kullanici geri bildirimi: tum ekranlarda sol tarafta ana menuye
 // donmeyi saglayacak bir yol olsun. Bu bileson layout.tsx uzerinden
@@ -19,20 +18,13 @@ import { useLanguage } from "@/lib/language-context";
 // tamamen kaldirildi - dil artik girişte secilen ulkeye gore otomatik
 // belirleniyor (bkz. lib/language-context.tsx).
 export function SiteHeader() {
-  const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isLoading, logout } = useAuth();
   const { t } = useLanguage();
 
   // Admin ekraninda header gostermiyoruz (bilerek gizli/linksiz tutulan
   // bir ekran, ustune nav eklemek amacina aykiri olur).
   if (pathname?.startsWith("/admin")) {
     return null;
-  }
-
-  function handleLogout() {
-    logout();
-    router.push("/");
   }
 
   return (
@@ -47,16 +39,9 @@ export function SiteHeader() {
         <Link href="/mesajlarim" className="font-body text-sm text-slate-light hover:text-slate">
           {t("nav.myMessages")}
         </Link>
-        {!isLoading &&
-          (isAuthenticated ? (
-            <Button variant="ghost" onClick={handleLogout}>
-              {t("nav.logout")}
-            </Button>
-          ) : (
-            <Link href="/giris">
-              <Button variant="ghost">{t("nav.login")}</Button>
-            </Link>
-          ))}
+        {/* Kullanici istegi: hesap menusu - temsili avatar resmiyle
+            acilir, altinda Ayarlar ve Cikis/Giris Yap secenekleri var. */}
+        <AccountMenu />
       </nav>
     </header>
   );
