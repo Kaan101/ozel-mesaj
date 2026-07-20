@@ -12,7 +12,7 @@ import { AvatarPicker } from "@/components/ui/AvatarPicker";
 import { AvatarId } from "@/components/ui/Avatar";
 import { useLanguage } from "@/lib/language-context";
 
-type Step = "form" | "checking" | "avatar";
+type Step = "form" | "checking" | "birthdate" | "rejected" | "avatar";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const REMEMBERED_PHONE_KEY = "remembered_phone_number";
@@ -27,7 +27,7 @@ const REMEMBERED_PHONE_KEY = "remembered_phone_number";
 function GirisFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, logout, isAuthenticated, isLoading: authLoading } = useAuth();
   const { t, setLanguageFromCountry } = useLanguage();
 
   const [step, setStep] = useState<Step>("form");
@@ -45,6 +45,10 @@ function GirisFormContent() {
   const [cooldown, setCooldown] = useState(0);
   const [selectedAvatarId, setSelectedAvatarId] = useState<AvatarId>("genc-erkek");
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  // Kullanici istegi: platform sadece 18+ icin calisir.
+  const [birthDateInput, setBirthDateInput] = useState("");
+  const [isSubmittingBirthDate, setIsSubmittingBirthDate] = useState(false);
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -62,7 +66,7 @@ function GirisFormContent() {
     // "avatar"/"checking" adimindaysak yonlendirmeyelim - kullanici az
     // once giris yapti (isAuthenticated true oldu) ama once avatar
     // secimini tamamlamasi gerekiyor.
-    if (!authLoading && isAuthenticated && step !== "avatar" && step !== "checking") {
+    if (!authLoading && isAuthenticated && step !== "avatar" && step !== "checking" && step !== "birthdate" && step !== "rejected") {
       const next = searchParams.get("next") ?? "/";
       router.replace(next);
     }
@@ -180,10 +184,16 @@ function GirisFormContent() {
       // engelliyoruz.
       setStep("checking");
 
-      // Kullanici geri bildirimi: giris akisinin bir parcasi olarak
-      // avatar secimi - kullanicinin daha once avatar secmemis olmasi
-      // durumunda (ilk giris) bu adimi gosteriyoruz.
-      const profile = await apiFetch<{ avatarId: string | null }>("/me");
+      // Kullanici istegi: platform sadece 18+ icin calisir - dogum
+      // tarihi henuz girilmemisse (ilk giris), avatar secimden ONCE
+      // bu adim gosterilir.
+      const profile = await apiFetch<{ avatarId: string | null; needsBirthDate: boolean }>(
+        "/me"
+      );
+      if (profile.needsBirthDate) {
+        setStep("birthdate");
+        return;
+      }
       if (!profile.avatarId) {
         setStep("avatar");
         return;
@@ -196,6 +206,46 @@ function GirisFormContent() {
       setError(describeError(err));
     } finally {
       setIsLoggingIn(false);
+    }
+  }
+
+  // Kullanici istegi: platform sadece 18+ icin calisir - dogum
+  // tarihi gonderilir, backend yasi hesaplayip kontrol eder.
+  async function handleSubmitBirthDate() {
+    if (!birthDateInput) {
+      setError("Lütfen doğum tarihini gir.");
+      return;
+    }
+    setIsSubmittingBirthDate(true);
+    setError(null);
+    try {
+      const result = await apiFetch<{ isAdult: boolean; message?: string }>(
+        "/me/birthdate",
+        {
+          method: "POST",
+          body: JSON.stringify({ birthDate: birthDateInput }),
+        }
+      );
+      if (!result.isAdult) {
+        setRejectionMessage(
+          result.message ?? "Üzgünüz, bu platform sadece 18 yaş ve üzerindeki kullanıcılar içindir."
+        );
+        setStep("rejected");
+        return;
+      }
+
+      // Yas kontrolu gecildi - simdi avatar adimina devam.
+      const profile = await apiFetch<{ avatarId: string | null }>("/me");
+      if (!profile.avatarId) {
+        setStep("avatar");
+        return;
+      }
+      const next = searchParams.get("next") ?? "/";
+      router.push(next);
+    } catch {
+      setError("Bir şeyler ters gitti. Lütfen tekrar dene.");
+    } finally {
+      setIsSubmittingBirthDate(false);
     }
   }
 
@@ -217,7 +267,7 @@ function GirisFormContent() {
 
   // Yonlendirme gerceklesene kadar formun bir an gorunmesini (flicker)
   // onlemek icin. Avatar/checking adimindaysak bu ekrani BOS gostermeyelim.
-  if ((authLoading || isAuthenticated) && step !== "avatar" && step !== "checking") {
+  if ((authLoading || isAuthenticated) && step !== "avatar" && step !== "checking" && step !== "birthdate" && step !== "rejected") {
     return <main className="min-h-screen bg-mint" />;
   }
 
@@ -352,6 +402,42 @@ function GirisFormContent() {
                   </button>
                 )}
               </div>
+            </div>
+          ) : step === "birthdate" ? (
+            <div className="space-y-4">
+              <p className="font-body text-sm text-slate-light text-center">
+                Devam edebilmek için doğum tarihini girmen gerekiyor. Bu platform sadece 18 yaş ve
+                üzerindeki kullanıcılar içindir.
+              </p>
+              <input
+                type="date"
+                value={birthDateInput}
+                onChange={(e) => setBirthDateInput(e.target.value)}
+                max={new Date().toISOString().split("T")[0]}
+                className="w-full rounded-full border-2 border-sky-light bg-white px-4 py-3 font-body text-slate focus:outline-none focus:border-sky"
+              />
+              {error && <p className="font-body text-sm text-coral">{error}</p>}
+              <Button
+                className="w-full"
+                onClick={handleSubmitBirthDate}
+                disabled={isSubmittingBirthDate || !birthDateInput}
+              >
+                {isSubmittingBirthDate ? "Kontrol ediliyor..." : "Devam Et"}
+              </Button>
+            </div>
+          ) : step === "rejected" ? (
+            <div className="space-y-4 text-center">
+              <div className="text-5xl">🔒</div>
+              <p className="font-body text-sm text-slate">{rejectionMessage}</p>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  logout();
+                  router.push("/");
+                }}
+              >
+                Anladım
+              </Button>
             </div>
           ) : step === "avatar" ? (
             <div className="space-y-4">

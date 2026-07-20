@@ -35,6 +35,9 @@ model User {
   // yonetim ekranindan, bilincli bir "ac" islemiyle cozulebilir.
   phoneNumberEncrypted String? @map("phone_number_encrypted")
   displayName     String?    @map("display_name")
+  // Kullanici istegi: platform sadece 18 yas ve uzeri icin calisir -
+  // ilk girişte toplanir, yas hesaplanip kontrol edilir.
+  birthDate       DateTime?  @map("birth_date")
   // Kullanici istegi: girisin bir parcasi olarak secilen 10 hazir
   // avatardan biri - hicbir gercek kimlik bilgisi tasimaz, sadece
   // gorsel bir tercih (Bolum 8 gizlilik modeline aykiri degil).
