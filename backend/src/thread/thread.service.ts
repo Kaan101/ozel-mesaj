@@ -12,6 +12,7 @@ import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { encryptReversible } from "../common/encryption.util";
 import { formatDayMonth } from "../common/date-format.util";
 import { NotificationService } from "../notifications/notification.service";
+import { summarizeReactions } from "../common/reactions.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 
 @Injectable()
@@ -555,6 +556,7 @@ export class ThreadService {
         // tercih) - bu yuzden anonim mesajlarda bile gosterilebilir,
         // sadece senderUserId (gercek kimlik baglantisi) gizlenir.
         sender: { select: { avatarId: true, displayName: true } },
+        reactions: { select: { emoji: true, userId: true } },
       },
     });
 
@@ -598,6 +600,9 @@ export class ThreadService {
       // yanlislikla "okunmus" gibi gosterilmemeli.
       readAt: unreadIdSet.has(message.id) ? now : message.readAt,
       createdAt: message.createdAt,
+      // Kullanici istegi: begen/begenme/emoji tepkileri - her emoji
+      // icin sayi + bu kullanicinin kendi tepkisi (varsa) donulur.
+      reactions: summarizeReactions(message.reactions, requestingUserId),
       // Kullanici istegi: "silinecek" mesajlar konusma ekraninda daha
       // soluk gosterilsin diye frontend'e bu bilgi de gonderilir.
       destroyAfterRead: message.destroyAfterRead,
@@ -737,5 +742,31 @@ export class ThreadService {
       where: { id: messageId },
       data: { deletedAt: new Date() },
     });
+  }
+
+  // Kullanici istegi: mesaja begen/begenme ya da emoji tepkisi -
+  // ayni emojiye tekrar basmak tepkiyi kaldirir (toggle), farkli bir
+  // emoji secmek onceki tepkiyi degistirir. Bir kullanicinin bir
+  // mesaja SADECE BIR tepkisi olabilir.
+  async reactToMessage(
+    messageId: string,
+    userId: string,
+    emoji: string
+  ): Promise<{ removed: boolean }> {
+    const existing = await this.prisma.messageReaction.findUnique({
+      where: { messageId_userId: { messageId, userId } },
+    });
+
+    if (existing && existing.emoji === emoji) {
+      await this.prisma.messageReaction.delete({ where: { id: existing.id } });
+      return { removed: true };
+    }
+
+    await this.prisma.messageReaction.upsert({
+      where: { messageId_userId: { messageId, userId } },
+      update: { emoji },
+      create: { messageId, userId, emoji },
+    });
+    return { removed: false };
   }
 }

@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
+import { ReactionBar } from "@/components/ui/ReactionBar";
 
 interface ThreadMeta {
   id: string;
@@ -31,6 +32,7 @@ interface DisplayMessage {
   senderDisplayName?: string | null;
   readAt: string | null;
   createdAt: string;
+  reactions: { counts: Record<string, number>; myReaction: string | null };
 }
 
 type ViewState = "loading" | "unlock" | "unlocking" | "reveal-gate" | "messages" | "error";
@@ -223,6 +225,30 @@ export default function MesajGosterPage() {
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
     } catch {
       alert("Mesaj silinemedi. Lütfen tekrar dene.");
+    }
+  }
+
+  // Kullanici istegi: gelen mesaja begen/begenme ya da emoji tepkisi.
+  async function handleReactToMessage(messageId: string, emoji: string) {
+    try {
+      const result = await apiFetch<{ removed: boolean }>(
+        `/threads/${threadId}/messages/${messageId}/react`,
+        { method: "POST", body: JSON.stringify({ emoji }) }
+      );
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId) return m;
+          const counts = { ...m.reactions.counts };
+          if (m.reactions.myReaction) {
+            counts[m.reactions.myReaction] = Math.max(0, (counts[m.reactions.myReaction] ?? 1) - 1);
+          }
+          const myReaction = result.removed ? null : emoji;
+          if (myReaction) counts[myReaction] = (counts[myReaction] ?? 0) + 1;
+          return { ...m, reactions: { counts, myReaction } };
+        })
+      );
+    } catch {
+      // Sessizce gec - tepki vermek kritik bir islem degil.
     }
   }
 
@@ -555,6 +581,10 @@ export default function MesajGosterPage() {
                     <p className="mt-2 font-body text-xs text-slate-light">
                       {new Date(msg.createdAt).toLocaleString("tr-TR")}
                     </p>
+                    <ReactionBar
+                      reactions={msg.reactions}
+                      onReact={(emoji) => handleReactToMessage(msg.id, emoji)}
+                    />
                   </div>
                 </div>
                 {/* Kullanici geri bildirimi: masaustu (fare) icin

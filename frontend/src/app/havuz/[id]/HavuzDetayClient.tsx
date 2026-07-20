@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Toggle } from "@/components/ui/Toggle";
+import { ReactionBar } from "@/components/ui/ReactionBar";
 
 interface PoolEntryDetail {
   id: string;
@@ -19,6 +20,7 @@ interface PoolEntryDetail {
   matchMode: string;
   createdAt: string;
   isOwner: boolean;
+  reactions: { counts: Record<string, number>; myReaction: string | null };
 }
 
 interface DisplayMessage {
@@ -183,6 +185,32 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
       }
     }
     return "Bir şeyler ters gitti. Lütfen tekrar dene.";
+  }
+
+  // Kullanici istegi: havuz sorusuna begen/begenme ya da emoji tepkisi.
+  async function handleReactToEntry(emoji: string) {
+    if (!entry) return;
+    try {
+      const result = await apiFetch<{ removed: boolean }>(`/pool/entries/${entryId}/react`, {
+        method: "POST",
+        body: JSON.stringify({ emoji }),
+      });
+      setEntry((prev) => {
+        if (!prev) return prev;
+        const counts = { ...prev.reactions.counts };
+        if (prev.reactions.myReaction) {
+          counts[prev.reactions.myReaction] = Math.max(
+            0,
+            (counts[prev.reactions.myReaction] ?? 1) - 1
+          );
+        }
+        const myReaction = result.removed ? null : emoji;
+        if (myReaction) counts[myReaction] = (counts[myReaction] ?? 0) + 1;
+        return { ...prev, reactions: { counts, myReaction } };
+      });
+    } catch {
+      // Sessizce gec - tepki vermek kritik bir islem degil.
+    }
   }
 
   async function handleAttempt() {
@@ -504,6 +532,11 @@ export default function HavuzDetayClient({ entryId }: { entryId: string }) {
           <p className="font-display text-lg font-semibold text-slate text-center">
             {entry?.questionText}
           </p>
+          {entry && (
+            <div className="flex justify-center">
+              <ReactionBar reactions={entry.reactions} onReact={handleReactToEntry} />
+            </div>
+          )}
           {entry?.matchMode === "review" && (
             <p className="font-body text-xs text-slate-light text-center bg-sky-light/40 rounded-xl px-3 py-2">
               Bu soruda yanıtlar soru sahibi tarafından tek tek incelenir — otomatik

@@ -52,6 +52,8 @@ model User {
   poolEntries      PoolEntry[]
   poolAttempts     PoolAttempt[]
   pushSubscriptions PushSubscription[]
+  messageReactions   MessageReaction[]
+  poolEntryReactions PoolEntryReaction[]
   blockedUsers     Block[]         @relation("Blocker")
   blockedByUsers   Block[]         @relation("Blocked")
   reports          Report[]
@@ -173,6 +175,8 @@ model Message {
   // erisim her zaman mumkun kalir.
   deletedAt DateTime? @map("deleted_at")
 
+  reactions MessageReaction[]
+
   @@index([threadId])
   @@map("messages")
 }
@@ -262,6 +266,7 @@ model PoolEntry {
   hiddenByOwner Boolean @default(false) @map("hidden_by_owner")
 
   attempts PoolAttempt[]
+  reactions PoolEntryReaction[]
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -473,6 +478,42 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// Kullanici istegi: gelen mesaja/soruya begen-begenme ya da ikon
+// (emoji) gonderme ozelligi. Bir kullanicinin bir hedefe (mesaj/soru)
+// SADECE BIR tepkisi olabilir - ayni emojiye tekrar basmak tepkiyi
+// kaldirir, farkli bir emoji secmek onceki tepkiyi degistirir.
+model MessageReaction {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @map("message_id") @db.Uuid
+  message   Message @relation(fields: [messageId], references: [id])
+  userId    String @map("user_id") @db.Uuid
+  user      User   @relation(fields: [userId], references: [id])
+
+  emoji String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@map("message_reactions")
+}
+
+model PoolEntryReaction {
+  id          String    @id @default(uuid()) @db.Uuid
+  poolEntryId String    @map("pool_entry_id") @db.Uuid
+  poolEntry   PoolEntry @relation(fields: [poolEntryId], references: [id])
+  userId      String    @map("user_id") @db.Uuid
+  user        User      @relation(fields: [userId], references: [id])
+
+  emoji String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([poolEntryId, userId])
+  @@index([poolEntryId])
+  @@map("pool_entry_reactions")
 }
 
 
