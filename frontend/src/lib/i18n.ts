@@ -167,6 +167,7 @@ type TranslationKey =
   | "havuz.loading"
   | "havuz.empty"
   | "mesajlarim.title"
+  | "mesajlarim.newMessage"
   | "mesajlarim.loading"
   | "mesajlarim.empty"
   | "mesajlarim.received"
@@ -284,6 +285,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "havuz.loading": "Yükleniyor...",
     "havuz.empty": "Bu kategoride henüz bir soru yok.",
     "mesajlarim.title": "Mesajlarım",
+    "mesajlarim.newMessage": "Yeni Mesaj",
     "mesajlarim.loading": "Yükleniyor...",
     "mesajlarim.empty": "Henüz bir mesajın yok.",
     "mesajlarim.received": "📥 Bana Gelenler",
@@ -306,7 +308,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
   },
   en: {
     "nav.pool": "Pool",
-    "nav.myMessages": "My Messages",
+    "nav.myMessages": "Messages",
     "nav.login": "Log In",
     "nav.logout": "Log Out",
     "landing.hero.title.part1": "Say what you want to say to them,",
@@ -399,7 +401,8 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "havuz.all": "All",
     "havuz.loading": "Loading...",
     "havuz.empty": "No questions in this category yet.",
-    "mesajlarim.title": "My Messages",
+    "mesajlarim.title": "Messages",
+    "mesajlarim.newMessage": "New Message",
     "mesajlarim.loading": "Loading...",
     "mesajlarim.empty": "You don't have any messages yet.",
     "mesajlarim.received": "📥 Received",

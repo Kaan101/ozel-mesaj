@@ -136,4 +136,11 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: "Bildirim Icin Maksimum Ekran Genisligi (px)",
     description: "Tarayici penceresi bu genislikten (piksel) DAHA GENISSE (orn. masaustu), bildirim izni istenmez - sadece mobil boyuttaki ekranlarda calisir. 0 girilirse genislik kontrolu devre disi kalir (her boyutta calisir).",
   },
+  {
+    key: "MULTI_LANGUAGE_ENABLED",
+    envFallback: "MULTI_LANGUAGE_ENABLED",
+    defaultValue: 1,
+    label: "Coklu Dil Destegi (1=Acik, 0=Kapali)",
+    description: "Kapatilirsa, girişte ulkeye gore otomatik dil secimi devre disi kalir - sistem HER ZAMAN Ingilizce calisir (varsayilan).",
+  },
 ];

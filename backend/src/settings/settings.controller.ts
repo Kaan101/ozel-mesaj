@@ -26,6 +26,15 @@ export class SettingsController {
     return { enabled: enabled === 1, maxWidthPx };
   }
 
+  // Kullanici istegi: kapatilirsa sistem HER ZAMAN Ingilizce calisir -
+  // frontend bu bayrağı ulkeye gore otomatik dil secimini yapmadan
+  // once kontrol eder.
+  @Get("public/multi-language-enabled")
+  async getMultiLanguageEnabled() {
+    const value = await this.settingsService.getNumber("MULTI_LANGUAGE_ENABLED");
+    return { enabled: value === 1 };
+  }
+
   @UseGuards(AdminGuard)
   @Get()
   async list() {
