@@ -198,13 +198,24 @@ export default function MesajOlusturPage() {
             onChange={(e) => setBody(e.target.value)}
           />
 
-          {/* Kullanici geri bildirimi: soru-cevap eklemek istege bagli */}
-          <Toggle
-            id="add-question-toggle"
-            checked={addQuestion}
-            onChange={setAddQuestion}
-            label={t("mesajOlustur.addQuestionLabel")}
-          />
+          {/* Kullanici geri bildirimi: soru-cevap eklemek istege bagli.
+              Kullanici istegi: "Question" ve "Delete after read"
+              yan yana, aralarinda tam olarak 2 karakter (2ch)
+              bosluk. */}
+          <div className="flex items-center" style={{ gap: "2ch" }}>
+            <Toggle
+              id="add-question-toggle"
+              checked={addQuestion}
+              onChange={setAddQuestion}
+              label={t("mesajOlustur.addQuestionLabel")}
+            />
+            <Toggle
+              id="destroy-after-read-toggle"
+              checked={destroyAfterRead}
+              onChange={setDestroyAfterRead}
+              label={t("mesajOlustur.destroyAfterRead")}
+            />
+          </div>
 
           {addQuestion && (
             <div className="space-y-3 rounded-2xl bg-sky-light/40 p-3">
@@ -225,27 +236,15 @@ export default function MesajOlusturPage() {
 
           {/* Gorev 11.3: Anonim/Acik kimlik toggle - kullanici istegi:
               /ayarlar'da "her zaman goster" secilmisse bu secenek
-              hic gosterilmez. Kullanici istegi: "okunduktan sonra
-              sil" secenegiyle ayni satirda, aralarinda maksimum
-              bosluk (justify-between) ile gosterilir. */}
-          <div className="flex items-center justify-between gap-3">
-            {!alwaysShowName ? (
-              <Toggle
-                id="anon-toggle-create"
-                checked={isAnonymous}
-                onChange={setIsAnonymous}
-                label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
-              />
-            ) : (
-              <span />
-            )}
+              hic gosterilmez. */}
+          {!alwaysShowName && (
             <Toggle
-              id="destroy-after-read-toggle"
-              checked={destroyAfterRead}
-              onChange={setDestroyAfterRead}
-              label={t("mesajOlustur.destroyAfterRead")}
+              id="anon-toggle-create"
+              checked={isAnonymous}
+              onChange={setIsAnonymous}
+              label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
             />
-          </div>
+          )}
 
           {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
               telefon/OTP ile giris yapiyor, bu sadece ek bir bildirim

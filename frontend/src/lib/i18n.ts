@@ -360,7 +360,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.phoneLabel": "Recipient's Phone Number",
     "mesajOlustur.messageLabel": "Your Message",
     "mesajOlustur.messagePlaceholder": "I'd love to get to know you, want to grab a coffee?",
-    "mesajOlustur.addQuestionLabel": "With a question",
+    "mesajOlustur.addQuestionLabel": "Question",
     "mesajOlustur.destroyAfterRead": "Delete after read",
     "mesajOlustur.questionLabel": "Your Question",
     "mesajOlustur.questionPlaceholder": "Where did we first meet?",
