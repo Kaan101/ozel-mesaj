@@ -225,21 +225,20 @@ export default function MesajOlusturPage() {
 
           {/* Gorev 11.3: Anonim/Acik kimlik toggle - kullanici istegi:
               /ayarlar'da "her zaman goster" secilmisse bu secenek
-              hic gosterilmez. */}
-          {!alwaysShowName && (
-            <Toggle
-              id="anon-toggle-create"
-              checked={isAnonymous}
-              onChange={setIsAnonymous}
-              label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
-            />
-          )}
-
-          {/* Kullanici istegi: mesaj okunduktan sonra uygulamadan
-              silinsin secenegi - hukuki ispat icin sifreli arsiv
-              kopyasi (MessageAudit) yine de kalir. Kullanici istegi:
-              saga yaslandi. */}
-          <div className="flex justify-end">
+              hic gosterilmez. Kullanici istegi: "okunduktan sonra
+              sil" secenegiyle ayni satirda, aralarinda maksimum
+              bosluk (justify-between) ile gosterilir. */}
+          <div className="flex items-center justify-between gap-3">
+            {!alwaysShowName ? (
+              <Toggle
+                id="anon-toggle-create"
+                checked={isAnonymous}
+                onChange={setIsAnonymous}
+                label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
+              />
+            ) : (
+              <span />
+            )}
             <Toggle
               id="destroy-after-read-toggle"
               checked={destroyAfterRead}

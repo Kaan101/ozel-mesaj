@@ -642,19 +642,20 @@ export default function MesajGosterPage() {
               placeholder="Merhaba, ben de..."
             />
             {/* Kullanici istegi: /ayarlar'da "her zaman goster"
-                secilmisse bu secenek hic gosterilmez. */}
-            {!alwaysShowName && (
-              <Toggle
-                id="reply-anon-toggle"
-                checked={replyAnonymous}
-                onChange={setReplyAnonymous}
-                label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
-              />
-            )}
-            {/* Kullanici istegi: mesaj okunduktan sonra uygulamadan
-                silinsin secenegi - hukuki ispat icin sifreli arsiv
-                kopyasi yine de kalir. Kullanici istegi: saga yaslandi. */}
-            <div className="flex justify-end">
+                secilmisse bu secenek hic gosterilmez. "okunduktan
+                sonra sil" secenegiyle ayni satirda, aralarinda
+                maksimum bosluk (justify-between) ile gosterilir. */}
+            <div className="flex items-center justify-between gap-3">
+              {!alwaysShowName ? (
+                <Toggle
+                  id="reply-anon-toggle"
+                  checked={replyAnonymous}
+                  onChange={setReplyAnonymous}
+                  label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
+                />
+              ) : (
+                <span />
+              )}
               <Toggle
                 id="reply-destroy-after-read-toggle"
                 checked={replyDestroyAfterRead}
