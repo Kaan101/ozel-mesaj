@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
+import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 
@@ -20,6 +20,7 @@ interface MyThread {
   firstMessageBody: string | null;
   recipientPhoneDisplay: string | null;
   counterpartAvatarId: string | null;
+  counterpartAvatarConfig: Record<string, unknown> | null;
   createdAt: string;
   lastMessageAt: string;
   role: "initiator" | "recipient";
@@ -283,7 +284,11 @@ function ThreadCard({
             <div className="flex items-start justify-between gap-2">
               {thread.counterpartAvatarId && (
                 <div className="shrink-0">
-                  <Avatar avatarId={thread.counterpartAvatarId} size={40} />
+                  <AvatarDisplay
+                    avatarId={thread.counterpartAvatarId}
+                    avatarConfig={thread.counterpartAvatarConfig}
+                    size={40}
+                  />
                 </div>
               )}
               <div className="min-w-0 flex-1">

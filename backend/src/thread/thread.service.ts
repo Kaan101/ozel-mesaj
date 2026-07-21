@@ -365,8 +365,8 @@ export class ThreadService {
         recipientRevealedAt: true,
         // Kullanici geri bildirimi: karsi tarafin avatari listede de
         // gorunsun - avatar gercek kimlik tasimadigi icin sakincasiz.
-        initiator: { select: { avatarId: true } },
-        recipient: { select: { avatarId: true } },
+        initiator: { select: { avatarId: true, avatarConfig: true } },
+        recipient: { select: { avatarId: true, avatarConfig: true } },
         // Bug duzeltmesi: listede EN SON mesaj gosterilmeli, ilk mesaj
         // degil - aksi halde yeni gelen yanitlar listeye hic yansimaz
         // (kullanici geri bildirimi).
@@ -423,6 +423,10 @@ export class ThreadService {
         const canShowBody = (t.lockType === "none" || role === "initiator") && hasRevealed;
         const counterpartAvatarId =
           role === "initiator" ? t.recipient?.avatarId : t.initiator.avatarId;
+        // Kullanici istegi: zengin ozellestirilebilir avatar (DiceBear)
+        // - doluysa avatarId'den ONCELIKLIDIR (bkz. frontend AvatarDisplay).
+        const counterpartAvatarConfig =
+          role === "initiator" ? t.recipient?.avatarConfig : t.initiator.avatarConfig;
 
         // Kullanici istegi: havuz eslesmelerinde (originType='pool')
         // liste basligi SABIT olmali - soru sahibine "Soru - Cevap",
@@ -457,6 +461,7 @@ export class ThreadService {
           // veya baska hic kimseye asla donmez (Bolum 8, 10).
           recipientPhoneDisplay: role === "initiator" ? t.recipientPhoneDisplay : null,
           counterpartAvatarId,
+          counterpartAvatarConfig,
           createdAt: t.createdAt,
           lastMessageAt,
           role,
@@ -555,7 +560,7 @@ export class ThreadService {
         // Avatar gercek kimlik tasimaz (sadece cizgisel bir gorsel
         // tercih) - bu yuzden anonim mesajlarda bile gosterilebilir,
         // sadece senderUserId (gercek kimlik baglantisi) gizlenir.
-        sender: { select: { avatarId: true, displayName: true } },
+        sender: { select: { avatarId: true, avatarConfig: true, displayName: true } },
         reactions: { select: { emoji: true, userId: true } },
       },
     });
@@ -587,6 +592,7 @@ export class ThreadService {
       isSystemMessage: message.isSystemMessage,
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
       senderAvatarId: message.sender?.avatarId ?? null,
+      senderAvatarConfig: message.sender?.avatarConfig ?? null,
       // Kullanici istegi: anonim OLMAYAN mesajlarda, gonderenin
       // /ayarlar'da girdigi gorunen ad avatarin altinda gosterilir -
       // anonim mesajlarda (isAnonymous=true) hicbir zaman gonderilmez.

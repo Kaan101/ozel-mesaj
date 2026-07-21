@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { apiFetch } from "@/lib/api-client";
-import { Avatar, AvatarId } from "@/components/ui/Avatar";
+import { AvatarId } from "@/components/ui/Avatar";
+import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
+import { AvatarConfig } from "@/lib/dicebear-avatar";
 import { Button } from "@/components/ui/Button";
 
 // Kullanici istegi: ana menude, temsili bir resimle (kendi avatarim)
@@ -18,12 +20,16 @@ export function AccountMenu() {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarId, setAvatarId] = useState<AvatarId | null>(null);
+  const [avatarConfig, setAvatarConfig] = useState<Partial<AvatarConfig> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    apiFetch<{ avatarId: AvatarId | null }>("/me")
-      .then((data) => setAvatarId(data.avatarId))
+    apiFetch<{ avatarId: AvatarId | null; avatarConfig: Partial<AvatarConfig> | null }>("/me")
+      .then((data) => {
+        setAvatarId(data.avatarId);
+        setAvatarConfig(data.avatarConfig);
+      })
       .catch(() => {});
   }, [isAuthenticated]);
 
@@ -62,8 +68,8 @@ export function AccountMenu() {
         className="flex items-center justify-center rounded-full ring-2 ring-transparent hover:ring-sky-light transition-shadow"
         aria-label="Hesap Menüsü"
       >
-        {avatarId ? (
-          <Avatar avatarId={avatarId} size={36} />
+        {avatarId || avatarConfig ? (
+          <AvatarDisplay avatarId={avatarId} avatarConfig={avatarConfig} size={36} />
         ) : (
           <div className="h-9 w-9 rounded-full bg-sky-light" />
         )}

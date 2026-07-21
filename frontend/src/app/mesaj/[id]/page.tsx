@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-import { Avatar } from "@/components/ui/Avatar";
+import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
 import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 import { ReactionBar } from "@/components/ui/ReactionBar";
@@ -30,6 +30,7 @@ interface DisplayMessage {
   isSystemMessage?: boolean;
   senderUserId?: string;
   senderAvatarId?: string | null;
+  senderAvatarConfig?: Record<string, unknown> | null;
   senderDisplayName?: string | null;
   readAt: string | null;
   createdAt: string;
@@ -580,7 +581,11 @@ export default function MesajGosterPage() {
                 <div className="flex items-start gap-3">
                   {msg.senderAvatarId && (
                     <div className="shrink-0 text-center">
-                      <Avatar avatarId={msg.senderAvatarId} size={36} />
+                      <AvatarDisplay
+                        avatarId={msg.senderAvatarId}
+                        avatarConfig={msg.senderAvatarConfig}
+                        size={36}
+                      />
                       {/* Kullanici istegi: anonim olmayan mesajlarda,
                           gonderenin /ayarlar'da girdigi gorunen ad
                           avatarin altinda gosterilir. */}
