@@ -510,7 +510,16 @@ export default function MesajGosterPage() {
         <div className="mx-auto max-w-md space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-display text-2xl font-bold text-slate">{pageTitle}</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="font-display text-2xl font-bold text-slate">{pageTitle}</h1>
+                {/* Kullanici istegi: mesaja hava durumu eklenmisse,
+                    sayfa basliginin yaninda (biraz bosluklu) gosterilir. */}
+                {messages[0]?.weatherSummary && (
+                  <span className="font-body text-sm text-slate-light whitespace-nowrap">
+                    {messages[0].weatherSummary}
+                  </span>
+                )}
+              </div>
               {firstMessageDate && (
                 <p className="font-body text-xs text-slate-light mt-0.5">
                   {new Date(firstMessageDate).toLocaleString("tr-TR", {
@@ -608,9 +617,6 @@ export default function MesajGosterPage() {
                     <p className="font-body text-slate">{msg.body}</p>
                     <p className="mt-2 font-body text-xs text-slate-light">
                       {new Date(msg.createdAt).toLocaleString("tr-TR")}
-                      {/* Kullanici istegi: gonderen isterse anlik hava
-                          durumunu mesajla birlikte gondersin. */}
-                      {msg.weatherSummary && <> · {msg.weatherSummary}</>}
                     </p>
                     <ReactionBar
                       reactions={msg.reactions}
