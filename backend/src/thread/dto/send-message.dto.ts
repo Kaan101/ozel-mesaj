@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, MinLength } from "class-validator";
+import { IsBoolean, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class SendMessageDto {
   @IsString()
@@ -12,4 +12,11 @@ export class SendMessageDto {
   @IsOptional()
   @IsBoolean()
   destroyAfterRead?: boolean;
+
+  // Kullanici istegi: mesaj yazarken anlik hava durumu ozeti (opsiyonel,
+  // kisa metin - konum koordinati backend'e hic gonderilmez).
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  weatherSummary?: string;
 }

@@ -95,6 +95,7 @@ export class ThreadService {
               body: dto.body,
               isAnonymous: dto.isAnonymous,
               destroyAfterRead: dto.destroyAfterRead ?? false,
+              weatherSummary: dto.weatherSummary ?? null,
             },
           ],
         },
@@ -593,6 +594,7 @@ export class ThreadService {
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
       senderAvatarId: message.sender?.avatarId ?? null,
       senderAvatarConfig: message.sender?.avatarConfig ?? null,
+      weatherSummary: message.weatherSummary ?? null,
       // Kullanici istegi: anonim OLMAYAN mesajlarda, gonderenin
       // /ayarlar'da girdigi gorunen ad avatarin altinda gosterilir -
       // anonim mesajlarda (isAnonymous=true) hicbir zaman gonderilmez.
@@ -623,7 +625,8 @@ export class ThreadService {
     senderUserId: string,
     body: string,
     isAnonymous: boolean,
-    destroyAfterRead: boolean = false
+    destroyAfterRead: boolean = false,
+    weatherSummary?: string
   ) {
     // Kullanici istegi: bloke edilmis (askiya alinmis) bir kullanici
     // mevcut bir konusmada da mesaj GONDEREMEZ.
@@ -678,6 +681,7 @@ export class ThreadService {
         body,
         isAnonymous,
         destroyAfterRead,
+        weatherSummary: weatherSummary ?? null,
       },
     });
 
