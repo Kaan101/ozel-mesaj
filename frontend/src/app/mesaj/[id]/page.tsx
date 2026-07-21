@@ -642,27 +642,21 @@ export default function MesajGosterPage() {
               placeholder="Merhaba, ben de..."
             />
             {/* Kullanici istegi: /ayarlar'da "her zaman goster"
-                secilmisse bu secenek hic gosterilmez. "okunduktan
-                sonra sil" secenegiyle ayni satirda, aralarinda
-                maksimum bosluk (justify-between) ile gosterilir. */}
-            <div className="flex items-center justify-between gap-3">
-              {!alwaysShowName ? (
-                <Toggle
-                  id="reply-anon-toggle"
-                  checked={replyAnonymous}
-                  onChange={setReplyAnonymous}
-                  label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
-                />
-              ) : (
-                <span />
-              )}
+                secilmisse bu secenek hic gosterilmez. */}
+            {!alwaysShowName && (
               <Toggle
-                id="reply-destroy-after-read-toggle"
-                checked={replyDestroyAfterRead}
-                onChange={setReplyDestroyAfterRead}
-                label={t("mesajOlustur.destroyAfterRead")}
+                id="reply-anon-toggle"
+                checked={replyAnonymous}
+                onChange={setReplyAnonymous}
+                label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
               />
-            </div>
+            )}
+            <Toggle
+              id="reply-destroy-after-read-toggle"
+              checked={replyDestroyAfterRead}
+              onChange={setReplyDestroyAfterRead}
+              label={t("mesajOlustur.destroyAfterRead")}
+            />
             {replyError && <p className="font-body text-sm text-coral">{replyError}</p>}
             <Button className="w-full" onClick={handleReply} disabled={isReplying || !replyBody}>
               {isReplying ? "Gönderiliyor..." : "Yanıtla"}
