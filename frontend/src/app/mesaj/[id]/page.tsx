@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 import { ReactionBar } from "@/components/ui/ReactionBar";
+import { useLanguage } from "@/lib/language-context";
 
 interface ThreadMeta {
   id: string;
@@ -66,6 +67,7 @@ export default function MesajGosterPage() {
   const threadId = params.id as string;
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { t } = useLanguage();
 
   const [view, setView] = useState<ViewState>("loading");
   const [meta, setMeta] = useState<ThreadMeta | null>(null);
@@ -656,7 +658,7 @@ export default function MesajGosterPage() {
               id="reply-destroy-after-read-toggle"
               checked={replyDestroyAfterRead}
               onChange={setReplyDestroyAfterRead}
-              label="Okunduktan sonra silinsin"
+              label={t("mesajOlustur.destroyAfterRead")}
             />
             {replyError && <p className="font-body text-sm text-coral">{replyError}</p>}
             <Button className="w-full" onClick={handleReply} disabled={isReplying || !replyBody}>

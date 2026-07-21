@@ -124,6 +124,7 @@ type TranslationKey =
   | "mesajOlustur.messageLabel"
   | "mesajOlustur.messagePlaceholder"
   | "mesajOlustur.addQuestionLabel"
+  | "mesajOlustur.destroyAfterRead"
   | "mesajOlustur.questionLabel"
   | "mesajOlustur.questionPlaceholder"
   | "mesajOlustur.answerLabel"
@@ -242,6 +243,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.messageLabel": "Mesajın",
     "mesajOlustur.messagePlaceholder": "Seninle tanışmak isterim, bir kahve içelim mi?",
     "mesajOlustur.addQuestionLabel": "Bir soru-cevap ile korumak ister misin?",
+    "mesajOlustur.destroyAfterRead": "Okunduktan sonra silinsin",
     "mesajOlustur.questionLabel": "Sorun",
     "mesajOlustur.questionPlaceholder": "Nerede tanıştık?",
     "mesajOlustur.answerLabel": "Doğru Cevap",
@@ -358,7 +360,8 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.phoneLabel": "Recipient's Phone Number",
     "mesajOlustur.messageLabel": "Your Message",
     "mesajOlustur.messagePlaceholder": "I'd love to get to know you, want to grab a coffee?",
-    "mesajOlustur.addQuestionLabel": "Want to protect it with a question?",
+    "mesajOlustur.addQuestionLabel": "With a question",
+    "mesajOlustur.destroyAfterRead": "Delete after read",
     "mesajOlustur.questionLabel": "Your Question",
     "mesajOlustur.questionPlaceholder": "Where did we first meet?",
     "mesajOlustur.answerLabel": "Correct Answer",
