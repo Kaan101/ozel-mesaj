@@ -653,13 +653,15 @@ export default function MesajGosterPage() {
             )}
             {/* Kullanici istegi: mesaj okunduktan sonra uygulamadan
                 silinsin secenegi - hukuki ispat icin sifreli arsiv
-                kopyasi yine de kalir. */}
-            <Toggle
-              id="reply-destroy-after-read-toggle"
-              checked={replyDestroyAfterRead}
-              onChange={setReplyDestroyAfterRead}
-              label={t("mesajOlustur.destroyAfterRead")}
-            />
+                kopyasi yine de kalir. Kullanici istegi: saga yaslandi. */}
+            <div className="flex justify-end">
+              <Toggle
+                id="reply-destroy-after-read-toggle"
+                checked={replyDestroyAfterRead}
+                onChange={setReplyDestroyAfterRead}
+                label={t("mesajOlustur.destroyAfterRead")}
+              />
+            </div>
             {replyError && <p className="font-body text-sm text-coral">{replyError}</p>}
             <Button className="w-full" onClick={handleReply} disabled={isReplying || !replyBody}>
               {isReplying ? "Gönderiliyor..." : "Yanıtla"}
