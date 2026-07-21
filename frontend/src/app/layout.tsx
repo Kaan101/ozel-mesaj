@@ -3,6 +3,7 @@ import { Baloo_2, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-service-worker";
 import { NotificationPrompt } from "./notification-prompt";
+import { ReleaseFooter } from "./release-footer";
 import { AuthProvider } from "@/lib/auth-context";
 import { LanguageProvider } from "@/lib/language-context";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -70,6 +71,7 @@ export default function RootLayout({
           <AuthProvider>
             <SiteHeader />
             {children}
+            <ReleaseFooter />
             <RegisterServiceWorker />
             <NotificationPrompt />
           </AuthProvider>
