@@ -237,13 +237,16 @@ export default function MesajOlusturPage() {
 
           {/* Kullanici istegi: mesaj okunduktan sonra uygulamadan
               silinsin secenegi - hukuki ispat icin sifreli arsiv
-              kopyasi (MessageAudit) yine de kalir. */}
-          <Toggle
-            id="destroy-after-read-toggle"
-            checked={destroyAfterRead}
-            onChange={setDestroyAfterRead}
-            label={t("mesajOlustur.destroyAfterRead")}
-          />
+              kopyasi (MessageAudit) yine de kalir. Kullanici istegi:
+              saga yaslandi. */}
+          <div className="flex justify-end">
+            <Toggle
+              id="destroy-after-read-toggle"
+              checked={destroyAfterRead}
+              onChange={setDestroyAfterRead}
+              label={t("mesajOlustur.destroyAfterRead")}
+            />
+          </div>
 
           {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
               telefon/OTP ile giris yapiyor, bu sadece ek bir bildirim
