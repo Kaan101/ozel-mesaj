@@ -43,6 +43,7 @@ describe("ThreadService", () => {
           useValue: {
             user: { upsert: jest.fn(), findUnique: jest.fn() },
             messageThread: { create: jest.fn(), findUnique: jest.fn() },
+            block: { delete: jest.fn().mockRejectedValue(new Error("not found")) },
             message: {
               create: jest.fn(),
               findMany: jest.fn(),

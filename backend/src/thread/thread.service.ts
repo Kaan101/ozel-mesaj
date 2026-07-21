@@ -632,6 +632,33 @@ export class ThreadService {
       throw new ForbiddenException("Hesabın askıya alındığı için mesaj gönderemezsin.");
     }
 
+    // Kullanici istegi: bir kisi, daha once bloke ettigi biriyle olan
+    // bir konusmaya (ornegin /ayarlar > Bloklanmis Mesajlar'dan) YANIT
+    // VERIRSE, blok otomatik olarak kalkar - artik mesajlasmaya
+    // devam edebilirler.
+    const threadForBlockCheck = await this.prisma.messageThread.findUnique({
+      where: { id: threadId },
+      select: { initiatorUserId: true, recipientUserId: true },
+    });
+    if (threadForBlockCheck) {
+      const counterpartId =
+        threadForBlockCheck.initiatorUserId === senderUserId
+          ? threadForBlockCheck.recipientUserId
+          : threadForBlockCheck.initiatorUserId;
+      if (counterpartId) {
+        await this.prisma.block
+          .delete({
+            where: {
+              blockerUserId_blockedUserId: {
+                blockerUserId: senderUserId,
+                blockedUserId: counterpartId,
+              },
+            },
+          })
+          .catch(() => {}); // Blok kaydi yoksa sessizce gec.
+      }
+    }
+
     // Kullanici istegi: bir iletisimde birikebilecek maksimum mesaj
     // sayisi - asiri buyumeyi/kotuye kullanimi onlemek icin.
     const maxMessageCount = await this.settings.getNumber("THREAD_MAX_MESSAGE_COUNT");

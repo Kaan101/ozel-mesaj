@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +19,14 @@ interface Profile {
   createdAt: string;
   alwaysShowName: boolean;
   avatarConfig: AvatarConfig | null;
+}
+
+// Kullanici istegi: bir kisi mesaj alip gonderen kisiyi bloklamis
+// olsa bile, o mesajlara buradan erisebilsin.
+interface BlockedThread {
+  threadId: string;
+  createdAt: string;
+  firstMessageBody: string | null;
 }
 
 // Gorev 13.4 + 13.5: Ayarlar sayfasi (profil duzenleme) + KVKK
@@ -38,6 +47,10 @@ export default function AyarlarPage() {
   // Kullanici istegi: avatar duzenleme bolumu acilir-kapanir olsun -
   // varsayilan kapali, sayfa daha sade acilir.
   const [isAvatarExpanded, setIsAvatarExpanded] = useState(false);
+  // Kullanici istegi: bloklanmis mesajlara erisip isterse yanit
+  // verebilecegi bir bolum - acilir-kapanir.
+  const [isBlockedExpanded, setIsBlockedExpanded] = useState(false);
+  const [blockedThreads, setBlockedThreads] = useState<BlockedThread[]>([]);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -62,6 +75,14 @@ export default function AyarlarPage() {
       }
     });
   }, [isAuthenticated]);
+
+  // Kullanici istegi: bolum acildiginda bloklanmis thread'leri cek.
+  useEffect(() => {
+    if (!isBlockedExpanded || !isAuthenticated) return;
+    apiFetch<BlockedThread[]>("/safety/blocked-threads")
+      .then(setBlockedThreads)
+      .catch(() => {});
+  }, [isBlockedExpanded, isAuthenticated]);
 
   async function handleSaveProfile() {
     setIsSaving(true);
@@ -142,6 +163,57 @@ export default function AyarlarPage() {
                 {isSavingAvatar ? "Kaydediliyor..." : "Avatarı Kaydet"}
               </Button>
             </>
+          )}
+        </Card>
+
+        {/* Kullanici istegi: bir kisi mesaj alip gonderen kisiyi
+            bloklamis olsa bile, o mesajlara buradan erisebilsin -
+            isterse sonradan yanit verebilsin. Yanit verince blok
+            OTOMATIK kalkar (bkz. ThreadService.sendMessage). */}
+        <Card lifted className="space-y-4">
+          <button
+            type="button"
+            onClick={() => setIsBlockedExpanded((v) => !v)}
+            className="flex w-full items-center justify-between"
+          >
+            <h2 className="font-display text-lg font-bold text-slate">Bloklanmış Mesajlar</h2>
+            <span
+              className={`font-body text-slate-light transition-transform ${
+                isBlockedExpanded ? "rotate-180" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+          {isBlockedExpanded && (
+            <div className="space-y-2">
+              {blockedThreads.length === 0 ? (
+                <p className="font-body text-sm text-slate-light">
+                  Bloke ettiğin kimseden gelen mesaj yok.
+                </p>
+              ) : (
+                <>
+                  <p className="font-body text-xs text-slate-light">
+                    Bir konuşmayı açıp yanıt verirsen, o kişiyi bloke etmiş olman otomatik
+                    olarak kalkar.
+                  </p>
+                  {blockedThreads.map((t) => (
+                    <Link
+                      key={t.threadId}
+                      href={`/mesaj/${t.threadId}`}
+                      className="block rounded-2xl border-2 border-slate-light/30 bg-white px-4 py-3 hover:bg-mint"
+                    >
+                      <p className="font-body text-sm text-slate line-clamp-1">
+                        {t.firstMessageBody ?? "Parola korumalı mesaj"}
+                      </p>
+                      <p className="mt-1 font-body text-xs text-slate-light">
+                        {new Date(t.createdAt).toLocaleDateString("tr-TR")}
+                      </p>
+                    </Link>
+                  ))}
+                </>
+              )}
+            </div>
           )}
         </Card>
 
