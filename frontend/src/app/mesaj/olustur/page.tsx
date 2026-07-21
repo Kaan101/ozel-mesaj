@@ -57,6 +57,10 @@ export default function MesajOlusturPage() {
   // secilmisse, buradaki anonimlik secenegi hic gosterilmez - mesaj
   // her zaman adiyla gonderilir.
   const [alwaysShowName, setAlwaysShowName] = useState(false);
+  // Kullanici istegi: mesaj gonderirken tum secenekler (soru, okunduktan
+  // sonra sil, anonimlik, e-posta) acilir-kapanir bir bolumde - kapaliyken
+  // hicbir secenek gorunmez.
+  const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -198,76 +202,97 @@ export default function MesajOlusturPage() {
             onChange={(e) => setBody(e.target.value)}
           />
 
-          {/* Kullanici geri bildirimi: soru-cevap eklemek istege bagli.
-              Kullanici istegi: "Question" ve "Delete after read"
-              yan yana, aralarinda tam olarak 2 karakter (2ch)
-              bosluk. */}
-          <div className="flex items-center" style={{ gap: "2ch" }}>
-            <Toggle
-              id="add-question-toggle"
-              checked={addQuestion}
-              onChange={setAddQuestion}
-              label={t("mesajOlustur.addQuestionLabel")}
-            />
-            <Toggle
-              id="destroy-after-read-toggle"
-              checked={destroyAfterRead}
-              onChange={setDestroyAfterRead}
-              label={t("mesajOlustur.destroyAfterRead")}
-            />
-          </div>
+          {/* Kullanici istegi: tum secenekler acilir-kapanir bir
+              bolumde - kapaliyken hicbir secenek gorunmez. */}
+          <button
+            type="button"
+            onClick={() => setIsOptionsExpanded((v) => !v)}
+            className="flex w-full items-center justify-between rounded-2xl border-2 border-sky-light bg-white px-4 py-3"
+          >
+            <span className="font-body text-sm font-semibold text-slate">Seçenekler</span>
+            <span
+              className={`font-body text-slate-light transition-transform ${
+                isOptionsExpanded ? "rotate-180" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
 
-          {addQuestion && (
-            <div className="space-y-3 rounded-2xl bg-sky-light/40 p-3">
-              <Input
-                label={t("mesajOlustur.questionLabel")}
-                placeholder={t("mesajOlustur.questionPlaceholder")}
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-              />
-              <Input
-                label={t("mesajOlustur.answerLabel")}
-                placeholder={t("mesajOlustur.answerPlaceholder")}
-                value={lockSecret}
-                onChange={(e) => setLockSecret(e.target.value)}
-              />
-            </div>
-          )}
-
-          {/* Gorev 11.3: Anonim/Acik kimlik toggle - kullanici istegi:
-              /ayarlar'da "her zaman goster" secilmisse bu secenek
-              hic gosterilmez. */}
-          {!alwaysShowName && (
-            <Toggle
-              id="anon-toggle-create"
-              checked={isAnonymous}
-              onChange={setIsAnonymous}
-              label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
-            />
-          )}
-
-          {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
-              telefon/OTP ile giris yapiyor, bu sadece ek bir bildirim
-              yolu (mock modda calisir, gercek e-posta saglayicisi
-              baglanana kadar). Sistem parametresiyle (yonetim paneli)
-              gorunurlugu kapatilabilir. */}
-          {emailOptionEnabled && (
+          {isOptionsExpanded && (
             <>
-              <Toggle
-                id="add-email-toggle"
-                checked={addEmail}
-                onChange={setAddEmail}
-                label={t("mesajOlustur.addEmailLabel")}
-              />
-
-              {addEmail && (
-                <Input
-                  label={t("mesajOlustur.emailLabel")}
-                  type="email"
-                  placeholder="ornek@eposta.com"
-                  value={recipientEmail}
-                  onChange={(e) => setRecipientEmail(e.target.value)}
+              {/* Kullanici geri bildirimi: soru-cevap eklemek istege bagli.
+                  Kullanici istegi: "Question" ve "Delete after read"
+                  yan yana, aralarinda tam olarak 2 karakter (2ch)
+                  bosluk. */}
+              <div className="flex items-center" style={{ gap: "2ch" }}>
+                <Toggle
+                  id="add-question-toggle"
+                  checked={addQuestion}
+                  onChange={setAddQuestion}
+                  label={t("mesajOlustur.addQuestionLabel")}
                 />
+                <Toggle
+                  id="destroy-after-read-toggle"
+                  checked={destroyAfterRead}
+                  onChange={setDestroyAfterRead}
+                  label={t("mesajOlustur.destroyAfterRead")}
+                />
+              </div>
+
+              {addQuestion && (
+                <div className="space-y-3 rounded-2xl bg-sky-light/40 p-3">
+                  <Input
+                    label={t("mesajOlustur.questionLabel")}
+                    placeholder={t("mesajOlustur.questionPlaceholder")}
+                    value={questionText}
+                    onChange={(e) => setQuestionText(e.target.value)}
+                  />
+                  <Input
+                    label={t("mesajOlustur.answerLabel")}
+                    placeholder={t("mesajOlustur.answerPlaceholder")}
+                    value={lockSecret}
+                    onChange={(e) => setLockSecret(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {/* Gorev 11.3: Anonim/Acik kimlik toggle - kullanici istegi:
+                  /ayarlar'da "her zaman goster" secilmisse bu secenek
+                  hic gosterilmez. */}
+              {!alwaysShowName && (
+                <Toggle
+                  id="anon-toggle-create"
+                  checked={isAnonymous}
+                  onChange={setIsAnonymous}
+                  label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
+                />
+              )}
+
+              {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
+                  telefon/OTP ile giris yapiyor, bu sadece ek bir bildirim
+                  yolu (mock modda calisir, gercek e-posta saglayicisi
+                  baglanana kadar). Sistem parametresiyle (yonetim paneli)
+                  gorunurlugu kapatilabilir. */}
+              {emailOptionEnabled && (
+                <>
+                  <Toggle
+                    id="add-email-toggle"
+                    checked={addEmail}
+                    onChange={setAddEmail}
+                    label={t("mesajOlustur.addEmailLabel")}
+                  />
+
+                  {addEmail && (
+                    <Input
+                      label={t("mesajOlustur.emailLabel")}
+                      type="email"
+                      placeholder="ornek@eposta.com"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                    />
+                  )}
+                </>
               )}
             </>
           )}

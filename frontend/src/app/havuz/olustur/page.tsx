@@ -23,6 +23,9 @@ export default function HavuzOlusturPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [category, setCategory] = useState("");
+  // Kullanici istegi: gorunurluk ve eslesme sekli secenekleri
+  // acilir-kapanir bir bolumde - kapaliyken hicbir secenek gorunmez.
+  const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [matchMode, setMatchMode] = useState<MatchMode>("review");
@@ -174,67 +177,89 @@ export default function HavuzOlusturPage() {
             </datalist>
           </div>
 
-          {/* Gorev 12.2: Gorunurluk secimi */}
-          <div>
-            <label className="font-display text-sm font-semibold text-slate">
-              {t("havuzOlustur.visibilityLabel")}
-            </label>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setVisibility("public")}
-                className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${visibility === "public" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
-              >
-                {t("havuzOlustur.public")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setVisibility("unlisted")}
-                className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${visibility === "unlisted" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
-              >
-                {t("havuzOlustur.unlisted")}
-              </button>
-            </div>
-            <p className="mt-1.5 font-body text-xs text-slate-light">
-              {visibility === "public"
-                ? t("havuzOlustur.publicDesc")
-                : t("havuzOlustur.unlistedDesc")}
-            </p>
-          </div>
+          {/* Kullanici istegi: gorunurluk ve eslesme sekli secenekleri
+              acilir-kapanir bir bolumde - kapaliyken hicbir secenek
+              gorunmez. */}
+          <button
+            type="button"
+            onClick={() => setIsOptionsExpanded((v) => !v)}
+            className="flex w-full items-center justify-between rounded-2xl border-2 border-sky-light bg-white px-4 py-3"
+          >
+            <span className="font-body text-sm font-semibold text-slate">Seçenekler</span>
+            <span
+              className={`font-body text-slate-light transition-transform ${
+                isOptionsExpanded ? "rotate-180" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
 
-          {/* Kullanici istegi: "Kesin Eslessin" (varsayilan) vs "Tum
-              Yanitlari Goster" (her yanit incelemek uzere sana dusar,
-              kabul/reddedersin). */}
-          <div>
-            <label className="font-display text-sm font-semibold text-slate">
-              Eşleşme Şekli
-            </label>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setMatchMode("review")}
-                className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${matchMode === "review" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
-              >
-                Tüm Yanıtları Göster
-              </button>
-              <button
-                type="button"
-                onClick={() => setMatchMode("exact")}
-                className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
-                  ${matchMode === "exact" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
-              >
-                Kesin Eşleşsin
-              </button>
-            </div>
-            <p className="mt-1.5 font-body text-xs text-slate-light">
-              {matchMode === "exact"
-                ? "Sadece doğru cevabı bilen kişiyle otomatik olarak mesajlaşma başlar."
-                : "Doğru/yanlış fark etmeksizin gelen her yanıt sana \"Havuz Yanıtlarım\" ekranında düşer, istersen kabul eder istersen reddedersin. Her yanıt veren kişi için ayrı bir mesaj kutusu açılır."}
-            </p>
-          </div>
+          {isOptionsExpanded && (
+            <>
+              {/* Gorev 12.2: Gorunurluk secimi */}
+              <div>
+                <label className="font-display text-sm font-semibold text-slate">
+                  {t("havuzOlustur.visibilityLabel")}
+                </label>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setVisibility("public")}
+                    className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
+                      ${visibility === "public" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
+                  >
+                    {t("havuzOlustur.public")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibility("unlisted")}
+                    className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
+                      ${visibility === "unlisted" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
+                  >
+                    {t("havuzOlustur.unlisted")}
+                  </button>
+                </div>
+                <p className="mt-1.5 font-body text-xs text-slate-light">
+                  {visibility === "public"
+                    ? t("havuzOlustur.publicDesc")
+                    : t("havuzOlustur.unlistedDesc")}
+                </p>
+              </div>
+
+              {/* Kullanici istegi: "Kesin Eslessin" (varsayilan) vs "Tum
+                  Yanitlari Goster" (her yanit incelemek uzere sana dusar,
+                  kabul/reddedersin). */}
+              <div>
+                <label className="font-display text-sm font-semibold text-slate">
+                  Eşleşme Şekli
+                </label>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMatchMode("review")}
+                    className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
+                      ${matchMode === "review" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
+                  >
+                    Tüm Yanıtları Göster
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMatchMode("exact")}
+                    className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
+                      ${matchMode === "exact" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
+                  >
+                    Kesin Eşleşsin
+                  </button>
+                </div>
+                <p className="mt-1.5 font-body text-xs text-slate-light">
+                  {matchMode === "exact"
+                    ? "Sadece doğru cevabı bilen kişiyle otomatik olarak mesajlaşma başlar."
+                    : "Doğru/yanlış fark etmeksizin gelen her yanıt sana \"Havuz Yanıtlarım\" ekranında düşer, istersen kabul eder istersen reddedersin. Her yanıt veren kişi için ayrı bir mesaj kutusu açılır."}
+                </p>
+              </div>
+            </>
+          )}
 
           {error && <p className="font-body text-sm text-coral">{error}</p>}
 
