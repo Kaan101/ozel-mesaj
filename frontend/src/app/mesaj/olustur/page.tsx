@@ -53,12 +53,26 @@ export default function MesajOlusturPage() {
   // acilip kapatilabilsin - varsayilan olarak acik kabul ediyoruz,
   // backend'den gercek deger gelene kadar (flicker'i onlemek icin).
   const [emailOptionEnabled, setEmailOptionEnabled] = useState(true);
+  // Kullanici istegi: /ayarlar'da "profil ismimi her zaman goster"
+  // secilmisse, buradaki anonimlik secenegi hic gosterilmez - mesaj
+  // her zaman adiyla gonderilir.
+  const [alwaysShowName, setAlwaysShowName] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push("/giris");
     }
   }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    apiFetch<{ alwaysShowName: boolean }>("/me")
+      .then((data) => {
+        setAlwaysShowName(data.alwaysShowName);
+        if (data.alwaysShowName) setIsAnonymous(false);
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   useEffect(() => {
     apiFetch<{ enabled: boolean }>("/admin/settings/public/email-notification-enabled", {
@@ -209,13 +223,17 @@ export default function MesajOlusturPage() {
             </div>
           )}
 
-          {/* Gorev 11.3: Anonim/Acik kimlik toggle */}
-          <Toggle
-            id="anon-toggle-create"
-            checked={isAnonymous}
-            onChange={setIsAnonymous}
-            label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
-          />
+          {/* Gorev 11.3: Anonim/Acik kimlik toggle - kullanici istegi:
+              /ayarlar'da "her zaman goster" secilmisse bu secenek
+              hic gosterilmez. */}
+          {!alwaysShowName && (
+            <Toggle
+              id="anon-toggle-create"
+              checked={isAnonymous}
+              onChange={setIsAnonymous}
+              label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
+            />
+          )}
 
           {/* Kullanici istegi: mesaj okunduktan sonra uygulamadan
               silinsin secenegi - hukuki ispat icin sifreli arsiv

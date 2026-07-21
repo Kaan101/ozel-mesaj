@@ -81,6 +81,19 @@ export default function MesajGosterPage() {
   // Gorev 13.1 + 13.2: Yanit yazma + kimlik gosterme anahtari.
   const [replyBody, setReplyBody] = useState("");
   const [replyAnonymous, setReplyAnonymous] = useState(true);
+  // Kullanici istegi: /ayarlar'da "profil ismimi her zaman goster"
+  // secilmisse, yanit formundaki anonimlik secenegi hic gosterilmez.
+  const [alwaysShowName, setAlwaysShowName] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    apiFetch<{ alwaysShowName: boolean }>("/me")
+      .then((data) => {
+        setAlwaysShowName(data.alwaysShowName);
+        if (data.alwaysShowName) setReplyAnonymous(false);
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
   // Kullanici istegi: her yanit icin ayri ayri "okunduktan sonra
   // silinsin" secilebilsin.
   const [replyDestroyAfterRead, setReplyDestroyAfterRead] = useState(false);
@@ -626,12 +639,16 @@ export default function MesajGosterPage() {
               onChange={(e) => setReplyBody(e.target.value)}
               placeholder="Merhaba, ben de..."
             />
-            <Toggle
-              id="reply-anon-toggle"
-              checked={replyAnonymous}
-              onChange={setReplyAnonymous}
-              label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
-            />
+            {/* Kullanici istegi: /ayarlar'da "her zaman goster"
+                secilmisse bu secenek hic gosterilmez. */}
+            {!alwaysShowName && (
+              <Toggle
+                id="reply-anon-toggle"
+                checked={replyAnonymous}
+                onChange={setReplyAnonymous}
+                label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
+              />
+            )}
             {/* Kullanici istegi: mesaj okunduktan sonra uygulamadan
                 silinsin secenegi - hukuki ispat icin sifreli arsiv
                 kopyasi yine de kalir. */}

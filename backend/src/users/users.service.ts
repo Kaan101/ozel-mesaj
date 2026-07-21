@@ -23,6 +23,9 @@ export class UsersService {
       // Kullanici istegi: platform sadece 18+ icin calisir - doğum
       // tarihi henuz girilmemisse frontend bu adimi gostermeli.
       needsBirthDate: !user.birthDate,
+      // Kullanici istegi: acikken, mesaj formlarindaki "anonim kal"
+      // secenegi hic gosterilmez.
+      alwaysShowName: user.alwaysShowName,
     };
   }
 
@@ -61,7 +64,10 @@ export class UsersService {
   // Gorev 8.2 (genisletildi): displayName ve avatar tercihi
   // guncellenebilir (Bolum 9). Avatar gercek kimlik tasimaz, sadece
   // gorsel bir secim.
-  async updateProfile(userId: string, updates: { displayName?: string; avatarId?: string }) {
+  async updateProfile(
+    userId: string,
+    updates: { displayName?: string; avatarId?: string; alwaysShowName?: boolean }
+  ) {
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: updates,
@@ -71,6 +77,7 @@ export class UsersService {
       id: user.id,
       displayName: user.displayName,
       avatarId: user.avatarId,
+      alwaysShowName: user.alwaysShowName,
     };
   }
 

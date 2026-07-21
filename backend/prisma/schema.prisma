@@ -38,6 +38,10 @@ model User {
   // Kullanici istegi: platform sadece 18 yas ve uzeri icin calisir -
   // ilk girişte toplanir, yas hesaplanip kontrol edilir.
   birthDate       DateTime?  @map("birth_date")
+  // Kullanici istegi: acikken, mesaj formlarindaki "anonim kal"
+  // secenegi hic gosterilmez - kullanici HER ZAMAN adiyla (displayName)
+  // gorunur.
+  alwaysShowName  Boolean    @default(false) @map("always_show_name")
   // Kullanici istegi: girisin bir parcasi olarak secilen 10 hazir
   // avatardan biri - hicbir gercek kimlik bilgisi tasimaz, sadece
   // gorsel bir tercih (Bolum 8 gizlilik modeline aykiri degil).

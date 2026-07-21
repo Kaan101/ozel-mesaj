@@ -7,12 +7,14 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Toggle } from "@/components/ui/Toggle";
 
 interface Profile {
   id: string;
   displayName: string | null;
   status: string;
   createdAt: string;
+  alwaysShowName: boolean;
 }
 
 // Gorev 13.4 + 13.5: Ayarlar sayfasi (profil duzenleme) + KVKK
@@ -23,6 +25,9 @@ export default function AyarlarPage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [displayName, setDisplayName] = useState("");
+  // Kullanici istegi: profil ismini her zaman goster secenegi -
+  // acikken, mesaj formlarindaki "anonim kal" secenegi gizlenir.
+  const [alwaysShowName, setAlwaysShowName] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -41,6 +46,7 @@ export default function AyarlarPage() {
     apiFetch<Profile>("/me").then((data) => {
       setProfile(data);
       setDisplayName(data.displayName ?? "");
+      setAlwaysShowName(data.alwaysShowName);
     });
   }, [isAuthenticated]);
 
@@ -50,7 +56,7 @@ export default function AyarlarPage() {
     try {
       await apiFetch("/me", {
         method: "PATCH",
-        body: JSON.stringify({ displayName }),
+        body: JSON.stringify({ displayName, alwaysShowName }),
       });
       setSaveMessage("Kaydedildi.");
     } catch {
@@ -87,6 +93,19 @@ export default function AyarlarPage() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Boş bırakırsan anonim kalabilirsin"
+          />
+          {/* Kullanici istegi: acikken, mesaj formlarindaki "anonim
+              kal" secenegi hic gosterilmez - her zaman adinla
+              gorunursun. */}
+          <Toggle
+            id="always-show-name-toggle"
+            checked={alwaysShowName}
+            onChange={setAlwaysShowName}
+            label={
+              alwaysShowName
+                ? "Profil ismim her zaman gösterilsin"
+                : "Her mesajda ayrı ayrı seçmek istiyorum"
+            }
           />
           {saveMessage && (
             <p className="font-body text-sm text-meadow-hover">{saveMessage}</p>
