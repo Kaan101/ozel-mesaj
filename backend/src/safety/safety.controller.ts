@@ -31,6 +31,15 @@ export class SafetyController {
     return { message: "Kullanıcı engellendi." };
   }
 
+  // Kullanici istegi: bir kisi mesaj alip gonderen kisiyi bloklamis
+  // olsa bile, o mesajlara /ayarlar'dan erisebilsin.
+  @UseGuards(JwtAuthGuard)
+  @Get("blocked-threads")
+  async listBlockedThreads(@Req() request: Request) {
+    const userId = (request as any).user.sub;
+    return this.safetyService.listBlockedThreadsForUser(userId);
+  }
+
   // Gorev 7.3: Herhangi bir thread icin sikayet olusturma.
   @UseGuards(JwtAuthGuard)
   @Post("threads/:id/report")

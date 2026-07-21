@@ -98,6 +98,49 @@ export class SafetyService {
     return block !== null;
   }
 
+  // Kullanici istegi: bir kisi mesaj alip gonderen kisiyi bloklamis
+  // olsa bile, o mesajlara /ayarlar'dan erisebilsin - isterse
+  // sonradan yanit verebilsin (yanit verince blok otomatik kalkar,
+  // bkz. ThreadService.sendMessage).
+  async listBlockedThreadsForUser(userId: string) {
+    const blocks = await this.prisma.block.findMany({
+      where: { blockerUserId: userId },
+      select: { blockedUserId: true },
+    });
+    const blockedUserIds = blocks.map((b) => b.blockedUserId);
+    if (blockedUserIds.length === 0) return [];
+
+    const threads = await this.prisma.messageThread.findMany({
+      where: {
+        OR: [
+          { initiatorUserId: userId, recipientUserId: { in: blockedUserIds } },
+          { recipientUserId: userId, initiatorUserId: { in: blockedUserIds } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        createdAt: true,
+        initiatorUserId: true,
+        messages: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { body: true },
+        },
+      },
+    });
+
+    return threads.map((t) => ({
+      threadId: t.id,
+      createdAt: t.createdAt,
+      // Guvenlik: sadece BLOKLAYAN kisi (kendisi) icin bu ekran
+      // gorunur - mesaj govdesi zaten kendi erisimi dahilinde,
+      // sizdirma riski yok.
+      firstMessageBody: t.messages[0]?.body ?? null,
+    }));
+  }
+
   // Gorev 7.3: Mesaj/thread icin sikayet kaydi olusturur - moderasyon
   // kuyruguna eklenir (Bolum 10).
   // Gorev 7.3 + 7.4: Sikayet olusturur ve sikayet edilen kullanicinin
