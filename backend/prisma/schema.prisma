@@ -183,6 +183,12 @@ model Message {
   // erisim her zaman mumkun kalir.
   deletedAt DateTime? @map("deleted_at")
 
+  // Kullanici istegi: gonderen isterse, mesaj yazarken anlik hava
+  // durumunu (konumundan, izin verirse) mesajla birlikte gonderebilsin.
+  // Sadece kisa bir ozet metin ("22°C, Açık" gibi) - konum koordinati
+  // ASLA saklanmaz, sadece hesaplanan ozet.
+  weatherSummary String? @map("weather_summary")
+
   reactions MessageReaction[]
 
   @@index([threadId])

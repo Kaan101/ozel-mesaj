@@ -12,6 +12,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 import { ReactionBar } from "@/components/ui/ReactionBar";
 import { useLanguage } from "@/lib/language-context";
+import { fetchWeatherSummary } from "@/lib/weather";
 
 interface ThreadMeta {
   id: string;
@@ -35,6 +36,7 @@ interface DisplayMessage {
   readAt: string | null;
   createdAt: string;
   reactions: { counts: Record<string, number>; myReaction: string | null };
+  weatherSummary?: string | null;
 }
 
 type ViewState = "loading" | "unlock" | "unlocking" | "reveal-gate" | "messages" | "error";
@@ -100,6 +102,9 @@ export default function MesajGosterPage() {
   // Kullanici istegi: her yanit icin ayri ayri "okunduktan sonra
   // silinsin" secilebilsin.
   const [replyDestroyAfterRead, setReplyDestroyAfterRead] = useState(false);
+  // Kullanici istegi: mesaj yazarken anlik hava durumunu mesajla
+  // birlikte gonderebilme (izin verirse).
+  const [replyAddWeather, setReplyAddWeather] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
   // Gorev 13.3: Engelle/Sikayet Et.
@@ -272,12 +277,15 @@ export default function MesajGosterPage() {
     setReplyError(null);
     setIsReplying(true);
     try {
+      const weatherSummary = replyAddWeather ? await fetchWeatherSummary() : undefined;
+
       const sent = await apiFetch<{ id: string }>(`/threads/${threadId}/messages`, {
         method: "POST",
         body: JSON.stringify({
           body: replyBody,
           isAnonymous: replyAnonymous,
           destroyAfterRead: replyDestroyAfterRead,
+          weatherSummary: weatherSummary ?? undefined,
         }),
         // threadToken varsa (alici yolu) X-Thread-Access-Token gonderilir.
         // Yoksa (sahip kisayolu) ThreadWriteGuard, normal Katman 1
@@ -600,6 +608,9 @@ export default function MesajGosterPage() {
                     <p className="font-body text-slate">{msg.body}</p>
                     <p className="mt-2 font-body text-xs text-slate-light">
                       {new Date(msg.createdAt).toLocaleString("tr-TR")}
+                      {/* Kullanici istegi: gonderen isterse anlik hava
+                          durumunu mesajla birlikte gondersin. */}
+                      {msg.weatherSummary && <> · {msg.weatherSummary}</>}
                     </p>
                     <ReactionBar
                       reactions={msg.reactions}
@@ -661,6 +672,14 @@ export default function MesajGosterPage() {
               checked={replyDestroyAfterRead}
               onChange={setReplyDestroyAfterRead}
               label={t("mesajOlustur.destroyAfterRead")}
+            />
+            {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
+                (izin verirse) mesajla birlikte gonderebilme. */}
+            <Toggle
+              id="reply-add-weather-toggle"
+              checked={replyAddWeather}
+              onChange={setReplyAddWeather}
+              label="Hava Durumunu Ekle"
             />
             {replyError && <p className="font-body text-sm text-coral">{replyError}</p>}
             <Button className="w-full" onClick={handleReply} disabled={isReplying || !replyBody}>

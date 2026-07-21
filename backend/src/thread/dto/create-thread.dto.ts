@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  MaxLength,
   MinLength,
   ValidateIf,
 } from "class-validator";
@@ -57,4 +58,10 @@ export class CreateThreadDto {
   @IsOptional()
   @IsBoolean()
   destroyAfterRead?: boolean;
+
+  // Kullanici istegi: mesaj yazarken anlik hava durumu ozeti (opsiyonel).
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  weatherSummary?: string;
 }

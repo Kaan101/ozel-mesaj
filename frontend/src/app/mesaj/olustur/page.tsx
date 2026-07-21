@@ -12,6 +12,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { useAutoRedirect } from "@/lib/use-auto-redirect";
+import { fetchWeatherSummary } from "@/lib/weather";
 
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
 // mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
@@ -61,6 +62,9 @@ export default function MesajOlusturPage() {
   // sonra sil, anonimlik, e-posta) acilir-kapanir bir bolumde - kapaliyken
   // hicbir secenek gorunmez.
   const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
+  // Kullanici istegi: mesaj yazarken anlik hava durumunu mesajla
+  // birlikte gonderebilme (izin verirse).
+  const [addWeather, setAddWeather] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -106,6 +110,11 @@ export default function MesajOlusturPage() {
     setError(null);
     setIsSubmitting(true);
     try {
+      // Kullanici istegi: hava durumu eklemek istediyse, gonderim
+      // oncesi (izin verirse) alinir - basarisiz olursa sessizce
+      // atlanir, mesaj yine de gonderilir.
+      const weatherSummary = addWeather ? await fetchWeatherSummary() : undefined;
+
       const data = await apiFetch<{ threadId: string }>("/threads", {
         method: "POST",
         body: JSON.stringify({
@@ -117,6 +126,7 @@ export default function MesajOlusturPage() {
           questionText: addQuestion ? questionText : undefined,
           isAnonymous,
           destroyAfterRead,
+          weatherSummary: weatherSummary ?? undefined,
         }),
       });
       setSentThreadId(data.threadId);
@@ -270,6 +280,15 @@ export default function MesajOlusturPage() {
                   label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
                 />
               )}
+
+              {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
+                  (izin verirse) mesajla birlikte gonderebilme. */}
+              <Toggle
+                id="add-weather-toggle"
+                checked={addWeather}
+                onChange={setAddWeather}
+                label="Hava Durumunu Ekle"
+              />
 
               {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
                   telefon/OTP ile giris yapiyor, bu sadece ek bir bildirim

@@ -106,7 +106,8 @@ export class ThreadController {
       senderUserId,
       dto.body,
       dto.isAnonymous,
-      dto.destroyAfterRead ?? false
+      dto.destroyAfterRead ?? false,
+      dto.weatherSummary
     );
   }
 
