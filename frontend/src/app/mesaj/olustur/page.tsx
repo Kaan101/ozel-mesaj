@@ -207,7 +207,7 @@ export default function MesajOlusturPage() {
           <button
             type="button"
             onClick={() => setIsOptionsExpanded((v) => !v)}
-            className="flex w-full items-center justify-between rounded-2xl border-2 border-sky-light bg-white px-4 py-3"
+            className="flex w-full items-center justify-between py-1"
           >
             <span className="font-body text-sm font-semibold text-slate">Seçenekler</span>
             <span
