@@ -45,7 +45,11 @@ model User {
   // Kullanici istegi: girisin bir parcasi olarak secilen 10 hazir
   // avatardan biri - hicbir gercek kimlik bilgisi tasimaz, sadece
   // gorsel bir tercih (Bolum 8 gizlilik modeline aykiri degil).
-  avatarId String? @map("avatar_id") // bkz. frontend AVATARS listesi
+  avatarId String? @map("avatar_id") // bkz. frontend AVATARS listesi (eski/basit sistem)
+  // Kullanici istegi: zengin ozellestirilebilir avatar (DiceBear
+  // tabanli) - doluysa, gorsel olusturmada avatarId'den ONCELIKLIDIR.
+  // Tum secimler (sac, ten rengi, gozluk vb.) JSON olarak saklanir.
+  avatarConfig Json? @map("avatar_config")
   createdAt       DateTime   @default(now()) @map("created_at")
   lastSeenAt      DateTime?  @map("last_seen_at")
   status          UserStatus @default(active)

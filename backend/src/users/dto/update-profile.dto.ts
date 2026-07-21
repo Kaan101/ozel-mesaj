@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsBoolean, IsIn, IsObject, IsOptional, IsString, MaxLength } from "class-validator";
 
 const AVATAR_IDS = [
   "genc-kiz",
@@ -22,6 +22,12 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(AVATAR_IDS)
   avatarId?: string;
+
+  // Kullanici istegi: zengin ozellestirilebilir avatar (DiceBear) -
+  // tum secimleri iceren JSON nesnesi.
+  @IsOptional()
+  @IsObject()
+  avatarConfig?: Record<string, unknown>;
 
   // Kullanici istegi: acikken, mesaj formlarindaki "anonim kal"
   // secenegi hic gosterilmez - kullanici her zaman adiyla gorunur.

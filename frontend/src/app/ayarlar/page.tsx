@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
+import { AvatarEditor } from "@/components/ui/AvatarEditor";
+import { AvatarConfig, DEFAULT_AVATAR_CONFIG, randomAvatarConfig } from "@/lib/dicebear-avatar";
 
 interface Profile {
   id: string;
@@ -15,6 +17,7 @@ interface Profile {
   status: string;
   createdAt: string;
   alwaysShowName: boolean;
+  avatarConfig: AvatarConfig | null;
 }
 
 // Gorev 13.4 + 13.5: Ayarlar sayfasi (profil duzenleme) + KVKK
@@ -28,6 +31,10 @@ export default function AyarlarPage() {
   // Kullanici istegi: profil ismini her zaman goster secenegi -
   // acikken, mesaj formlarindaki "anonim kal" secenegi gizlenir.
   const [alwaysShowName, setAlwaysShowName] = useState(false);
+  // Kullanici istegi: zengin ozellestirilebilir avatar (DiceBear).
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(() => randomAvatarConfig());
+  const [avatarSaveMessage, setAvatarSaveMessage] = useState<string | null>(null);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -47,6 +54,9 @@ export default function AyarlarPage() {
       setProfile(data);
       setDisplayName(data.displayName ?? "");
       setAlwaysShowName(data.alwaysShowName);
+      if (data.avatarConfig) {
+        setAvatarConfig({ ...DEFAULT_AVATAR_CONFIG, ...data.avatarConfig });
+      }
     });
   }, [isAuthenticated]);
 
@@ -63,6 +73,22 @@ export default function AyarlarPage() {
       setSaveMessage("Kaydedilemedi. Lütfen tekrar dene.");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleSaveAvatar() {
+    setIsSavingAvatar(true);
+    setAvatarSaveMessage(null);
+    try {
+      await apiFetch("/me", {
+        method: "PATCH",
+        body: JSON.stringify({ avatarConfig }),
+      });
+      setAvatarSaveMessage("Avatar kaydedildi.");
+    } catch {
+      setAvatarSaveMessage("Kaydedilemedi. Lütfen tekrar dene.");
+    } finally {
+      setIsSavingAvatar(false);
     }
   }
 
@@ -85,6 +111,19 @@ export default function AyarlarPage() {
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
         <h1 className="font-display text-2xl font-bold text-slate">Ayarlar</h1>
+
+        {/* Kullanici istegi: zengin ozellestirilebilir avatar
+            duzenleme ekrani (DiceBear tabanli). */}
+        <Card lifted className="space-y-4">
+          <h2 className="font-display text-lg font-bold text-slate">Avatarım</h2>
+          <AvatarEditor config={avatarConfig} onChange={setAvatarConfig} />
+          {avatarSaveMessage && (
+            <p className="font-body text-sm text-meadow-hover">{avatarSaveMessage}</p>
+          )}
+          <Button onClick={handleSaveAvatar} disabled={isSavingAvatar} className="w-full">
+            {isSavingAvatar ? "Kaydediliyor..." : "Avatarı Kaydet"}
+          </Button>
+        </Card>
 
         <Card lifted className="space-y-4">
           <h2 className="font-display text-lg font-bold text-slate">Profil</h2>

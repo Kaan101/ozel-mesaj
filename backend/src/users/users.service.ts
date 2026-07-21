@@ -17,6 +17,7 @@ export class UsersService {
       id: user.id,
       displayName: user.displayName,
       avatarId: user.avatarId,
+      avatarConfig: user.avatarConfig,
       status: user.status,
       createdAt: user.createdAt,
       lastSeenAt: user.lastSeenAt,
@@ -66,17 +67,23 @@ export class UsersService {
   // gorsel bir secim.
   async updateProfile(
     userId: string,
-    updates: { displayName?: string; avatarId?: string; alwaysShowName?: boolean }
+    updates: {
+      displayName?: string;
+      avatarId?: string;
+      avatarConfig?: Record<string, unknown>;
+      alwaysShowName?: boolean;
+    }
   ) {
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: updates,
+      data: updates as any,
     });
 
     return {
       id: user.id,
       displayName: user.displayName,
       avatarId: user.avatarId,
+      avatarConfig: user.avatarConfig,
       alwaysShowName: user.alwaysShowName,
     };
   }
