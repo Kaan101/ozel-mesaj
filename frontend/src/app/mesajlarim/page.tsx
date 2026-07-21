@@ -193,7 +193,7 @@ export default function MesajlarimPage() {
           <h1 className="font-display text-2xl font-bold text-slate">{t("mesajlarim.title")}</h1>
           <Link href="/mesaj/olustur">
             <Button variant="secondary" className="!px-3 !py-1.5 !text-xs whitespace-nowrap">
-              Yeni Mesaj
+              {t("mesajlarim.newMessage")}
             </Button>
           </Link>
         </div>
