@@ -35,6 +35,9 @@ export default function AyarlarPage() {
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(() => randomAvatarConfig());
   const [avatarSaveMessage, setAvatarSaveMessage] = useState<string | null>(null);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  // Kullanici istegi: avatar duzenleme bolumu acilir-kapanir olsun -
+  // varsayilan kapali, sayfa daha sade acilir.
+  const [isAvatarExpanded, setIsAvatarExpanded] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -113,16 +116,33 @@ export default function AyarlarPage() {
         <h1 className="font-display text-2xl font-bold text-slate">Ayarlar</h1>
 
         {/* Kullanici istegi: zengin ozellestirilebilir avatar
-            duzenleme ekrani (DiceBear tabanli). */}
+            duzenleme ekrani (DiceBear tabanli) - acilir-kapanir. */}
         <Card lifted className="space-y-4">
-          <h2 className="font-display text-lg font-bold text-slate">Avatarım</h2>
-          <AvatarEditor config={avatarConfig} onChange={setAvatarConfig} />
-          {avatarSaveMessage && (
-            <p className="font-body text-sm text-meadow-hover">{avatarSaveMessage}</p>
+          <button
+            type="button"
+            onClick={() => setIsAvatarExpanded((v) => !v)}
+            className="flex w-full items-center justify-between"
+          >
+            <h2 className="font-display text-lg font-bold text-slate">Avatarım</h2>
+            <span
+              className={`font-body text-slate-light transition-transform ${
+                isAvatarExpanded ? "rotate-180" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+          {isAvatarExpanded && (
+            <>
+              <AvatarEditor config={avatarConfig} onChange={setAvatarConfig} />
+              {avatarSaveMessage && (
+                <p className="font-body text-sm text-meadow-hover">{avatarSaveMessage}</p>
+              )}
+              <Button onClick={handleSaveAvatar} disabled={isSavingAvatar} className="w-full">
+                {isSavingAvatar ? "Kaydediliyor..." : "Avatarı Kaydet"}
+              </Button>
+            </>
           )}
-          <Button onClick={handleSaveAvatar} disabled={isSavingAvatar} className="w-full">
-            {isSavingAvatar ? "Kaydediliyor..." : "Avatarı Kaydet"}
-          </Button>
         </Card>
 
         <Card lifted className="space-y-4">
