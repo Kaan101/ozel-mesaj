@@ -242,7 +242,7 @@ export default function MesajOlusturPage() {
             id="destroy-after-read-toggle"
             checked={destroyAfterRead}
             onChange={setDestroyAfterRead}
-            label="Okunduktan sonra silinsin"
+            label={t("mesajOlustur.destroyAfterRead")}
           />
 
           {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
