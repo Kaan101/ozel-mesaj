@@ -125,6 +125,12 @@ type TranslationKey =
   | "mesajOlustur.messagePlaceholder"
   | "mesajOlustur.addQuestionLabel"
   | "mesajOlustur.destroyAfterRead"
+  | "common.options"
+  | "havuzOlustur.matchModeLabel"
+  | "havuzOlustur.matchModeReview"
+  | "havuzOlustur.matchModeExact"
+  | "havuzOlustur.matchModeExactDesc"
+  | "havuzOlustur.matchModeReviewDesc"
   | "mesajOlustur.questionLabel"
   | "mesajOlustur.questionPlaceholder"
   | "mesajOlustur.answerLabel"
@@ -244,6 +250,14 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.messagePlaceholder": "Seninle tanışmak isterim, bir kahve içelim mi?",
     "mesajOlustur.addQuestionLabel": "Bir soru-cevap ile korumak ister misin?",
     "mesajOlustur.destroyAfterRead": "Okunduktan sonra silinsin",
+    "common.options": "Seçenekler",
+    "havuzOlustur.matchModeLabel": "Eşleşme Şekli",
+    "havuzOlustur.matchModeReview": "Tüm Yanıtları Göster",
+    "havuzOlustur.matchModeExact": "Kesin Eşleşsin",
+    "havuzOlustur.matchModeExactDesc":
+      "Sadece doğru cevabı bilen kişiyle otomatik olarak mesajlaşma başlar.",
+    "havuzOlustur.matchModeReviewDesc":
+      "Doğru/yanlış fark etmeksizin gelen her yanıt sana \"Havuz Yanıtlarım\" ekranında düşer, istersen kabul eder istersen reddedersin. Her yanıt veren kişi için ayrı bir mesaj kutusu açılır.",
     "mesajOlustur.questionLabel": "Sorun",
     "mesajOlustur.questionPlaceholder": "Nerede tanıştık?",
     "mesajOlustur.answerLabel": "Doğru Cevap",
@@ -362,6 +376,14 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.messagePlaceholder": "I'd love to get to know you, want to grab a coffee?",
     "mesajOlustur.addQuestionLabel": "Question",
     "mesajOlustur.destroyAfterRead": "Delete after read",
+    "common.options": "Options",
+    "havuzOlustur.matchModeLabel": "Match Mode",
+    "havuzOlustur.matchModeReview": "Show All Answers",
+    "havuzOlustur.matchModeExact": "Exact Match",
+    "havuzOlustur.matchModeExactDesc":
+      "Only the person who knows the exact answer automatically starts a conversation with you.",
+    "havuzOlustur.matchModeReviewDesc":
+      "Every answer, right or wrong, lands in your \"My Pool Answers\" screen - you can accept or decline each one. A separate message box opens for each person who answers.",
     "mesajOlustur.questionLabel": "Your Question",
     "mesajOlustur.questionPlaceholder": "Where did we first meet?",
     "mesajOlustur.answerLabel": "Correct Answer",

@@ -209,7 +209,9 @@ export default function MesajOlusturPage() {
             onClick={() => setIsOptionsExpanded((v) => !v)}
             className="flex w-full items-center justify-between py-1"
           >
-            <span className="font-body text-sm font-semibold text-slate">Seçenekler</span>
+            <span className="font-body text-sm font-semibold text-slate">
+              {t("common.options")}
+            </span>
             <span
               className={`font-body text-slate-light transition-transform ${
                 isOptionsExpanded ? "rotate-180" : ""
