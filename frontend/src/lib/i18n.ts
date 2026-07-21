@@ -332,7 +332,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "landing.hero.title.part2": ".",
     "landing.hero.subtitle":
       "Messaging someone you like can be hard. YouHaveMi lets you take the first step, keeping your identity private if you choose, and making sure it reaches the right person.",
-    "landing.cta.send": "Send Them a Message",
+    "landing.cta.send": "Send a Message",
     "landing.cta.browsePool": "Browse the Pool",
     "landing.howItWorks.title": "How does it work?",
     "landing.howItWorks.step1.title": "Leave your message",
