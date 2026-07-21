@@ -183,7 +183,7 @@ export default function HavuzOlusturPage() {
           <button
             type="button"
             onClick={() => setIsOptionsExpanded((v) => !v)}
-            className="flex w-full items-center justify-between rounded-2xl border-2 border-sky-light bg-white px-4 py-3"
+            className="flex w-full items-center justify-between py-1"
           >
             <span className="font-body text-sm font-semibold text-slate">Seçenekler</span>
             <span
@@ -197,10 +197,12 @@ export default function HavuzOlusturPage() {
 
           {isOptionsExpanded && (
             <>
-              {/* Gorev 12.2: Gorunurluk secimi */}
+              {/* Kullanici istegi: "Seçenekler" bolumundeki tum metinler
+                  (Gorunurluk dahil) her zaman Turkce - dile gore
+                  cevrilmiyor (Eslesme Sekli ile ayni desen). */}
               <div>
                 <label className="font-display text-sm font-semibold text-slate">
-                  {t("havuzOlustur.visibilityLabel")}
+                  Görünürlük
                 </label>
                 <div className="mt-2 flex gap-2">
                   <button
@@ -209,7 +211,7 @@ export default function HavuzOlusturPage() {
                     className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
                       ${visibility === "public" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
                   >
-                    {t("havuzOlustur.public")}
+                    Herkese Açık
                   </button>
                   <button
                     type="button"
@@ -217,13 +219,13 @@ export default function HavuzOlusturPage() {
                     className={`flex-1 rounded-full border-2 bg-white px-4 py-2 font-body text-sm font-semibold transition-colors
                       ${visibility === "unlisted" ? "border-meadow text-meadow-hover" : "border-meadow-light text-slate"}`}
                   >
-                    {t("havuzOlustur.unlisted")}
+                    Sadece Link ile
                   </button>
                 </div>
                 <p className="mt-1.5 font-body text-xs text-slate-light">
                   {visibility === "public"
-                    ? t("havuzOlustur.publicDesc")
-                    : t("havuzOlustur.unlistedDesc")}
+                    ? "Havuz sayfasında herkes görebilir."
+                    : "Sadece paylaştığın linke sahip olanlar görebilir."}
                 </p>
               </div>
 
