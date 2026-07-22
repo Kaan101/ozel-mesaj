@@ -592,8 +592,7 @@ export class ThreadService {
       isAnonymous: message.isAnonymous,
       isSystemMessage: message.isSystemMessage,
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
-      // Kullanici istegi: anonimken AVATAR gizlenir (nickname ise
-      // gizlenmez - bkz. senderDisplayName altta).
+      // Kullanici istegi: anonimken hem avatar hem nickname gizlenir.
       senderAvatarId:
         message.isAnonymous || message.isSystemMessage ? null : (message.sender?.avatarId ?? null),
       senderAvatarConfig:
@@ -601,11 +600,10 @@ export class ThreadService {
           ? null
           : (message.sender?.avatarConfig ?? null),
       weatherSummary: message.weatherSummary ?? null,
-      // Kullanici istegi: anonim mesajlarda bile gonderenin
-      // /ayarlar'da girdigi gorunen ad (nickname) gosterilir - sadece
-      // AVATAR gizlenir, isim gizlenmez. Sistem mesajlarinda (gercek
-      // bir kullanici degil) hicbir zaman gosterilmez.
-      senderDisplayName: message.isSystemMessage ? null : (message.sender?.displayName ?? null),
+      senderDisplayName:
+        message.isAnonymous || message.isSystemMessage
+          ? null
+          : (message.sender?.displayName ?? null),
       // Bug duzeltmesi: sadece bu istekte GERCEKTEN "okundu" olarak
       // isaretlenen mesajlar icin "now" gosterilir - gonderenin kendi
       // mesajini goruntulemesi durumunda (readAt DB'de hala null),
