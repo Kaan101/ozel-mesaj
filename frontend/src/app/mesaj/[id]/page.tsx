@@ -676,32 +676,25 @@ export default function MesajGosterPage() {
 
           {/* Gorev 13.1 + 13.2: Yanit formu + kimlik gosterme anahtari */}
           <Card lifted className="space-y-3">
+            {/* Kullanici istegi: ayri bir onizleme yerine, yazi kutusunun
+                kendi kosesinde kucuk bir avatar+nickname rozeti - anonimse
+                hic gorunmez. */}
             <Input
               label="Yanıtın"
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
               placeholder="Merhaba, ben de..."
-            />
-
-            {/* Kullanici istegi: yanitin karsi tarafa nasil yansiyacagini
-                anlik olarak gorebilme - anonimse avatar/isim gizlenir. */}
-            {replyBody && (
-              <div className="flex items-start gap-3 rounded-2xl border-2 border-slate-light/30 bg-white p-3">
-                {!replyAnonymous && (
-                  <div className="shrink-0">
-                    <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={36} />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  {!replyAnonymous && (
-                    <p className="font-body text-xs font-semibold text-slate-light">
+              cornerContent={
+                !replyAnonymous ? (
+                  <div className="flex items-center gap-1.5">
+                    <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={20} />
+                    <span className="font-body text-[10px] font-semibold text-slate-light">
                       {myDisplayName || "İsimsiz"}
-                    </p>
-                  )}
-                  <p className="font-body text-sm text-slate">{replyBody}</p>
-                </div>
-              </div>
-            )}
+                    </span>
+                  </div>
+                ) : undefined
+              }
+            />
 
             {/* Kullanici istegi: tum secenekler acilir-kapanir bir
                 bolumde - kapaliyken hicbir secenek gorunmez. */}
