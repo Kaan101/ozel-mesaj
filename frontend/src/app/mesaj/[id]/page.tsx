@@ -676,24 +676,22 @@ export default function MesajGosterPage() {
 
           {/* Gorev 13.1 + 13.2: Yanit formu + kimlik gosterme anahtari */}
           <Card lifted className="space-y-3">
-            {/* Kullanici istegi: ayri bir onizleme yerine, yazi kutusunun
-                kendi kosesinde kucuk bir avatar+nickname rozeti - anonimse
-                hic gorunmez. */}
+            {/* Kullanici istegi: avatar+nickname, "Yanıtın" alaninin
+                USTUNDE, sol kosede, sanki zaten gonderilmis bir mesajmis
+                gibi varsayilan olarak gorunur - anonimse hic gorunmez. */}
+            {!replyAnonymous && (
+              <div className="flex items-center gap-1.5">
+                <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
+                <span className="font-body text-xs font-semibold text-slate-light">
+                  {myDisplayName || "İsimsiz"}
+                </span>
+              </div>
+            )}
             <Input
               label="Yanıtın"
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
               placeholder="Merhaba, ben de..."
-              cornerContent={
-                !replyAnonymous ? (
-                  <div className="flex items-center gap-1.5">
-                    <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={20} />
-                    <span className="font-body text-[10px] font-semibold text-slate-light">
-                      {myDisplayName || "İsimsiz"}
-                    </span>
-                  </div>
-                ) : undefined
-              }
             />
 
             {/* Kullanici istegi: tum secenekler acilir-kapanir bir

@@ -221,24 +221,22 @@ export default function MesajOlusturPage() {
             onChange={setRecipientPhone}
           />
 
-          {/* Kullanici istegi: ayri bir onizleme yerine, yazi kutusunun
-              kendi kosesinde kucuk bir avatar+nickname rozeti - anonimse
-              hic gorunmez. */}
+          {/* Kullanici istegi: avatar+nickname, yazi alaninin USTUNDE,
+              sol kosede, sanki zaten gonderilmis bir mesajmis gibi
+              varsayilan olarak gorunur - anonimse hic gorunmez. */}
+          {!isAnonymous && (
+            <div className="flex items-center gap-1.5">
+              <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
+              <span className="font-body text-xs font-semibold text-slate-light">
+                {myDisplayName || "İsimsiz"}
+              </span>
+            </div>
+          )}
           <Input
             label={t("mesajOlustur.messageLabel")}
             placeholder={t("mesajOlustur.messagePlaceholder")}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            cornerContent={
-              !isAnonymous ? (
-                <div className="flex items-center gap-1.5">
-                  <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={20} />
-                  <span className="font-body text-[10px] font-semibold text-slate-light">
-                    {myDisplayName || "İsimsiz"}
-                  </span>
-                </div>
-              ) : undefined
-            }
           />
 
           {/* Kullanici istegi: tum secenekler acilir-kapanir bir
