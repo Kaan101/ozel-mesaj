@@ -13,6 +13,9 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { useAutoRedirect } from "@/lib/use-auto-redirect";
 import { fetchWeatherSummary } from "@/lib/weather";
+import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
+import { AvatarId } from "@/components/ui/Avatar";
+import { AvatarConfig } from "@/lib/dicebear-avatar";
 
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
 // mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
@@ -58,6 +61,11 @@ export default function MesajOlusturPage() {
   // secilmisse, buradaki anonimlik secenegi hic gosterilmez - mesaj
   // her zaman adiyla gonderilir.
   const [alwaysShowName, setAlwaysShowName] = useState(false);
+  // Kullanici istegi: yanit kismindaki onizlemede kendi avatarim/
+  // nickname'im gorunsun (anonim degilse).
+  const [myAvatarId, setMyAvatarId] = useState<AvatarId | null>(null);
+  const [myAvatarConfig, setMyAvatarConfig] = useState<Partial<AvatarConfig> | null>(null);
+  const [myDisplayName, setMyDisplayName] = useState<string | null>(null);
   // Kullanici istegi: mesaj gonderirken tum secenekler (soru, okunduktan
   // sonra sil, anonimlik, e-posta) acilir-kapanir bir bolumde - kapaliyken
   // hicbir secenek gorunmez.
@@ -74,10 +82,18 @@ export default function MesajOlusturPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    apiFetch<{ alwaysShowName: boolean }>("/me")
+    apiFetch<{
+      alwaysShowName: boolean;
+      avatarId: AvatarId | null;
+      avatarConfig: Partial<AvatarConfig> | null;
+      displayName: string | null;
+    }>("/me")
       .then((data) => {
         setAlwaysShowName(data.alwaysShowName);
         if (data.alwaysShowName) setIsAnonymous(false);
+        setMyAvatarId(data.avatarId);
+        setMyAvatarConfig(data.avatarConfig);
+        setMyDisplayName(data.displayName);
       })
       .catch(() => {});
   }, [isAuthenticated]);
@@ -211,6 +227,26 @@ export default function MesajOlusturPage() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
           />
+
+          {/* Kullanici istegi: mesajin karsi tarafa nasil yansiyacagini
+              anlik olarak gorebilme - anonimse avatar/isim gizlenir. */}
+          {body && (
+            <div className="flex items-start gap-3 rounded-2xl border-2 border-slate-light/30 bg-white p-3">
+              {!isAnonymous && (
+                <div className="shrink-0">
+                  <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={36} />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                {!isAnonymous && (
+                  <p className="font-body text-xs font-semibold text-slate-light">
+                    {myDisplayName || "İsimsiz"}
+                  </p>
+                )}
+                <p className="font-body text-sm text-slate">{body}</p>
+              </div>
+            </div>
+          )}
 
           {/* Kullanici istegi: tum secenekler acilir-kapanir bir
               bolumde - kapaliyken hicbir secenek gorunmez. */}
