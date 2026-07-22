@@ -86,6 +86,9 @@ export default function MesajGosterPage() {
   // Gorev 13.1 + 13.2: Yanit yazma + kimlik gosterme anahtari.
   const [replyBody, setReplyBody] = useState("");
   const [replyAnonymous, setReplyAnonymous] = useState(true);
+  // Kullanici istegi: yanit formundaki tum secenekler acilir-kapanir
+  // bir bolumde - kapaliyken hicbir secenek gorunmez.
+  const [isReplyOptionsExpanded, setIsReplyOptionsExpanded] = useState(false);
   // Kullanici istegi: /ayarlar'da "profil ismimi her zaman goster"
   // secilmisse, yanit formundaki anonimlik secenegi hic gosterilmez.
   const [alwaysShowName, setAlwaysShowName] = useState(false);
@@ -510,26 +513,27 @@ export default function MesajGosterPage() {
         <div className="mx-auto max-w-md space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="font-display text-2xl font-bold text-slate">{pageTitle}</h1>
-                {/* Kullanici istegi: mesaja hava durumu eklenmisse,
-                    sayfa basliginin yaninda (biraz bosluklu) gosterilir. */}
-                {messages[0]?.weatherSummary && (
-                  <span className="font-body text-sm text-slate-light whitespace-nowrap">
-                    {messages[0].weatherSummary}
-                  </span>
-                )}
-              </div>
+              <h1 className="font-display text-2xl font-bold text-slate">{pageTitle}</h1>
               {firstMessageDate && (
-                <p className="font-body text-xs text-slate-light mt-0.5">
-                  {new Date(firstMessageDate).toLocaleString("tr-TR", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
+                <div className="mt-0.5 flex items-center gap-3">
+                  <p className="font-body text-xs text-slate-light">
+                    {new Date(firstMessageDate).toLocaleString("tr-TR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                  {/* Kullanici istegi: mesaja hava durumu eklenmisse,
+                      tarih-saat bilgisinin yaninda (biraz bosluklu)
+                      gosterilir. */}
+                  {messages[0]?.weatherSummary && (
+                    <p className="font-body text-xs text-slate-light whitespace-nowrap">
+                      {messages[0].weatherSummary}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -663,30 +667,55 @@ export default function MesajGosterPage() {
               onChange={(e) => setReplyBody(e.target.value)}
               placeholder="Merhaba, ben de..."
             />
-            {/* Kullanici istegi: /ayarlar'da "her zaman goster"
-                secilmisse bu secenek hic gosterilmez. */}
-            {!alwaysShowName && (
-              <Toggle
-                id="reply-anon-toggle"
-                checked={replyAnonymous}
-                onChange={setReplyAnonymous}
-                label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
-              />
+
+            {/* Kullanici istegi: tum secenekler acilir-kapanir bir
+                bolumde - kapaliyken hicbir secenek gorunmez. */}
+            <button
+              type="button"
+              onClick={() => setIsReplyOptionsExpanded((v) => !v)}
+              className="flex w-full items-center justify-between py-1"
+            >
+              <span className="font-body text-sm font-semibold text-slate">
+                {t("common.options")}
+              </span>
+              <span
+                className={`font-body text-slate-light transition-transform ${
+                  isReplyOptionsExpanded ? "rotate-180" : ""
+                }`}
+              >
+                ▾
+              </span>
+            </button>
+
+            {isReplyOptionsExpanded && (
+              <>
+                {/* Kullanici istegi: /ayarlar'da "her zaman goster"
+                    secilmisse bu secenek hic gosterilmez. */}
+                {!alwaysShowName && (
+                  <Toggle
+                    id="reply-anon-toggle"
+                    checked={replyAnonymous}
+                    onChange={setReplyAnonymous}
+                    label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
+                  />
+                )}
+                <Toggle
+                  id="reply-destroy-after-read-toggle"
+                  checked={replyDestroyAfterRead}
+                  onChange={setReplyDestroyAfterRead}
+                  label={t("mesajOlustur.destroyAfterRead")}
+                />
+                {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
+                    (izin verirse) mesajla birlikte gonderebilme. */}
+                <Toggle
+                  id="reply-add-weather-toggle"
+                  checked={replyAddWeather}
+                  onChange={setReplyAddWeather}
+                  label="Hava Durumunu Ekle"
+                />
+              </>
             )}
-            <Toggle
-              id="reply-destroy-after-read-toggle"
-              checked={replyDestroyAfterRead}
-              onChange={setReplyDestroyAfterRead}
-              label={t("mesajOlustur.destroyAfterRead")}
-            />
-            {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
-                (izin verirse) mesajla birlikte gonderebilme. */}
-            <Toggle
-              id="reply-add-weather-toggle"
-              checked={replyAddWeather}
-              onChange={setReplyAddWeather}
-              label="Hava Durumunu Ekle"
-            />
+
             {replyError && <p className="font-body text-sm text-coral">{replyError}</p>}
             <Button className="w-full" onClick={handleReply} disabled={isReplying || !replyBody}>
               {isReplying ? "Gönderiliyor..." : "Yanıtla"}
