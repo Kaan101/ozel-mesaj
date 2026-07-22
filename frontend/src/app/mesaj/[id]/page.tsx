@@ -678,15 +678,17 @@ export default function MesajGosterPage() {
           <Card lifted className="space-y-3">
             {/* Kullanici istegi: avatar+nickname, "Yanıtın" alaninin
                 USTUNDE, sol kosede, sanki zaten gonderilmis bir mesajmis
-                gibi varsayilan olarak gorunur - anonimse hic gorunmez. */}
-            {!replyAnonymous && (
-              <div className="flex items-center gap-1.5">
+                gibi varsayilan olarak gorunur. Kullanici istegi:
+                anonimken SADECE avatar gizlenir, nickname her zaman
+                gorunur. */}
+            <div className="flex items-center gap-1.5">
+              {!replyAnonymous && (
                 <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
-                <span className="font-body text-xs font-semibold text-slate-light">
-                  {myDisplayName || "İsimsiz"}
-                </span>
-              </div>
-            )}
+              )}
+              <span className="font-body text-xs font-semibold text-slate-light">
+                {myDisplayName || "İsimsiz"}
+              </span>
+            </div>
             <Input
               label="Yanıtın"
               value={replyBody}
