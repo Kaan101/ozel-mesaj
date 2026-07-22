@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
+import { AvatarId } from "@/components/ui/Avatar";
+import { AvatarConfig } from "@/lib/dicebear-avatar";
 import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 import { ReactionBar } from "@/components/ui/ReactionBar";
@@ -92,13 +94,26 @@ export default function MesajGosterPage() {
   // Kullanici istegi: /ayarlar'da "profil ismimi her zaman goster"
   // secilmisse, yanit formundaki anonimlik secenegi hic gosterilmez.
   const [alwaysShowName, setAlwaysShowName] = useState(false);
+  // Kullanici istegi: yanit kismindaki onizlemede kendi avatarim/
+  // nickname'im gorunsun (anonim degilse).
+  const [myAvatarId, setMyAvatarId] = useState<AvatarId | null>(null);
+  const [myAvatarConfig, setMyAvatarConfig] = useState<Partial<AvatarConfig> | null>(null);
+  const [myDisplayName, setMyDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    apiFetch<{ alwaysShowName: boolean }>("/me")
+    apiFetch<{
+      alwaysShowName: boolean;
+      avatarId: AvatarId | null;
+      avatarConfig: Partial<AvatarConfig> | null;
+      displayName: string | null;
+    }>("/me")
       .then((data) => {
         setAlwaysShowName(data.alwaysShowName);
         if (data.alwaysShowName) setReplyAnonymous(false);
+        setMyAvatarId(data.avatarId);
+        setMyAvatarConfig(data.avatarConfig);
+        setMyDisplayName(data.displayName);
       })
       .catch(() => {});
   }, [isAuthenticated]);
@@ -667,6 +682,26 @@ export default function MesajGosterPage() {
               onChange={(e) => setReplyBody(e.target.value)}
               placeholder="Merhaba, ben de..."
             />
+
+            {/* Kullanici istegi: yanitin karsi tarafa nasil yansiyacagini
+                anlik olarak gorebilme - anonimse avatar/isim gizlenir. */}
+            {replyBody && (
+              <div className="flex items-start gap-3 rounded-2xl border-2 border-slate-light/30 bg-white p-3">
+                {!replyAnonymous && (
+                  <div className="shrink-0">
+                    <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={36} />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  {!replyAnonymous && (
+                    <p className="font-body text-xs font-semibold text-slate-light">
+                      {myDisplayName || "İsimsiz"}
+                    </p>
+                  )}
+                  <p className="font-body text-sm text-slate">{replyBody}</p>
+                </div>
+              </div>
+            )}
 
             {/* Kullanici istegi: tum secenekler acilir-kapanir bir
                 bolumde - kapaliyken hicbir secenek gorunmez. */}
