@@ -122,6 +122,7 @@ export class SafetyService {
         id: true,
         createdAt: true,
         initiatorUserId: true,
+        recipientRevealedAt: true,
         messages: {
           where: { deletedAt: null },
           orderBy: { createdAt: "asc" },
@@ -131,14 +132,22 @@ export class SafetyService {
       },
     });
 
-    return threads.map((t) => ({
-      threadId: t.id,
-      createdAt: t.createdAt,
-      // Guvenlik: sadece BLOKLAYAN kisi (kendisi) icin bu ekran
-      // gorunur - mesaj govdesi zaten kendi erisimi dahilinde,
-      // sizdirma riski yok.
-      firstMessageBody: t.messages[0]?.body ?? null,
-    }));
+    return threads.map((t) => {
+      // Guvenlik (bug duzeltmesi): eger bu kisi ALICI ise ve mesaji
+      // bloklamadan ONCE hic "Mesaji Goster"e basmadiysa (reveal-gate),
+      // mesaj icerigi burada da ASLA gosterilmez - "mesaji hic
+      // gormeden bloke etme" garantisi bu ekranda da gecerlidir.
+      const isRecipient = t.initiatorUserId !== userId;
+      const canShowBody = !isRecipient || !!t.recipientRevealedAt;
+
+      return {
+        threadId: t.id,
+        createdAt: t.createdAt,
+        firstMessageBody: canShowBody ? (t.messages[0]?.body ?? null) : null,
+        // Frontend'in "mesajı görmeden bloke ettin" notu gosterebilmesi icin.
+        wasNeverRevealed: isRecipient && !t.recipientRevealedAt,
+      };
+    });
   }
 
   // Gorev 7.3: Mesaj/thread icin sikayet kaydi olusturur - moderasyon

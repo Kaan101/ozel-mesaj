@@ -27,6 +27,7 @@ interface BlockedThread {
   threadId: string;
   createdAt: string;
   firstMessageBody: string | null;
+  wasNeverRevealed: boolean;
 }
 
 // Gorev 13.4 + 13.5: Ayarlar sayfasi (profil duzenleme) + KVKK
@@ -204,7 +205,9 @@ export default function AyarlarPage() {
                       className="block rounded-2xl border-2 border-slate-light/30 bg-white px-4 py-3 hover:bg-mint"
                     >
                       <p className="font-body text-sm text-slate line-clamp-1">
-                        {t.firstMessageBody ?? "Parola korumalı mesaj"}
+                        {t.wasNeverRevealed
+                          ? "Bu mesajı görmeden bloke ettin"
+                          : (t.firstMessageBody ?? "Parola korumalı mesaj")}
                       </p>
                       <p className="mt-1 font-body text-xs text-slate-light">
                         {new Date(t.createdAt).toLocaleDateString("tr-TR")}
