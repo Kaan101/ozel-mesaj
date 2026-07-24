@@ -666,13 +666,28 @@ export class ThreadService {
 
     // Kullanici istegi: bir iletisimde birikebilecek maksimum mesaj
     // sayisi - asiri buyumeyi/kotuye kullanimi onlemek icin.
+    // Kullanici istegi: bir iletisimde birikebilecek maksimum mesaj
+    // sayisina ulasilinca YENI MESAJ GONDERMEYI ENGELLEMEK yerine, o
+    // iletisimdeki EN ESKI mesaj (kim gonderdiyse gondersin) otomatik
+    // silinir - boylece yazmaya her zaman izin verilir, sadece toplam
+    // sayi asilmaz (dongusel/rolling limit). Yumusak silme (deletedAt)
+    // kullanilir - arsiv/log kaydi (MessageAudit) ETKILENMEZ.
     const maxMessageCount = await this.settings.getNumber("THREAD_MAX_MESSAGE_COUNT");
     if (maxMessageCount > 0) {
-      const currentCount = await this.prisma.message.count({ where: { threadId } });
+      const currentCount = await this.prisma.message.count({
+        where: { threadId, deletedAt: null },
+      });
       if (currentCount >= maxMessageCount) {
-        throw new ForbiddenException(
-          "Bu iletişim maksimum mesaj sayısına ulaştı, yeni mesaj gönderilemiyor."
-        );
+        const oldestMessage = await this.prisma.message.findFirst({
+          where: { threadId, deletedAt: null },
+          orderBy: { createdAt: "asc" },
+        });
+        if (oldestMessage) {
+          await this.prisma.message.update({
+            where: { id: oldestMessage.id },
+            data: { deletedAt: new Date() },
+          });
+        }
       }
     }
 

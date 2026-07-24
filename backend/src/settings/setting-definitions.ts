@@ -120,7 +120,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     envFallback: "THREAD_MAX_MESSAGE_COUNT",
     defaultValue: 500,
     label: "Bir Iletisimdeki Maksimum Mesaj Sayisi",
-    description: "Bir mesajlasma (thread) icinde en fazla kac mesaj birikebilir - bu sayiya ulasilinca yeni mesaj gonderimi reddedilir (asiri buyumeyi/kotuye kullanimi onlemek icin). 0 girilirse sinirsiz.",
+    description: "Bir mesajlasma (thread) icinde en fazla kac mesaj birikebilir - bu sayiya ulasilinca yeni mesaj gonderimi ENGELLENMEZ, bunun yerine o iletisimdeki EN ESKI mesaj otomatik silinir (dongusel/rolling limit, kim gonderdiyse gondersin). 0 girilirse sinirsiz.",
   },
   {
     key: "PUSH_NOTIFICATIONS_ENABLED",
