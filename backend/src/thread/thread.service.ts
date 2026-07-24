@@ -34,6 +34,19 @@ export class ThreadService {
   async createThread(initiatorUserId: string, dto: CreateThreadDto) {
     const recipientPhoneHash = hashPhoneNumber(dto.recipientPhone);
 
+    // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
+    // gonderenin /ayarlar'daki "profil ismimi her zaman goster"
+    // tercihinden TURETILIYOR. dto.isAnonymous verilmisse (eski
+    // istemciler icin geriye donuk uyumluluk) o kullanilir.
+    const isAnonymous =
+      dto.isAnonymous ??
+      !(
+        await this.prisma.user.findUnique({
+          where: { id: initiatorUserId },
+          select: { alwaysShowName: true },
+        })
+      )?.alwaysShowName;
+
     // Alici henuz sisteme hic girmemis olabilir - "numarasiz kimlik"
     // modeline uygun olarak onceden bir kullanici kaydi olusturuyoruz
     // (Bolum 8). Alici kendi OTP'siyle giris yaptiginda ayni kayda
@@ -93,7 +106,7 @@ export class ThreadService {
             {
               senderUserId: initiatorUserId,
               body: dto.body,
-              isAnonymous: dto.isAnonymous,
+              isAnonymous,
               destroyAfterRead: dto.destroyAfterRead ?? false,
               weatherSummary: dto.weatherSummary ?? null,
             },
@@ -121,7 +134,7 @@ export class ThreadService {
           threadId: thread.id,
           senderUserId: initiatorUserId,
           bodyEncrypted: encryptReversible(dto.body),
-          isAnonymous: dto.isAnonymous,
+          isAnonymous,
         },
       });
     }
@@ -130,7 +143,7 @@ export class ThreadService {
       eventType: "thread_created",
       userId: initiatorUserId,
       threadId: thread.id,
-      metadata: { lockType: dto.lockType, isAnonymous: dto.isAnonymous },
+      metadata: { lockType: dto.lockType, isAnonymous },
     });
 
     // Kullanici istegi: gonderen opsiyonel bir e-posta da eklediyse,
@@ -626,7 +639,7 @@ export class ThreadService {
     threadId: string,
     senderUserId: string,
     body: string,
-    isAnonymous: boolean,
+    isAnonymousInput: boolean | undefined,
     destroyAfterRead: boolean = false,
     weatherSummary?: string
   ) {
@@ -636,6 +649,11 @@ export class ThreadService {
     if (sender?.status === "suspended") {
       throw new ForbiddenException("Hesabın askıya alındığı için mesaj gönderemezsin.");
     }
+
+    // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
+    // gonderenin /ayarlar'daki "profil ismimi her zaman goster"
+    // tercihinden TURETILIYOR.
+    const isAnonymous = isAnonymousInput ?? !sender?.alwaysShowName;
 
     // Kullanici istegi: bir kisi, daha once bloke ettigi biriyle olan
     // bir konusmaya (ornegin /ayarlar > Bloklanmis Mesajlar'dan) YANIT

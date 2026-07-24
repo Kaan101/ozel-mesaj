@@ -85,10 +85,15 @@ export default function MesajGosterPage() {
   // backend senderUserId'yi kimseye dondurmedigi icin (Bolum 8), "kimin
   // mesaji oldugunu" bu sekilde takip ediyoruz (Bolum 13, gorsel ayrim).
   const [myMessageIds, setMyMessageIds] = useState<Set<string>>(new Set());
+  // Kullanici istegi (bug duzeltmesi): kendi mesajimi guvenilir sekilde
+  // tanimak icin kendi kullanici ID'mi de tutuyoruz - anonim OLMAYAN
+  // mesajlarda backend senderUserId'yi dondurur, bununla karsilastirip
+  // "silme" butonunun HER ZAMAN (anonim olsun olmasin) dogru gorunmesini
+  // sagliyoruz.
+  const [myUserId, setMyUserId] = useState<string | null>(null);
 
-  // Gorev 13.1 + 13.2: Yanit yazma + kimlik gosterme anahtari.
+  // Gorev 13.1 + 13.2: Yanit yazma.
   const [replyBody, setReplyBody] = useState("");
-  const [replyAnonymous, setReplyAnonymous] = useState(true);
   // Kullanici istegi: yanit formundaki tum secenekler acilir-kapanir
   // bir bolumde - kapaliyken hicbir secenek gorunmez.
   const [isReplyOptionsExpanded, setIsReplyOptionsExpanded] = useState(false);
@@ -104,6 +109,7 @@ export default function MesajGosterPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     apiFetch<{
+      id: string;
       alwaysShowName: boolean;
       alwaysAddWeather: boolean;
       avatarId: AvatarId | null;
@@ -111,8 +117,8 @@ export default function MesajGosterPage() {
       displayName: string | null;
     }>("/me")
       .then((data) => {
+        setMyUserId(data.id);
         setAlwaysShowName(data.alwaysShowName);
-        if (data.alwaysShowName) setReplyAnonymous(false);
         // Kullanici istegi: /ayarlar'da acikken, hava durumu her
         // yanitta otomatik eklensin.
         if (data.alwaysAddWeather) setReplyAddWeather(true);
@@ -306,7 +312,8 @@ export default function MesajGosterPage() {
         method: "POST",
         body: JSON.stringify({
           body: replyBody,
-          isAnonymous: replyAnonymous,
+          // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
+          // backend, /ayarlar'daki tercihimden otomatik turetir.
           destroyAfterRead: replyDestroyAfterRead,
           weatherSummary: weatherSummary ?? undefined,
         }),
@@ -612,7 +619,15 @@ export default function MesajGosterPage() {
               );
             }
 
-            const isFromCounterpart = !myMessageIds.has(msg.id);
+            // Kullanici istegi (bug duzeltmesi): kendi mesajim mi
+            // kontrolu artik SADECE bu oturumda gonderilenlerle sinirli
+            // degil - anonim OLMAYAN mesajlarda backend'in dondurdugu
+            // senderUserId, kendi ID'mle karsilastirilir. Anonim
+            // mesajlarda senderUserId gelmedigi icin (Bolum 8),
+            // myMessageIds (bu oturumda gonderdiklerim) hala gerekli.
+            const isMine =
+              (!!msg.senderUserId && msg.senderUserId === myUserId) || myMessageIds.has(msg.id);
+            const isFromCounterpart = !isMine;
             const messageCard = (
               <Card
                 className={`relative ${isFromCounterpart ? "border-2 border-meadow" : ""} ${
@@ -684,12 +699,13 @@ export default function MesajGosterPage() {
             );
           })}
 
-          {/* Gorev 13.1 + 13.2: Yanit formu + kimlik gosterme anahtari */}
+          {/* Gorev 13.1 + 13.2: Yanit formu */}
           <Card lifted className="space-y-3">
             {/* Kullanici istegi: avatar+nickname, "Yanıtın" alaninin
                 USTUNDE, sol kosede, sanki zaten gonderilmis bir mesajmis
-                gibi varsayilan olarak gorunur - anonimse hic gorunmez. */}
-            {!replyAnonymous && (
+                gibi varsayilan olarak gorunur - /ayarlar'daki tercihe
+                gore (anonimlik artik mesaj bazinda secilmiyor). */}
+            {alwaysShowName && (
               <div className="flex items-center gap-1.5">
                 <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
                 <span className="font-body text-xs font-semibold text-slate-light">
@@ -728,16 +744,9 @@ export default function MesajGosterPage() {
 
             {isReplyOptionsExpanded && (
               <>
-                {/* Kullanici istegi: /ayarlar'da "her zaman goster"
-                    secilmisse bu secenek hic gosterilmez. */}
-                {!alwaysShowName && (
-                  <Toggle
-                    id="reply-anon-toggle"
-                    checked={replyAnonymous}
-                    onChange={setReplyAnonymous}
-                    label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
-                  />
-                )}
+                {/* Kullanici istegi: anonimlik artik mesaj bazinda
+                    secilmiyor - /ayarlar'daki tercihten turetiliyor,
+                    burada secenek gosterilmez. */}
                 <Toggle
                   id="reply-destroy-after-read-toggle"
                   checked={replyDestroyAfterRead}
