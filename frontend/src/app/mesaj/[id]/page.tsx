@@ -640,6 +640,11 @@ export default function MesajGosterPage() {
                     <p className="font-body text-slate">{msg.body}</p>
                     <p className="mt-2 font-body text-xs text-slate-light">
                       {new Date(msg.createdAt).toLocaleString("tr-TR")}
+                      {/* Kullanici istegi: bu mesaj gonderilirken hava
+                          durumu secilmisse, zaman damgasinin yaninda,
+                          AYNI FONTTA gosterilir - hem ilk mesaj hem
+                          sonraki her yanit icin gecerli. */}
+                      {msg.weatherSummary && <> · {msg.weatherSummary}</>}
                     </p>
                     <ReactionBar
                       reactions={msg.reactions}
