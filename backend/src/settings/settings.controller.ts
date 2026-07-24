@@ -35,6 +35,16 @@ export class SettingsController {
     return { enabled: value === 1 };
   }
 
+  // Kullanici istegi: footer ve KVKK Aydinlatma Metni'nde gosterilen
+  // iletisim e-postasi/adresi - ikisi de AYNI kaynaktan (sistem
+  // parametresi) okur.
+  @Get("public/contact-info")
+  async getContactInfo() {
+    const email = await this.settingsService.getString("CONTACT_EMAIL");
+    const address = await this.settingsService.getString("CONTACT_ADDRESS");
+    return { email, address };
+  }
+
   @UseGuards(AdminGuard)
   @Get()
   async list() {

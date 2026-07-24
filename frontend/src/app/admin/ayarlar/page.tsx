@@ -10,7 +10,8 @@ interface Setting {
   key: string;
   label: string;
   description: string;
-  value: number;
+  value: number | string;
+  type: "number" | "string";
   isDefault: boolean;
 }
 
@@ -81,10 +82,16 @@ export default function AdminAyarlarPage() {
     setSavingKey(key);
     setError(null);
     try {
+      // Kullanici istegi: string tipi parametreler (e-posta, adres
+      // gibi) Number()'a cevrilmeden, oldugu gibi gonderilir.
+      const setting = settings.find((s) => s.key === key);
+      const rawValue = editValues[key];
+      const value = setting?.type === "string" ? rawValue : Number(rawValue);
+
       const res = await fetch(`${API_BASE_URL}/admin/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
-        body: JSON.stringify({ key, value: Number(editValues[key]) }),
+        body: JSON.stringify({ key, value }),
       });
       if (!res.ok) throw new Error("Kaydedilemedi.");
       await fetchSettings();

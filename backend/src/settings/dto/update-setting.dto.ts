@@ -1,10 +1,13 @@
-import { IsInt, IsString, Min } from "class-validator";
+import { ValidateIf, IsString } from "class-validator";
 
+// Kullanici istegi: sayisal parametrelerin yaninda, metin (string)
+// parametreler de (orn. iletisim e-postasi, adres) desteklenir. Tur
+// kontrolu burada gevsek tutulur - gercek deger, SettingsService
+// icinde String(value) ile veritabanina yazilir.
 export class UpdateSettingDto {
   @IsString()
   key: string;
 
-  @IsInt()
-  @Min(0)
-  value: number;
+  @ValidateIf(() => true)
+  value: number | string;
 }

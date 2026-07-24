@@ -4,6 +4,7 @@ import "./globals.css";
 import { RegisterServiceWorker } from "./register-service-worker";
 import { NotificationPrompt } from "./notification-prompt";
 import { ReleaseFooter } from "./release-footer";
+import { ContactFooter } from "./contact-footer";
 import { AuthProvider } from "@/lib/auth-context";
 import { LanguageProvider } from "@/lib/language-context";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -72,6 +73,7 @@ export default function RootLayout({
             <SiteHeader />
             {children}
             <ReleaseFooter />
+            <ContactFooter />
             <RegisterServiceWorker />
             <NotificationPrompt />
           </AuthProvider>

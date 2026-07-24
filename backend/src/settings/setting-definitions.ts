@@ -1,12 +1,18 @@
 // Yonetim ekraninda gosterilecek/degistirilebilecek parametrelerin
 // tek tanim yeri. Her biri: benzersiz anahtar, env fallback degiskeni,
 // varsayilan deger, tur ve kullanicinin gorecegi aciklama.
+//
+// Kullanici istegi: sayisal (number) parametrelerin yaninda, metin
+// (string) parametreler de desteklenir - orn. iletisim e-postasi,
+// adres. "type" alani belirtilmezse varsayilan "number" sayilir
+// (geriye donuk uyumluluk icin).
 export interface SettingDefinition {
   key: string;
   envFallback: string;
-  defaultValue: number;
+  defaultValue: number | string;
   label: string;
   description: string;
+  type?: "number" | "string";
 }
 
 export const SETTING_DEFINITIONS: SettingDefinition[] = [
@@ -142,5 +148,21 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     defaultValue: 1,
     label: "Coklu Dil Destegi (1=Acik, 0=Kapali)",
     description: "Kapatilirsa, girişte ulkeye gore otomatik dil secimi devre disi kalir - sistem HER ZAMAN Ingilizce calisir (varsayilan).",
+  },
+  {
+    key: "CONTACT_EMAIL",
+    envFallback: "CONTACT_EMAIL",
+    defaultValue: "destek@youhavemi.com",
+    type: "string",
+    label: "Iletisim E-postasi",
+    description: "Footer ve KVKK Aydinlatma Metni'nde gosterilen iletisim e-postasi.",
+  },
+  {
+    key: "CONTACT_ADDRESS",
+    envFallback: "CONTACT_ADDRESS",
+    defaultValue: "İstanbul, Türkiye",
+    type: "string",
+    label: "Iletisim Adresi",
+    description: "Footer ve KVKK Aydinlatma Metni'nde gosterilen adres bilgisi.",
   },
 ];

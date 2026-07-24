@@ -1,4 +1,22 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
+
 export default function KvkkAydinlatmaPage() {
+  // Kullanici istegi: Veri Sorumlusu iletisim bilgisi, footer ile
+  // AYNI sistem parametresinden (yonetim panelinden degistirilebilir)
+  // okunur.
+  const [contact, setContact] = useState<{ email: string; address: string } | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/admin/settings/public/contact-info`)
+      .then((res) => res.json())
+      .then(setContact)
+      .catch(() => {});
+  }, []);
+
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-2xl space-y-6">
@@ -16,8 +34,10 @@ export default function KvkkAydinlatmaPage() {
           <p>
             YouHaveMi (&quot;Platform&quot;), işbu aydınlatma metni kapsamında 6698 sayılı
             Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) uyarınca &quot;veri sorumlusu&quot;
-            sıfatıyla hareket etmektedir. Veri sorumlusunun güncel iletişim ve tescil
-            bilgileri Platform&apos;un resmi internet sitesinde yayınlanacaktır.
+            sıfatıyla hareket etmektedir.{" "}
+            {contact
+              ? `Veri sorumlusunun güncel iletişim bilgileri: ${contact.email} - ${contact.address}.`
+              : "Veri sorumlusunun güncel iletişim ve tescil bilgileri Platform'un resmi internet sitesinde yayınlanacaktır."}
           </p>
 
           <h2 className="font-display text-lg font-bold text-slate">2. İşlenen Kişisel Veriler</h2>
