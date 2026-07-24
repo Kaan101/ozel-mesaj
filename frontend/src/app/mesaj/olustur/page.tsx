@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput } from "@/components/ui/PhoneInput";
@@ -240,7 +241,7 @@ export default function MesajOlusturPage() {
               </span>
             </div>
           )}
-          <Input
+          <Textarea
             label={t("mesajOlustur.messageLabel")}
             placeholder={t("mesajOlustur.messagePlaceholder")}
             value={body}
