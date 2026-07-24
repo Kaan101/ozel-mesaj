@@ -25,6 +25,7 @@ interface MyThread {
   lastMessageAt: string;
   role: "initiator" | "recipient";
   needsReveal: boolean;
+  blockedByCounterpart: boolean;
 }
 
 interface PendingAttempt {
@@ -306,11 +307,27 @@ function ThreadCard({
                         : t("mesajlarim.passwordProtected")}
                 </h3>
                 <p className="mt-1 font-body text-xs text-slate-light">
-                  {thread.role === "initiator" && thread.recipientPhoneDisplay
-                    ? `${t("mesajlarim.to")} ${thread.recipientPhoneDisplay}`
-                    : thread.role === "initiator"
-                      ? t("mesajlarim.youSent")
-                      : t("mesajlarim.sentToYou")}
+                  {thread.role === "initiator" && thread.recipientPhoneDisplay ? (
+                    <>
+                      {t("mesajlarim.to")} {thread.recipientPhoneDisplay}
+                      {/* Kullanici istegi: karsi taraf beni bloke ettiyse,
+                          telefon numarasinin sonunda kirmizi bir nokta -
+                          capi, satirdaki metnin (1em) yuksekligi kadar,
+                          "em" birimi sayesinde otomatik orantili. */}
+                      {thread.blockedByCounterpart && (
+                        <span
+                          className="ml-1.5 inline-block rounded-full bg-coral align-middle"
+                          style={{ width: "1em", height: "1em" }}
+                          aria-label="Bu kişi seni engelledi"
+                          title="Bu kişi seni engelledi"
+                        />
+                      )}
+                    </>
+                  ) : thread.role === "initiator" ? (
+                    t("mesajlarim.youSent")
+                  ) : (
+                    t("mesajlarim.sentToYou")
+                  )}
                   {" · "}
                   {new Date(thread.lastMessageAt).toLocaleString(
                     language === "en" ? "en-US" : "tr-TR"

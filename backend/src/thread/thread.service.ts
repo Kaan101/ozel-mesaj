@@ -410,6 +410,25 @@ export class ThreadService {
         : [];
     const firstMessageByThreadId = new Map(firstMessages.map((m) => [m.threadId, m.body]));
 
+    // Kullanici istegi: BEN gonderen (initiator) isem ve karsi taraf
+    // (recipient) beni bloke ettiyse, iletisim kutusunda telefon
+    // numarasinin yaninda kirmizi bir nokta gosterilir. Tum thread'ler
+    // icin TEK sorguda kontrol ediyoruz (N+1 sorgudan kacinmak icin).
+    const counterpartIdsWhereIAmInitiator = threads
+      .filter((t) => t.initiatorUserId === userId && t.recipientUserId)
+      .map((t) => t.recipientUserId as string);
+    const blocksAgainstMe =
+      counterpartIdsWhereIAmInitiator.length > 0
+        ? await this.prisma.block.findMany({
+            where: {
+              blockedUserId: userId,
+              blockerUserId: { in: counterpartIdsWhereIAmInitiator },
+            },
+            select: { blockerUserId: true },
+          })
+        : [];
+    const blockedByUserIdSet = new Set(blocksAgainstMe.map((b) => b.blockerUserId));
+
     const mapped = threads
       .map((t) => {
         const role = t.initiatorUserId === userId ? "initiator" : "recipient";
@@ -480,6 +499,10 @@ export class ThreadService {
           lastMessageAt,
           role,
           needsReveal: role === "recipient" && !t.recipientRevealedAt,
+          // Kullanici istegi: BEN gonderen isem ve karsi taraf beni
+          // bloke ettiyse, telefon numarasinin yaninda kirmizi nokta.
+          blockedByCounterpart:
+            role === "initiator" && !!t.recipientUserId && blockedByUserIdSet.has(t.recipientUserId),
         };
       })
       .filter((t): t is NonNullable<typeof t> => t !== null);
