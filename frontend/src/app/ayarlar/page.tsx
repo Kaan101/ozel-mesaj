@@ -18,6 +18,7 @@ interface Profile {
   status: string;
   createdAt: string;
   alwaysShowName: boolean;
+  alwaysAddWeather: boolean;
   avatarConfig: AvatarConfig | null;
 }
 
@@ -41,6 +42,9 @@ export default function AyarlarPage() {
   // Kullanici istegi: profil ismini her zaman goster secenegi -
   // acikken, mesaj formlarindaki "anonim kal" secenegi gizlenir.
   const [alwaysShowName, setAlwaysShowName] = useState(false);
+  // Kullanici istegi: acikken, her mesaj/yanit gonderiminde hava
+  // durumu otomatik eklenir.
+  const [alwaysAddWeather, setAlwaysAddWeather] = useState(false);
   // Kullanici istegi: zengin ozellestirilebilir avatar (DiceBear).
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(() => randomAvatarConfig());
   const [avatarSaveMessage, setAvatarSaveMessage] = useState<string | null>(null);
@@ -71,6 +75,7 @@ export default function AyarlarPage() {
       setProfile(data);
       setDisplayName(data.displayName ?? "");
       setAlwaysShowName(data.alwaysShowName);
+      setAlwaysAddWeather(data.alwaysAddWeather);
       if (data.avatarConfig) {
         setAvatarConfig({ ...DEFAULT_AVATAR_CONFIG, ...data.avatarConfig });
       }
@@ -91,7 +96,7 @@ export default function AyarlarPage() {
     try {
       await apiFetch("/me", {
         method: "PATCH",
-        body: JSON.stringify({ displayName, alwaysShowName }),
+        body: JSON.stringify({ displayName, alwaysShowName, alwaysAddWeather }),
       });
       setSaveMessage("Kaydedildi.");
     } catch {
@@ -238,6 +243,18 @@ export default function AyarlarPage() {
             label={
               alwaysShowName
                 ? "Profil ismim her zaman gösterilsin"
+                : "Her mesajda ayrı ayrı seçmek istiyorum"
+            }
+          />
+          {/* Kullanici istegi: acikken, her mesaj/yanit gonderiminde
+              (izin verirse) hava durumu otomatik eklenir. */}
+          <Toggle
+            id="always-add-weather-toggle"
+            checked={alwaysAddWeather}
+            onChange={setAlwaysAddWeather}
+            label={
+              alwaysAddWeather
+                ? "Her mesaja hava durumu otomatik eklensin"
                 : "Her mesajda ayrı ayrı seçmek istiyorum"
             }
           />

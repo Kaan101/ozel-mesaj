@@ -104,6 +104,7 @@ export default function MesajGosterPage() {
     if (!isAuthenticated) return;
     apiFetch<{
       alwaysShowName: boolean;
+      alwaysAddWeather: boolean;
       avatarId: AvatarId | null;
       avatarConfig: Partial<AvatarConfig> | null;
       displayName: string | null;
@@ -111,6 +112,9 @@ export default function MesajGosterPage() {
       .then((data) => {
         setAlwaysShowName(data.alwaysShowName);
         if (data.alwaysShowName) setReplyAnonymous(false);
+        // Kullanici istegi: /ayarlar'da acikken, hava durumu her
+        // yanitta otomatik eklensin.
+        if (data.alwaysAddWeather) setReplyAddWeather(true);
         setMyAvatarId(data.avatarId);
         setMyAvatarConfig(data.avatarConfig);
         setMyDisplayName(data.displayName);

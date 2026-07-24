@@ -27,6 +27,9 @@ export class UsersService {
       // Kullanici istegi: acikken, mesaj formlarindaki "anonim kal"
       // secenegi hic gosterilmez.
       alwaysShowName: user.alwaysShowName,
+      // Kullanici istegi: acikken, mesaj/yanit gonderiminde hava
+      // durumu otomatik eklenir.
+      alwaysAddWeather: user.alwaysAddWeather,
     };
   }
 
@@ -72,6 +75,7 @@ export class UsersService {
       avatarId?: string;
       avatarConfig?: Record<string, unknown>;
       alwaysShowName?: boolean;
+      alwaysAddWeather?: boolean;
     }
   ) {
     const user = await this.prisma.user.update({
@@ -85,6 +89,7 @@ export class UsersService {
       avatarId: user.avatarId,
       avatarConfig: user.avatarConfig,
       alwaysShowName: user.alwaysShowName,
+      alwaysAddWeather: user.alwaysAddWeather,
     };
   }
 

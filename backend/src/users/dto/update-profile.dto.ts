@@ -34,4 +34,10 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsBoolean()
   alwaysShowName?: boolean;
+
+  // Kullanici istegi: acikken, mesaj/yanit gonderiminde hava durumu
+  // otomatik eklenir.
+  @IsOptional()
+  @IsBoolean()
+  alwaysAddWeather?: boolean;
 }
