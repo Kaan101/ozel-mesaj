@@ -12,6 +12,7 @@ import { SettingsService } from "../settings/settings.service";
 @Injectable()
 export class MessageCleanupService {
   private readonly logger = new Logger(MessageCleanupService.name);
+  private lastDiagnosticLogAt = 0;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -40,15 +41,38 @@ export class MessageCleanupService {
     // durumu ne olursa olsun belirli bir sureyi gecen HER mesaj
     // silinir. Hukuki ispat icin sifreli arsiv kopyasi (MessageAudit)
     // bundan ETKILENMEZ.
+    //
+    // Kullanici istegi: bir iletisimin ILK mesaji, o iletisimin
+    // (Mesajlarim listesindeki) SABIT basligini olusturdugu icin asla
+    // silinmez - yasam suresi kurali sadece ONDAN SONRAKI mesajlara
+    // uygulanir.
     const lifespanDays = await this.settings.getNumber("MESSAGE_LIFESPAN_DAYS");
+    // Teshis: her calismada gercekte okunan degeri logla - "10 girdim
+    // ama 1 gibi davraniyor" turu sorunlari Railway loglarindan
+    // dogrulamak icin. 5 dakikada bir sinirlanir (log kirliligi olmasin).
+    if (Date.now() - this.lastDiagnosticLogAt > 5 * 60 * 1000) {
+      this.logger.log(`MESSAGE_LIFESPAN_DAYS su an: ${lifespanDays} gun.`);
+      this.lastDiagnosticLogAt = Date.now();
+    }
     if (lifespanDays > 0) {
       const lifespanThreshold = new Date(Date.now() - lifespanDays * 24 * 60 * 60 * 1000);
+
+      const firstMessages = await this.prisma.message.findMany({
+        orderBy: { createdAt: "asc" },
+        distinct: ["threadId"],
+        select: { id: true },
+      });
+      const protectedIds = firstMessages.map((m) => m.id);
+
       const lifespanResult = await this.prisma.message.deleteMany({
-        where: { createdAt: { lte: lifespanThreshold } },
+        where: {
+          createdAt: { lte: lifespanThreshold },
+          id: { notIn: protectedIds },
+        },
       });
       if (lifespanResult.count > 0) {
         this.logger.log(
-          `${lifespanResult.count} mesaj, yasam suresi (${lifespanDays} gun) doldugu icin silindi.`
+          `${lifespanResult.count} mesaj, yasam suresi (${lifespanDays} gun) doldugu icin silindi (ilk mesajlar korundu).`
         );
       }
     }
