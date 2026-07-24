@@ -48,8 +48,11 @@ export class CreateThreadDto {
   @MinLength(1, { message: "Soru modu secildiyse questionText zorunludur." })
   questionText?: string;
 
+  // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor,
+  // /ayarlar'daki "profil ismimi goster" tercihinden TURETILIYOR.
+  @IsOptional()
   @IsBoolean()
-  isAnonymous: boolean;
+  isAnonymous?: boolean;
 
   // Kullanici istegi: gonderen isterse mesaj okunduktan sonra
   // uygulamadan (canli tabloya) silinsin - ama hukuki ispat icin

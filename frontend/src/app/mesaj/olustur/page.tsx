@@ -40,7 +40,9 @@ export default function MesajOlusturPage() {
   const [addQuestion, setAddQuestion] = useState(false);
   const [questionText, setQuestionText] = useState("");
   const [lockSecret, setLockSecret] = useState("");
-  const [isAnonymous, setIsAnonymous] = useState(true);
+  // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
+  // /ayarlar'daki "profil ismimi her zaman goster" tercihinden
+  // TURETILIYOR (bkz. alwaysShowName). Ayri bir isAnonymous state'i yok.
   // Kullanici istegi: gonderen isterse mesaj okunduktan sonra
   // uygulamadan silinsin - hukuki ispat icin sifreli arsivde
   // (MessageAudit) yine de kalir.
@@ -92,7 +94,6 @@ export default function MesajOlusturPage() {
     }>("/me")
       .then((data) => {
         setAlwaysShowName(data.alwaysShowName);
-        if (data.alwaysShowName) setIsAnonymous(false);
         // Kullanici istegi: /ayarlar'da acikken, hava durumu her
         // mesajda otomatik eklensin.
         if (data.alwaysAddWeather) setAddWeather(true);
@@ -145,7 +146,8 @@ export default function MesajOlusturPage() {
           lockType: addQuestion ? "question" : "none",
           lockSecret: addQuestion ? lockSecret : undefined,
           questionText: addQuestion ? questionText : undefined,
-          isAnonymous,
+          // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
+          // backend, /ayarlar'daki tercihimden otomatik turetir.
           destroyAfterRead,
           weatherSummary: weatherSummary ?? undefined,
         }),
@@ -228,8 +230,9 @@ export default function MesajOlusturPage() {
 
           {/* Kullanici istegi: avatar+nickname, yazi alaninin USTUNDE,
               sol kosede, sanki zaten gonderilmis bir mesajmis gibi
-              varsayilan olarak gorunur - anonimse hic gorunmez. */}
-          {!isAnonymous && (
+              varsayilan olarak gorunur - /ayarlar'daki tercihe gore
+              (anonimlik artik mesaj bazinda secilmiyor). */}
+          {alwaysShowName && (
             <div className="flex items-center gap-1.5">
               <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
               <span className="font-body text-xs font-semibold text-slate-light">
@@ -304,17 +307,9 @@ export default function MesajOlusturPage() {
                 </div>
               )}
 
-              {/* Gorev 11.3: Anonim/Acik kimlik toggle - kullanici istegi:
-                  /ayarlar'da "her zaman goster" secilmisse bu secenek
-                  hic gosterilmez. */}
-              {!alwaysShowName && (
-                <Toggle
-                  id="anon-toggle-create"
-                  checked={isAnonymous}
-                  onChange={setIsAnonymous}
-                  label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
-                />
-              )}
+              {/* Kullanici istegi: anonimlik artik mesaj bazinda
+                  secilmiyor - /ayarlar'daki tercihten turetiliyor,
+                  burada secenek gosterilmez. */}
 
               {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
                   (izin verirse) mesajla birlikte gonderebilme. */}

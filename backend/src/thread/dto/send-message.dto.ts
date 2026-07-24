@@ -5,8 +5,13 @@ export class SendMessageDto {
   @MinLength(1)
   body: string;
 
+  // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor,
+  // /ayarlar'daki "profil ismimi goster" tercihinden TURETILIYOR -
+  // bu yuzden opsiyonel: gonderilmezse backend kullanicinin kendi
+  // tercihine bakar.
+  @IsOptional()
   @IsBoolean()
-  isAnonymous: boolean;
+  isAnonymous?: boolean;
 
   // Kullanici istegi: her yanit icin de ayri ayri secilebilir.
   @IsOptional()
