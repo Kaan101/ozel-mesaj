@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
 import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
@@ -713,7 +714,7 @@ export default function MesajGosterPage() {
                 </span>
               </div>
             )}
-            <Input
+            <Textarea
               label="Yanıtın"
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
