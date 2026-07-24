@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
+import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
 import { AvatarId } from "@/components/ui/Avatar";
 import { AvatarConfig } from "@/lib/dicebear-avatar";
 import { Toggle } from "@/components/ui/Toggle";
@@ -702,6 +703,9 @@ export default function MesajGosterPage() {
               onChange={(e) => setReplyBody(e.target.value)}
               placeholder="Merhaba, ben de..."
             />
+            {/* Kullanici istegi: mesaj yazarken listbox'ta hazir
+                mesaj onerileri gostersin. */}
+            <MessageSuggestions onSelect={setReplyBody} />
 
             {/* Kullanici istegi: tum secenekler acilir-kapanir bir
                 bolumde - kapaliyken hicbir secenek gorunmez. */}
