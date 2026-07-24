@@ -665,26 +665,30 @@ export class ThreadService {
     }
 
     // Kullanici istegi: bir iletisimde birikebilecek maksimum mesaj
-    // sayisi - asiri buyumeyi/kotuye kullanimi onlemek icin.
-    // Kullanici istegi: bir iletisimde birikebilecek maksimum mesaj
     // sayisina ulasilinca YENI MESAJ GONDERMEYI ENGELLEMEK yerine, o
     // iletisimdeki EN ESKI mesaj (kim gonderdiyse gondersin) otomatik
     // silinir - boylece yazmaya her zaman izin verilir, sadece toplam
     // sayi asilmaz (dongusel/rolling limit). Yumusak silme (deletedAt)
     // kullanilir - arsiv/log kaydi (MessageAudit) ETKILENMEZ.
+    //
+    // Kullanici istegi: iletisimin ILK mesaji (Mesajlarim listesindeki
+    // SABIT basligini olusturdugu icin) asla silinmez - "en eski"
+    // hesaplanirken bu mesaj ATLANIR, ondan SONRAKI en eski mesaj silinir.
     const maxMessageCount = await this.settings.getNumber("THREAD_MAX_MESSAGE_COUNT");
     if (maxMessageCount > 0) {
       const currentCount = await this.prisma.message.count({
         where: { threadId, deletedAt: null },
       });
       if (currentCount >= maxMessageCount) {
-        const oldestMessage = await this.prisma.message.findFirst({
+        const [oldestDeletable] = await this.prisma.message.findMany({
           where: { threadId, deletedAt: null },
           orderBy: { createdAt: "asc" },
+          skip: 1, // ilk mesaji (indeks 0) atla - o hic silinmez.
+          take: 1,
         });
-        if (oldestMessage) {
+        if (oldestDeletable) {
           await this.prisma.message.update({
-            where: { id: oldestMessage.id },
+            where: { id: oldestDeletable.id },
             data: { deletedAt: new Date() },
           });
         }
