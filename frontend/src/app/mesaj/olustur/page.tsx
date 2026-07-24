@@ -14,6 +14,7 @@ import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { useAutoRedirect } from "@/lib/use-auto-redirect";
 import { fetchWeatherSummary } from "@/lib/weather";
 import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
+import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
 import { AvatarId } from "@/components/ui/Avatar";
 import { AvatarConfig } from "@/lib/dicebear-avatar";
 
@@ -242,6 +243,9 @@ export default function MesajOlusturPage() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
           />
+          {/* Kullanici istegi: mesaj yazarken listbox'ta hazir
+              mesaj onerileri gostersin. */}
+          <MessageSuggestions onSelect={setBody} />
 
           {/* Kullanici istegi: tum secenekler acilir-kapanir bir
               bolumde - kapaliyken hicbir secenek gorunmez. */}
