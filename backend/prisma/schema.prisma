@@ -42,6 +42,10 @@ model User {
   // secenegi hic gosterilmez - kullanici HER ZAMAN adiyla (displayName)
   // gorunur.
   alwaysShowName  Boolean    @default(false) @map("always_show_name")
+  // Kullanici istegi: acikken, her mesaj/yanit gonderiminde (izin
+  // verirse) hava durumu otomatik eklenir - her seferinde ayrica
+  // isaretlemeye gerek kalmaz.
+  alwaysAddWeather Boolean   @default(false) @map("always_add_weather")
   // Kullanici istegi: girisin bir parcasi olarak secilen 10 hazir
   // avatardan biri - hicbir gercek kimlik bilgisi tasimaz, sadece
   // gorsel bir tercih (Bolum 8 gizlilik modeline aykiri degil).

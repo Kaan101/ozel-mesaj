@@ -84,6 +84,7 @@ export default function MesajOlusturPage() {
     if (!isAuthenticated) return;
     apiFetch<{
       alwaysShowName: boolean;
+      alwaysAddWeather: boolean;
       avatarId: AvatarId | null;
       avatarConfig: Partial<AvatarConfig> | null;
       displayName: string | null;
@@ -91,6 +92,9 @@ export default function MesajOlusturPage() {
       .then((data) => {
         setAlwaysShowName(data.alwaysShowName);
         if (data.alwaysShowName) setIsAnonymous(false);
+        // Kullanici istegi: /ayarlar'da acikken, hava durumu her
+        // mesajda otomatik eklensin.
+        if (data.alwaysAddWeather) setAddWeather(true);
         setMyAvatarId(data.avatarId);
         setMyAvatarConfig(data.avatarConfig);
         setMyDisplayName(data.displayName);
