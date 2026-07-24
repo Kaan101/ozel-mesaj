@@ -3,7 +3,7 @@ import { PrismaService } from "../common/prisma.service";
 import { SETTING_DEFINITIONS } from "./setting-definitions";
 
 interface CacheEntry {
-  value: number;
+  value: string;
   expiresAt: number;
 }
 
@@ -12,6 +12,10 @@ interface CacheEntry {
 // duser. Her deger 10 saniye onbelleklenir - boylece her istekte
 // veritabanina gitmeden, yine de degisiklikler ~10sn icinde etkin olur
 // (deploy gerekmez).
+//
+// Kullanici istegi: sayisal (getNumber) parametrelerin yaninda, metin
+// (getString) parametreler de desteklenir - orn. iletisim e-postasi,
+// adres.
 @Injectable()
 export class SettingsService {
   private cache = new Map<string, CacheEntry>();
@@ -19,7 +23,7 @@ export class SettingsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getNumber(key: string): Promise<number> {
+  private async getRawValue(key: string): Promise<string> {
     const definition = SETTING_DEFINITIONS.find((d) => d.key === key);
     if (!definition) {
       throw new Error(`Bilinmeyen ayar anahtari: ${key}`);
@@ -32,14 +36,22 @@ export class SettingsService {
 
     const row = await this.prisma.appSetting.findUnique({ where: { key } });
     const value = row
-      ? Number(row.value)
-      : Number(process.env[definition.envFallback] ?? definition.defaultValue);
+      ? row.value
+      : String(process.env[definition.envFallback] ?? definition.defaultValue);
 
     this.cache.set(key, { value, expiresAt: Date.now() + this.CACHE_TTL_MS });
     return value;
   }
 
-  async setValue(key: string, value: number): Promise<void> {
+  async getNumber(key: string): Promise<number> {
+    return Number(await this.getRawValue(key));
+  }
+
+  async getString(key: string): Promise<string> {
+    return this.getRawValue(key);
+  }
+
+  async setValue(key: string, value: number | string): Promise<void> {
     const definition = SETTING_DEFINITIONS.find((d) => d.key === key);
     if (!definition) {
       throw new Error(`Bilinmeyen ayar anahtari: ${key}`);
@@ -55,19 +67,30 @@ export class SettingsService {
   }
 
   async listAll(): Promise<
-    Array<{ key: string; label: string; description: string; value: number; isDefault: boolean }>
+    Array<{
+      key: string;
+      label: string;
+      description: string;
+      value: number | string;
+      type: "number" | "string";
+      isDefault: boolean;
+    }>
   > {
     const rows = await this.prisma.appSetting.findMany();
     const rowMap = new Map(rows.map((r) => [r.key, r.value]));
 
     return Promise.all(
-      SETTING_DEFINITIONS.map(async (def) => ({
-        key: def.key,
-        label: def.label,
-        description: def.description,
-        value: await this.getNumber(def.key),
-        isDefault: !rowMap.has(def.key),
-      }))
+      SETTING_DEFINITIONS.map(async (def) => {
+        const type = def.type ?? "number";
+        return {
+          key: def.key,
+          label: def.label,
+          description: def.description,
+          value: type === "string" ? await this.getString(def.key) : await this.getNumber(def.key),
+          type,
+          isDefault: !rowMap.has(def.key),
+        };
+      })
     );
   }
 }
