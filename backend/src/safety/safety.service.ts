@@ -135,6 +135,33 @@ export class SafetyService {
     await this.prisma.block.delete({ where: { id: blockId } }).catch(() => {});
   }
 
+  // Kullanici istegi: /ayarlar > Bloklanmis Mesajlar listesinden,
+  // konusmaya girip mesaj atmadan da dogrudan blogu kaldirabilme.
+  async unblockThreadCounterpart(threadId: string, requestingUserId: string): Promise<void> {
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: threadId },
+      select: { initiatorUserId: true, recipientUserId: true },
+    });
+    if (!thread) return;
+
+    const counterpartUserId =
+      thread.initiatorUserId === requestingUserId
+        ? thread.recipientUserId
+        : thread.initiatorUserId;
+    if (!counterpartUserId) return;
+
+    await this.prisma.block
+      .delete({
+        where: {
+          blockerUserId_blockedUserId: {
+            blockerUserId: requestingUserId,
+            blockedUserId: counterpartUserId,
+          },
+        },
+      })
+      .catch(() => {}); // Blok kaydi yoksa sessizce gec.
+  }
+
   async listBlockedThreadsForUser(userId: string) {
     const blocks = await this.prisma.block.findMany({
       where: { blockerUserId: userId },

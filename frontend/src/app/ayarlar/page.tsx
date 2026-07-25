@@ -56,6 +56,9 @@ export default function AyarlarPage() {
   // verebilecegi bir bolum - acilir-kapanir.
   const [isBlockedExpanded, setIsBlockedExpanded] = useState(false);
   const [blockedThreads, setBlockedThreads] = useState<BlockedThread[]>([]);
+  // Kullanici istegi: /ayarlar > Bloklanmis Mesajlar'dan dogrudan
+  // blogu kaldirma islemi surerken buton devre disi kalsin.
+  const [removingBlockId, setRemovingBlockId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -89,6 +92,20 @@ export default function AyarlarPage() {
       .then(setBlockedThreads)
       .catch(() => {});
   }, [isBlockedExpanded, isAuthenticated]);
+
+  // Kullanici istegi: konusmaya girmeden, dogrudan blogu kaldirabilme.
+  async function handleRemoveBlock(threadId: string) {
+    if (!confirm("Bu bloğu kaldırmak istediğine emin misin?")) return;
+    setRemovingBlockId(threadId);
+    try {
+      await apiFetch(`/safety/threads/${threadId}/block`, { method: "DELETE" });
+      setBlockedThreads((prev) => prev.filter((t) => t.threadId !== threadId));
+    } catch {
+      alert("Blok kaldırılamadı. Lütfen tekrar dene.");
+    } finally {
+      setRemovingBlockId(null);
+    }
+  }
 
   async function handleSaveProfile() {
     setIsSaving(true);
@@ -204,20 +221,35 @@ export default function AyarlarPage() {
                     olarak kalkar.
                   </p>
                   {blockedThreads.map((t) => (
-                    <Link
-                      key={t.threadId}
-                      href={`/mesaj/${t.threadId}`}
-                      className="block rounded-2xl border-2 border-slate-light/30 bg-white px-4 py-3 hover:bg-mint"
-                    >
-                      <p className="font-body text-sm text-slate line-clamp-1">
-                        {t.wasNeverRevealed
-                          ? "Bu mesajı görmeden bloke ettin"
-                          : (t.firstMessageBody ?? "Parola korumalı mesaj")}
-                      </p>
-                      <p className="mt-1 font-body text-xs text-slate-light">
-                        {new Date(t.createdAt).toLocaleDateString("tr-TR")}
-                      </p>
-                    </Link>
+                    <div key={t.threadId} className="relative">
+                      <Link
+                        href={`/mesaj/${t.threadId}`}
+                        className="block rounded-2xl border-2 border-slate-light/30 bg-white px-4 py-3 pr-28 hover:bg-mint"
+                      >
+                        <p className="font-body text-sm text-slate line-clamp-1">
+                          {t.wasNeverRevealed
+                            ? "Bu mesajı görmeden bloke ettin"
+                            : (t.firstMessageBody ?? "Parola korumalı mesaj")}
+                        </p>
+                        <p className="mt-1 font-body text-xs text-slate-light">
+                          {new Date(t.createdAt).toLocaleDateString("tr-TR")}
+                        </p>
+                      </Link>
+                      {/* Kullanici istegi: konusmaya girmeden, dogrudan
+                          blogu kaldirabilme. */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleRemoveBlock(t.threadId);
+                        }}
+                        disabled={removingBlockId === t.threadId}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light disabled:opacity-50"
+                      >
+                        Kaldır
+                      </button>
+                    </div>
                   ))}
                 </>
               )}
