@@ -102,6 +102,29 @@ export class SafetyService {
   // olsa bile, o mesajlara /ayarlar'dan erisebilsin - isterse
   // sonradan yanit verebilsin (yanit verince blok otomatik kalkar,
   // bkz. ThreadService.sendMessage).
+  // GECICI HATA AYIKLAMA: bir kullanicinin TUM blok kayitlarini
+  // (telefon numaralariyla) ham olarak gosterir - "Bloklanmis
+  // Mesajlar" listesinde neden beklenmeyen kisilerin ciktigini teshis
+  // etmek icin. Sadece admin erisimi.
+  async debugListAllBlocksForUser(userId: string) {
+    const blocks = await this.prisma.block.findMany({
+      where: { blockerUserId: userId },
+      include: {
+        blocked: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
+      },
+    });
+
+    return blocks.map((b) => ({
+      blockId: b.id,
+      blockedUserId: b.blockedUserId,
+      blockedUserPhone: b.blocked.phoneNumberEncrypted
+        ? decryptReversible(b.blocked.phoneNumberEncrypted)
+        : null,
+      blockedUserDisplayName: b.blocked.displayName,
+      createdAt: b.createdAt,
+    }));
+  }
+
   async listBlockedThreadsForUser(userId: string) {
     const blocks = await this.prisma.block.findMany({
       where: { blockerUserId: userId },
