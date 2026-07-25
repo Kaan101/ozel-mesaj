@@ -692,6 +692,17 @@ export class ThreadService {
           ? threadForBlockCheck.recipientUserId
           : threadForBlockCheck.initiatorUserId;
       if (counterpartId) {
+        // Kullanici istegi (guvenlik duzeltmesi): karsi taraf BENI
+        // (gonderen) bloke ettiyse, mesaj gonderemem - bu kontrol
+        // eksikti, sadece createThread'de vardi, mevcut bir konusmada
+        // (sendMessage) hic yoktu.
+        const counterpartBlockedMe = await this.safety.isBlocked(counterpartId, senderUserId);
+        if (counterpartBlockedMe) {
+          throw new ForbiddenException(
+            "Bu kişi seni engellediği için mesaj gönderemezsin."
+          );
+        }
+
         await this.prisma.block
           .delete({
             where: {
