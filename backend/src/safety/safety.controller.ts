@@ -66,6 +66,15 @@ export class SafetyController {
     return { message: "Blok kaldırıldı." };
   }
 
+  // Kullanici istegi: test surecinde birikmis TUM blok kayitlarini
+  // tek seferde temizleyebilme.
+  @UseGuards(AdminGuard)
+  @Delete("all-blocks")
+  async clearAllBlocks() {
+    const count = await this.safetyService.clearAllBlocks();
+    return { message: `${count} blok kaydı temizlendi.` };
+  }
+
   // Gorev 7.3: Herhangi bir thread icin sikayet olusturma.
   @UseGuards(JwtAuthGuard)
   @Post("threads/:id/report")

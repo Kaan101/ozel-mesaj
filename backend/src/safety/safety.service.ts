@@ -135,6 +135,13 @@ export class SafetyService {
     await this.prisma.block.delete({ where: { id: blockId } }).catch(() => {});
   }
 
+  // Kullanici istegi: test surecinde birikmis TUM blok kayitlarini
+  // tek seferde temizleme - temiz bir baslangic noktasi icin.
+  async clearAllBlocks(): Promise<number> {
+    const result = await this.prisma.block.deleteMany({});
+    return result.count;
+  }
+
   // Kullanici istegi: /ayarlar > Bloklanmis Mesajlar listesinden,
   // konusmaya girip mesaj atmadan da dogrudan blogu kaldirabilme.
   async unblockThreadCounterpart(threadId: string, requestingUserId: string): Promise<void> {

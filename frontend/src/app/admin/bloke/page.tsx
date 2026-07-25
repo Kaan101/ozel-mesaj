@@ -104,6 +104,27 @@ export default function AdminBlokePage() {
     }
   }
 
+  // Kullanici istegi: test surecinde birikmis TUM bloklari tek
+  // seferde temizleyebilme.
+  async function handleClearAllBlocks() {
+    if (
+      !confirm(
+        `Sistemdeki TÜM (${blocks.length}) blok kaydı silinecek. Emin misin?`
+      )
+    ) {
+      return;
+    }
+    try {
+      await fetch(`${API_BASE_URL}/safety/all-blocks`, {
+        method: "DELETE",
+        headers: { "x-admin-secret": adminKey },
+      });
+      setBlocks([]);
+    } catch {
+      setError("İşlem başarısız oldu.");
+    }
+  }
+
   function handleUnlock() {
     sessionStorage.setItem("admin_secret", adminKey);
     setIsUnlocked(true);
@@ -286,7 +307,18 @@ export default function AdminBlokePage() {
         {/* Kullanici istegi: sistemdeki TUM blok kayitlarini (kim
             kimi bloklamis) goster, gerekirse admin dogrudan
             kaldirabilsin. */}
-        <h2 className="font-display text-lg font-bold text-slate">Tüm Bloklar</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-bold text-slate">Tüm Bloklar</h2>
+          {blocks.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAllBlocks}
+              className="rounded-full border-2 border-coral px-3 py-1.5 font-body text-xs font-semibold text-coral hover:bg-coral-light"
+            >
+              Tüm Blokları Temizle
+            </button>
+          )}
+        </div>
         {blocks.length === 0 ? (
           <p className="font-body text-sm text-slate-light">Hiç blok kaydı yok.</p>
         ) : (
