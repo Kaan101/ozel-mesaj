@@ -40,6 +40,16 @@ export class SafetyController {
     return this.safetyService.listBlockedThreadsForUser(userId);
   }
 
+  // Kullanici istegi: /ayarlar > Bloklanmis Mesajlar listesinden,
+  // konusmaya girmeden dogrudan blogu kaldirabilme.
+  @UseGuards(JwtAuthGuard)
+  @Delete("threads/:id/block")
+  async unblockThreadCounterpart(@Req() request: Request, @Param("id") threadId: string) {
+    const userId = (request as any).user.sub;
+    await this.safetyService.unblockThreadCounterpart(threadId, userId);
+    return { message: "Blok kaldırıldı." };
+  }
+
   // Kullanici istegi: yonetim panelinde, sistemdeki TUM blok
   // kayitlarini goruntuleme.
   @UseGuards(AdminGuard)
