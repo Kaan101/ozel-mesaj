@@ -102,27 +102,37 @@ export class SafetyService {
   // olsa bile, o mesajlara /ayarlar'dan erisebilsin - isterse
   // sonradan yanit verebilsin (yanit verince blok otomatik kalkar,
   // bkz. ThreadService.sendMessage).
-  // GECICI HATA AYIKLAMA: bir kullanicinin TUM blok kayitlarini
-  // (telefon numaralariyla) ham olarak gosterir - "Bloklanmis
-  // Mesajlar" listesinde neden beklenmeyen kisilerin ciktigini teshis
-  // etmek icin. Sadece admin erisimi.
-  async debugListAllBlocksForUser(userId: string) {
+
+  // Kullanici istegi: yonetim panelinde, sistemdeki TUM blok
+  // kayitlarini (kim kimi bloklamis, telefon numaralariyla) gorme -
+  // gerekirse admin olarak dogrudan kaldirabilme.
+  async listAllBlocksForAdmin() {
     const blocks = await this.prisma.block.findMany({
-      where: { blockerUserId: userId },
+      orderBy: { createdAt: "desc" },
       include: {
+        blocker: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
         blocked: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
       },
     });
 
     return blocks.map((b) => ({
       blockId: b.id,
-      blockedUserId: b.blockedUserId,
-      blockedUserPhone: b.blocked.phoneNumberEncrypted
+      blockerPhone: b.blocker.phoneNumberEncrypted
+        ? decryptReversible(b.blocker.phoneNumberEncrypted)
+        : null,
+      blockerDisplayName: b.blocker.displayName,
+      blockedPhone: b.blocked.phoneNumberEncrypted
         ? decryptReversible(b.blocked.phoneNumberEncrypted)
         : null,
-      blockedUserDisplayName: b.blocked.displayName,
+      blockedDisplayName: b.blocked.displayName,
       createdAt: b.createdAt,
     }));
+  }
+
+  // Kullanici istegi: admin, bir blogu dogrudan (taraflardan biri
+  // mesaj atmayi beklemeden) kaldirabilsin.
+  async removeBlockAsAdmin(blockId: string): Promise<void> {
+    await this.prisma.block.delete({ where: { id: blockId } }).catch(() => {});
   }
 
   async listBlockedThreadsForUser(userId: string) {

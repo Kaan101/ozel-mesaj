@@ -14,6 +14,17 @@ interface ReportedUser {
   pendingReports: number;
 }
 
+// Kullanici istegi: sistemdeki tum kullanici-bazli blok kayitlari
+// (kim kimi bloklamis) - gerekirse admin dogrudan kaldirabilsin.
+interface BlockRecord {
+  blockId: string;
+  blockerPhone: string | null;
+  blockerDisplayName: string | null;
+  blockedPhone: string | null;
+  blockedDisplayName: string | null;
+  createdAt: string;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
 // Kullanici istegi: bildirilen (Bildir) kullanicilari telefon
@@ -23,6 +34,7 @@ export default function AdminBlokePage() {
   const [adminKey, setAdminKey] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [users, setUsers] = useState<ReportedUser[]>([]);
+  const [blocks, setBlocks] = useState<BlockRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -36,7 +48,10 @@ export default function AdminBlokePage() {
   }, []);
 
   useEffect(() => {
-    if (isUnlocked) fetchUsers();
+    if (isUnlocked) {
+      fetchUsers();
+      fetchBlocks();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked]);
 
@@ -57,6 +72,35 @@ export default function AdminBlokePage() {
       sessionStorage.removeItem("admin_secret");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  // Kullanici istegi: sistemdeki tum blok kayitlarini cek.
+  async function fetchBlocks() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/safety/all-blocks`, {
+        headers: { "x-admin-secret": adminKey },
+      });
+      if (res.ok) setBlocks(await res.json());
+    } catch {
+      // Sessizce gec - ana liste (sikayetler) daha kritik.
+    }
+  }
+
+  // Kullanici istegi: admin, gerekirse bir blogu dogrudan kaldirabilsin.
+  async function handleRemoveBlock(blockId: string) {
+    if (!confirm("Bu bloğu kaldırmak istediğine emin misin?")) return;
+    setProcessingId(blockId);
+    try {
+      await fetch(`${API_BASE_URL}/safety/all-blocks/${blockId}`, {
+        method: "DELETE",
+        headers: { "x-admin-secret": adminKey },
+      });
+      setBlocks((prev) => prev.filter((b) => b.blockId !== blockId));
+    } catch {
+      setError("İşlem başarısız oldu.");
+    } finally {
+      setProcessingId(null);
     }
   }
 
@@ -230,6 +274,65 @@ export default function AdminBlokePage() {
                         aria-label="Kaydı Sil"
                       >
                         🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
+
+        {/* Kullanici istegi: sistemdeki TUM blok kayitlarini (kim
+            kimi bloklamis) goster, gerekirse admin dogrudan
+            kaldirabilsin. */}
+        <h2 className="font-display text-lg font-bold text-slate">Tüm Bloklar</h2>
+        {blocks.length === 0 ? (
+          <p className="font-body text-sm text-slate-light">Hiç blok kaydı yok.</p>
+        ) : (
+          <Card className="overflow-x-auto p-0">
+            <table className="w-full border-collapse border border-slate-light/60 text-left">
+              <thead>
+                <tr className="bg-mint">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Bloklayan
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Bloklanan
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Tarih
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    İşlem
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {blocks.map((b) => (
+                  <tr key={b.blockId}>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">
+                      {b.blockerPhone ?? "—"}
+                      {b.blockerDisplayName && (
+                        <span className="text-slate-light"> ({b.blockerDisplayName})</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">
+                      {b.blockedPhone ?? "—"}
+                      {b.blockedDisplayName && (
+                        <span className="text-slate-light"> ({b.blockedDisplayName})</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-xs text-slate-light whitespace-nowrap">
+                      {new Date(b.createdAt).toLocaleString("tr-TR")}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3">
+                      <button
+                        onClick={() => handleRemoveBlock(b.blockId)}
+                        disabled={processingId === b.blockId}
+                        className="rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light disabled:opacity-50 whitespace-nowrap"
+                      >
+                        Bloğu Kaldır
                       </button>
                     </td>
                   </tr>

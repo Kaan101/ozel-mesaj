@@ -40,16 +40,20 @@ export class SafetyController {
     return this.safetyService.listBlockedThreadsForUser(userId);
   }
 
-  // GECICI HATA AYIKLAMA: kendi hesabinin TUM blok kayitlarini
-  // (telefon numaralariyla) gorebilme - "Bloklanmis Mesajlar"
-  // listesindeki beklenmeyen kisileri teshis etmek icin. Katman 1
-  // (giris yapmis kendi hesabi) yeterli - baskasinin bloklarini
-  // gosteremez, sadece KENDI hesabinin.
-  @UseGuards(JwtAuthGuard)
-  @Get("debug/my-blocks")
-  async debugMyBlocks(@Req() request: Request) {
-    const userId = (request as any).user.sub;
-    return this.safetyService.debugListAllBlocksForUser(userId);
+  // Kullanici istegi: yonetim panelinde, sistemdeki TUM blok
+  // kayitlarini goruntuleme.
+  @UseGuards(AdminGuard)
+  @Get("all-blocks")
+  async listAllBlocks() {
+    return this.safetyService.listAllBlocksForAdmin();
+  }
+
+  // Kullanici istegi: admin, gerekirse bir blogu dogrudan kaldirabilsin.
+  @UseGuards(AdminGuard)
+  @Delete("all-blocks/:id")
+  async removeBlock(@Param("id") blockId: string) {
+    await this.safetyService.removeBlockAsAdmin(blockId);
+    return { message: "Blok kaldırıldı." };
   }
 
   // Gorev 7.3: Herhangi bir thread icin sikayet olusturma.
