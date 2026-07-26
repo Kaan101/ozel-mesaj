@@ -175,11 +175,6 @@ export class SafetyService {
       select: { blockedUserId: true },
     });
     const blockedUserIds = blocks.map((b) => b.blockedUserId);
-    // TESHIS: Railway loglarinda bu kullanicinin GERCEKTE kimleri
-    // bloke ettigini gorebilmek icin. Gecici - sorun bulununca kaldirilacak.
-    console.log(
-      `[TESHIS blocked-threads] userId=${userId} blockedUserIds=${JSON.stringify(blockedUserIds)}`
-    );
     if (blockedUserIds.length === 0) return [];
 
     const threads = await this.prisma.messageThread.findMany({
@@ -204,19 +199,23 @@ export class SafetyService {
         },
       },
     });
-    // TESHIS: hangi thread'lerin, hangi initiator/recipient ciftiyle
-    // eslesip donduruldugunu gorebilmek icin.
-    console.log(
-      `[TESHIS blocked-threads] bulunan thread sayisi=${threads.length} detay=${JSON.stringify(
-        threads.map((t) => ({
-          id: t.id,
-          initiatorUserId: t.initiatorUserId,
-          recipientUserId: t.recipientUserId,
-        }))
-      )}`
-    );
 
-    return threads.map((t) => {
+    // Kullanici istegi (bug/tasarim duzeltmesi): ayni bloklanan kisiyle
+    // birden fazla iletisim (thread) olabilir - orn. hem havuz eslesmesi
+    // hem dogrudan mesaj. Liste THREAD bazinda degil, BLOKLANAN KISI
+    // bazinda gosterilir - her bloklanan kisi icin SADECE EN SON
+    // (en guncel) thread'i temsilci olarak alinir. threads zaten
+    // createdAt DESC sirali oldugu icin, ilk rastlanan = en yeni olan.
+    const latestThreadByBlockedPerson = new Map<string, (typeof threads)[number]>();
+    for (const t of threads) {
+      const blockedPersonId = t.initiatorUserId === userId ? t.recipientUserId : t.initiatorUserId;
+      if (!blockedPersonId) continue;
+      if (!latestThreadByBlockedPerson.has(blockedPersonId)) {
+        latestThreadByBlockedPerson.set(blockedPersonId, t);
+      }
+    }
+
+    return Array.from(latestThreadByBlockedPerson.values()).map((t) => {
       // Guvenlik (bug duzeltmesi): eger bu kisi ALICI ise ve mesaji
       // bloklamadan ONCE hic "Mesaji Goster"e basmadiysa (reveal-gate),
       // mesaj icerigi burada da ASLA gosterilmez - "mesaji hic
