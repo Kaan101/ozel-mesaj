@@ -18,7 +18,6 @@ interface Profile {
   status: string;
   createdAt: string;
   showAvatar: boolean;
-  showNickname: boolean;
   alwaysAddWeather: boolean;
   avatarConfig: AvatarConfig | null;
 }
@@ -43,7 +42,6 @@ export default function AyarlarPage() {
   // Kullanici istegi: profil ismini her zaman goster secenegi -
   // acikken, mesaj formlarindaki "anonim kal" secenegi gizlenir.
   const [showAvatar, setShowAvatar] = useState(false);
-  const [showNickname, setShowNickname] = useState(false);
   // Kullanici istegi: acikken, her mesaj/yanit gonderiminde hava
   // durumu otomatik eklenir.
   const [alwaysAddWeather, setAlwaysAddWeather] = useState(false);
@@ -80,7 +78,6 @@ export default function AyarlarPage() {
       setProfile(data);
       setDisplayName(data.displayName ?? "");
       setShowAvatar(data.showAvatar);
-      setShowNickname(data.showNickname);
       setAlwaysAddWeather(data.alwaysAddWeather);
       if (data.avatarConfig) {
         setAvatarConfig({ ...DEFAULT_AVATAR_CONFIG, ...data.avatarConfig });
@@ -116,7 +113,7 @@ export default function AyarlarPage() {
     try {
       await apiFetch("/me", {
         method: "PATCH",
-        body: JSON.stringify({ displayName, showAvatar, showNickname, alwaysAddWeather }),
+        body: JSON.stringify({ displayName, showAvatar, alwaysAddWeather }),
       });
       setSaveMessage("Kaydedildi.");
     } catch {
@@ -270,18 +267,14 @@ export default function AyarlarPage() {
           />
           {/* Kullanici istegi: avatar ve nickname gorunurlugu AYRI AYRI
               kontrol edilir - mesaj bazinda secim yok, sadece bu ayar
-              gecerli. */}
+              gecerli. Nickname icin ayri parametre yok - avatar
+              acikken "Görünen İsim" alaninda yazi varsa otomatik
+              gorunur, avatar kapaliyken ikisi de gizlenir. */}
           <Toggle
             id="show-avatar-toggle"
             checked={showAvatar}
             onChange={setShowAvatar}
             label="Avatar görünsün"
-          />
-          <Toggle
-            id="show-nickname-toggle"
-            checked={showNickname}
-            onChange={setShowNickname}
-            label="Nickname görünsün"
           />
           {/* Kullanici istegi: acikken, her mesaj/yanit gonderiminde
               (izin verirse) hava durumu otomatik eklenir. */}

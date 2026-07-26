@@ -24,10 +24,10 @@ export class UsersService {
       // Kullanici istegi: platform sadece 18+ icin calisir - doğum
       // tarihi henuz girilmemisse frontend bu adimi gostermeli.
       needsBirthDate: !user.birthDate,
-      // Kullanici istegi: avatar ve nickname gorunurlugu AYRI AYRI
-      // kontrol edilir - mesaj bazinda secim yok.
+      // Kullanici istegi: avatar gorunurlugu bu ayarla kontrol edilir
+      // - nickname icin ayri bir parametre yok, avatar acikken
+      // displayName doluysa otomatik gorunur.
       showAvatar: user.showAvatar,
-      showNickname: user.showNickname,
       // Kullanici istegi: acikken, mesaj/yanit gonderiminde hava
       // durumu otomatik eklenir.
       alwaysAddWeather: user.alwaysAddWeather,
@@ -76,7 +76,6 @@ export class UsersService {
       avatarId?: string;
       avatarConfig?: Record<string, unknown>;
       showAvatar?: boolean;
-      showNickname?: boolean;
       alwaysAddWeather?: boolean;
     }
   ) {
@@ -91,7 +90,6 @@ export class UsersService {
       avatarId: user.avatarId,
       avatarConfig: user.avatarConfig,
       showAvatar: user.showAvatar,
-      showNickname: user.showNickname,
       alwaysAddWeather: user.alwaysAddWeather,
     };
   }

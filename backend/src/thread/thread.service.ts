@@ -41,12 +41,16 @@ export class ThreadService {
     // icin kullanilir - bkz. getMessages). dto.isAnonymous
     // verilmisse (eski istemciler icin geriye donuk uyumluluk) o
     // kullanilir.
+    //
+    // Kullanici istegi: ayri bir "nickname gorunsun" parametresi
+    // kaldirildi - avatar KAPALIYSA hem avatar hem nickname gizlenir,
+    // avatar ACIKSA nickname (varsa) otomatik gorunur. Bu yuzden
+    // "tam anonim" olup olmadigi artik SADECE showAvatar'a bakar.
     const initiatorProfile = await this.prisma.user.findUnique({
       where: { id: initiatorUserId },
-      select: { showAvatar: true, showNickname: true },
+      select: { showAvatar: true },
     });
-    const isAnonymous =
-      dto.isAnonymous ?? !(initiatorProfile?.showAvatar || initiatorProfile?.showNickname);
+    const isAnonymous = dto.isAnonymous ?? !initiatorProfile?.showAvatar;
 
     // Alici henuz sisteme hic girmemis olabilir - "numarasiz kimlik"
     // modeline uygun olarak onceden bir kullanici kaydi olusturuyoruz
@@ -618,7 +622,6 @@ export class ThreadService {
             avatarConfig: true,
             displayName: true,
             showAvatar: true,
-            showNickname: true,
           },
         },
         reactions: { select: { emoji: true, userId: true } },
@@ -652,10 +655,13 @@ export class ThreadService {
       isSystemMessage: message.isSystemMessage,
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
       // Kullanici istegi: avatar ve nickname gorunurlugu artik
-      // gonderenin GUNCEL /ayarlar tercihinden (showAvatar/
-      // showNickname) CANLI olarak hesaplanir - mesaj gonderildigi
-      // andaki durumdan degil. Boylece kullanici ayarini degistirirse
-      // GECMIS mesajlarda da yeni tercih yansir.
+      // gonderenin GUNCEL /ayarlar tercihinden (showAvatar) CANLI
+      // olarak hesaplanir - mesaj gonderildigi andaki durumdan degil.
+      // Kullanici istegi: ayri bir "nickname gorunsun" parametresi
+      // YOK artik - avatar KAPALIYSA hem avatar hem nickname
+      // gizlenir; avatar ACIKSA, nickname alaninda (displayName)
+      // bir sey yaziliysa gorunur (bos birakilmissa zaten gorunecek
+      // bir sey yok).
       senderAvatarId:
         message.isSystemMessage || !message.sender?.showAvatar
           ? null
@@ -666,7 +672,7 @@ export class ThreadService {
           : (message.sender?.avatarConfig ?? null),
       weatherSummary: message.weatherSummary ?? null,
       senderDisplayName:
-        message.isSystemMessage || !message.sender?.showNickname
+        message.isSystemMessage || !message.sender?.showAvatar
           ? null
           : (message.sender?.displayName ?? null),
       // Bug duzeltmesi: sadece bu istekte GERCEKTEN "okundu" olarak
@@ -703,9 +709,10 @@ export class ThreadService {
     }
 
     // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
-    // gonderenin /ayarlar'daki avatar/nickname gorunurluk
-    // tercihlerinden TURETILIYOR (ikisi de kapaliysa "tam anonim").
-    const isAnonymous = isAnonymousInput ?? !(sender?.showAvatar || sender?.showNickname);
+    // gonderenin /ayarlar'daki avatar gorunurluk tercihinden
+    // TURETILIYOR (ayri bir nickname parametresi yok - avatar
+    // kapaliysa hem avatar hem nickname gizlenir).
+    const isAnonymous = isAnonymousInput ?? !sender?.showAvatar;
 
     // Kullanici istegi: bir kisi, daha once bloke ettigi biriyle olan
     // bir konusmaya (ornegin /ayarlar > Bloklanmis Mesajlar'dan) YANIT
