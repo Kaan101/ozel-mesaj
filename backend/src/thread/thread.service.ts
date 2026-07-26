@@ -616,12 +616,14 @@ export class ThreadService {
         // Avatar gercek kimlik tasimaz (sadece cizgisel bir gorsel
         // tercih) - bu yuzden anonim mesajlarda bile gosterilebilir,
         // sadece senderUserId (gercek kimlik baglantisi) gizlenir.
+        // Not: gorunurluk artik message.isAnonymous (gonderim anina
+        // DONMUS deger) ile belirlendigi icin sender.showAvatar
+        // buradan CANLI okunmuyor.
         sender: {
           select: {
             avatarId: true,
             avatarConfig: true,
             displayName: true,
-            showAvatar: true,
           },
         },
         reactions: { select: { emoji: true, userId: true } },
@@ -654,25 +656,21 @@ export class ThreadService {
       isAnonymous: message.isAnonymous,
       isSystemMessage: message.isSystemMessage,
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
-      // Kullanici istegi: avatar ve nickname gorunurlugu artik
-      // gonderenin GUNCEL /ayarlar tercihinden (showAvatar) CANLI
-      // olarak hesaplanir - mesaj gonderildigi andaki durumdan degil.
-      // Kullanici istegi: ayri bir "nickname gorunsun" parametresi
-      // YOK artik - avatar KAPALIYSA hem avatar hem nickname
-      // gizlenir; avatar ACIKSA, nickname alaninda (displayName)
-      // bir sey yaziliysa gorunur (bos birakilmissa zaten gorunecek
-      // bir sey yok).
+      // Kullanici istegi (DUZELTME): avatar/nickname gorunurlugu artik
+      // CANLI degil, mesaj GONDERILDIGI ANDAKI durumda DONAR
+      // (message.isAnonymous - o an showAvatar neyse odur). Kullanici
+      // /ayarlar'da tercihini SONRADAN degistirirse, bu SADECE
+      // o andan SONRA gonderilecek mesajlara uygulanir - gecmis
+      // mesajlar etkilenmez.
       senderAvatarId:
-        message.isSystemMessage || !message.sender?.showAvatar
-          ? null
-          : (message.sender?.avatarId ?? null),
+        message.isAnonymous || message.isSystemMessage ? null : (message.sender?.avatarId ?? null),
       senderAvatarConfig:
-        message.isSystemMessage || !message.sender?.showAvatar
+        message.isAnonymous || message.isSystemMessage
           ? null
           : (message.sender?.avatarConfig ?? null),
       weatherSummary: message.weatherSummary ?? null,
       senderDisplayName:
-        message.isSystemMessage || !message.sender?.showAvatar
+        message.isAnonymous || message.isSystemMessage
           ? null
           : (message.sender?.displayName ?? null),
       // Bug duzeltmesi: sadece bu istekte GERCEKTEN "okundu" olarak
