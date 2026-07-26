@@ -41,6 +41,14 @@ model User {
   // Kullanici istegi: acikken, mesaj formlarindaki "anonim kal"
   // secenegi hic gosterilmez - kullanici HER ZAMAN adiyla (displayName)
   // gorunur.
+  // Kullanici istegi: avatar ve nickname gorunurlugu artik AYRI AYRI
+  // kontrol edilir (eskiden tek bir "alwaysShowName" ikisini birlikte
+  // yonetiyordu). Mesaj bazinda secim KALDIRILDI - sadece bu profil
+  // ayarlarina gore calisir.
+  showAvatar   Boolean @default(false) @map("show_avatar")
+  showNickname Boolean @default(false) @map("show_nickname")
+  // Eski alan - artik kullanilmiyor (yeni kod showAvatar/showNickname
+  // okur), ama gecmis veri/migration tutarliligi icin silinmedi.
   alwaysShowName  Boolean    @default(false) @map("always_show_name")
   // Kullanici istegi: acikken, her mesaj/yanit gonderiminde (izin
   // verirse) hava durumu otomatik eklenir - her seferinde ayrica

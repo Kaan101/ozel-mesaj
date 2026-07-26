@@ -35,17 +35,18 @@ export class ThreadService {
     const recipientPhoneHash = hashPhoneNumber(dto.recipientPhone);
 
     // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
-    // gonderenin /ayarlar'daki "profil ismimi her zaman goster"
-    // tercihinden TURETILIYOR. dto.isAnonymous verilmisse (eski
-    // istemciler icin geriye donuk uyumluluk) o kullanilir.
+    // gonderenin /ayarlar'daki avatar/nickname gorunurluk
+    // tercihlerinden TURETILIYOR. Sadece ikisi de KAPALIYSA
+    // "tam anonim" sayilir (senderUserId'nin baskasina gizlenmesi
+    // icin kullanilir - bkz. getMessages). dto.isAnonymous
+    // verilmisse (eski istemciler icin geriye donuk uyumluluk) o
+    // kullanilir.
+    const initiatorProfile = await this.prisma.user.findUnique({
+      where: { id: initiatorUserId },
+      select: { showAvatar: true, showNickname: true },
+    });
     const isAnonymous =
-      dto.isAnonymous ??
-      !(
-        await this.prisma.user.findUnique({
-          where: { id: initiatorUserId },
-          select: { alwaysShowName: true },
-        })
-      )?.alwaysShowName;
+      dto.isAnonymous ?? !(initiatorProfile?.showAvatar || initiatorProfile?.showNickname);
 
     // Alici henuz sisteme hic girmemis olabilir - "numarasiz kimlik"
     // modeline uygun olarak onceden bir kullanici kaydi olusturuyoruz
@@ -611,7 +612,15 @@ export class ThreadService {
         // Avatar gercek kimlik tasimaz (sadece cizgisel bir gorsel
         // tercih) - bu yuzden anonim mesajlarda bile gosterilebilir,
         // sadece senderUserId (gercek kimlik baglantisi) gizlenir.
-        sender: { select: { avatarId: true, avatarConfig: true, displayName: true } },
+        sender: {
+          select: {
+            avatarId: true,
+            avatarConfig: true,
+            displayName: true,
+            showAvatar: true,
+            showNickname: true,
+          },
+        },
         reactions: { select: { emoji: true, userId: true } },
       },
     });
@@ -642,16 +651,22 @@ export class ThreadService {
       isAnonymous: message.isAnonymous,
       isSystemMessage: message.isSystemMessage,
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
-      // Kullanici istegi: anonimken hem avatar hem nickname gizlenir.
+      // Kullanici istegi: avatar ve nickname gorunurlugu artik
+      // gonderenin GUNCEL /ayarlar tercihinden (showAvatar/
+      // showNickname) CANLI olarak hesaplanir - mesaj gonderildigi
+      // andaki durumdan degil. Boylece kullanici ayarini degistirirse
+      // GECMIS mesajlarda da yeni tercih yansir.
       senderAvatarId:
-        message.isAnonymous || message.isSystemMessage ? null : (message.sender?.avatarId ?? null),
+        message.isSystemMessage || !message.sender?.showAvatar
+          ? null
+          : (message.sender?.avatarId ?? null),
       senderAvatarConfig:
-        message.isAnonymous || message.isSystemMessage
+        message.isSystemMessage || !message.sender?.showAvatar
           ? null
           : (message.sender?.avatarConfig ?? null),
       weatherSummary: message.weatherSummary ?? null,
       senderDisplayName:
-        message.isAnonymous || message.isSystemMessage
+        message.isSystemMessage || !message.sender?.showNickname
           ? null
           : (message.sender?.displayName ?? null),
       // Bug duzeltmesi: sadece bu istekte GERCEKTEN "okundu" olarak
@@ -688,9 +703,9 @@ export class ThreadService {
     }
 
     // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
-    // gonderenin /ayarlar'daki "profil ismimi her zaman goster"
-    // tercihinden TURETILIYOR.
-    const isAnonymous = isAnonymousInput ?? !sender?.alwaysShowName;
+    // gonderenin /ayarlar'daki avatar/nickname gorunurluk
+    // tercihlerinden TURETILIYOR (ikisi de kapaliysa "tam anonim").
+    const isAnonymous = isAnonymousInput ?? !(sender?.showAvatar || sender?.showNickname);
 
     // Kullanici istegi: bir kisi, daha once bloke ettigi biriyle olan
     // bir konusmaya (ornegin /ayarlar > Bloklanmis Mesajlar'dan) YANIT

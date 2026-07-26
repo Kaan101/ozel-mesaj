@@ -29,11 +29,15 @@ export class UpdateProfileDto {
   @IsObject()
   avatarConfig?: Record<string, unknown>;
 
-  // Kullanici istegi: acikken, mesaj formlarindaki "anonim kal"
-  // secenegi hic gosterilmez - kullanici her zaman adiyla gorunur.
+  // Kullanici istegi: avatar ve nickname gorunurlugu AYRI AYRI
+  // kontrol edilir - mesaj bazinda secim yok, sadece bu ayar gecerli.
   @IsOptional()
   @IsBoolean()
-  alwaysShowName?: boolean;
+  showAvatar?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showNickname?: boolean;
 
   // Kullanici istegi: acikken, mesaj/yanit gonderiminde hava durumu
   // otomatik eklenir.

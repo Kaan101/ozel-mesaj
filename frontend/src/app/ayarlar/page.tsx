@@ -17,7 +17,8 @@ interface Profile {
   displayName: string | null;
   status: string;
   createdAt: string;
-  alwaysShowName: boolean;
+  showAvatar: boolean;
+  showNickname: boolean;
   alwaysAddWeather: boolean;
   avatarConfig: AvatarConfig | null;
 }
@@ -41,7 +42,8 @@ export default function AyarlarPage() {
   const [displayName, setDisplayName] = useState("");
   // Kullanici istegi: profil ismini her zaman goster secenegi -
   // acikken, mesaj formlarindaki "anonim kal" secenegi gizlenir.
-  const [alwaysShowName, setAlwaysShowName] = useState(false);
+  const [showAvatar, setShowAvatar] = useState(false);
+  const [showNickname, setShowNickname] = useState(false);
   // Kullanici istegi: acikken, her mesaj/yanit gonderiminde hava
   // durumu otomatik eklenir.
   const [alwaysAddWeather, setAlwaysAddWeather] = useState(false);
@@ -77,7 +79,8 @@ export default function AyarlarPage() {
     apiFetch<Profile>("/me").then((data) => {
       setProfile(data);
       setDisplayName(data.displayName ?? "");
-      setAlwaysShowName(data.alwaysShowName);
+      setShowAvatar(data.showAvatar);
+      setShowNickname(data.showNickname);
       setAlwaysAddWeather(data.alwaysAddWeather);
       if (data.avatarConfig) {
         setAvatarConfig({ ...DEFAULT_AVATAR_CONFIG, ...data.avatarConfig });
@@ -113,7 +116,7 @@ export default function AyarlarPage() {
     try {
       await apiFetch("/me", {
         method: "PATCH",
-        body: JSON.stringify({ displayName, alwaysShowName, alwaysAddWeather }),
+        body: JSON.stringify({ displayName, showAvatar, showNickname, alwaysAddWeather }),
       });
       setSaveMessage("Kaydedildi.");
     } catch {
@@ -265,18 +268,20 @@ export default function AyarlarPage() {
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Boş bırakırsan anonim kalabilirsin"
           />
-          {/* Kullanici istegi: acikken, mesaj formlarindaki "anonim
-              kal" secenegi hic gosterilmez - her zaman adinla
-              gorunursun. */}
+          {/* Kullanici istegi: avatar ve nickname gorunurlugu AYRI AYRI
+              kontrol edilir - mesaj bazinda secim yok, sadece bu ayar
+              gecerli. */}
           <Toggle
-            id="always-show-name-toggle"
-            checked={alwaysShowName}
-            onChange={setAlwaysShowName}
-            label={
-              alwaysShowName
-                ? "Profil ismim her zaman gösterilsin"
-                : "Her mesajda ayrı ayrı seçmek istiyorum"
-            }
+            id="show-avatar-toggle"
+            checked={showAvatar}
+            onChange={setShowAvatar}
+            label="Avatar görünsün"
+          />
+          <Toggle
+            id="show-nickname-toggle"
+            checked={showNickname}
+            onChange={setShowNickname}
+            label="Nickname görünsün"
           />
           {/* Kullanici istegi: acikken, her mesaj/yanit gonderiminde
               (izin verirse) hava durumu otomatik eklenir. */}
@@ -286,8 +291,8 @@ export default function AyarlarPage() {
             onChange={setAlwaysAddWeather}
             label={
               alwaysAddWeather
-                ? "Her mesaja hava durumu otomatik eklensin"
-                : "Her mesajda ayrı ayrı seçmek istiyorum"
+                ? "Hava Durumu: Her mesaja otomatik eklensin"
+                : "Hava Durumu: Her mesajda ayrı ayrı seçmek istiyorum"
             }
           />
           {saveMessage && (

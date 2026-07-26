@@ -14,10 +14,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { useAutoRedirect } from "@/lib/use-auto-redirect";
 import { fetchWeatherSummary } from "@/lib/weather";
-import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
 import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
-import { AvatarId } from "@/components/ui/Avatar";
-import { AvatarConfig } from "@/lib/dicebear-avatar";
 
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
 // mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
@@ -61,17 +58,8 @@ export default function MesajOlusturPage() {
   // acilip kapatilabilsin - varsayilan olarak acik kabul ediyoruz,
   // backend'den gercek deger gelene kadar (flicker'i onlemek icin).
   const [emailOptionEnabled, setEmailOptionEnabled] = useState(true);
-  // Kullanici istegi: /ayarlar'da "profil ismimi her zaman goster"
-  // secilmisse, buradaki anonimlik secenegi hic gosterilmez - mesaj
-  // her zaman adiyla gonderilir.
-  const [alwaysShowName, setAlwaysShowName] = useState(false);
-  // Kullanici istegi: yanit kismindaki onizlemede kendi avatarim/
-  // nickname'im gorunsun (anonim degilse).
-  const [myAvatarId, setMyAvatarId] = useState<AvatarId | null>(null);
-  const [myAvatarConfig, setMyAvatarConfig] = useState<Partial<AvatarConfig> | null>(null);
-  const [myDisplayName, setMyDisplayName] = useState<string | null>(null);
   // Kullanici istegi: mesaj gonderirken tum secenekler (soru, okunduktan
-  // sonra sil, anonimlik, e-posta) acilir-kapanir bir bolumde - kapaliyken
+  // sonra sil, e-posta) acilir-kapanir bir bolumde - kapaliyken
   // hicbir secenek gorunmez.
   const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
   // Kullanici istegi: mesaj yazarken anlik hava durumunu mesajla
@@ -86,21 +74,11 @@ export default function MesajOlusturPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    apiFetch<{
-      alwaysShowName: boolean;
-      alwaysAddWeather: boolean;
-      avatarId: AvatarId | null;
-      avatarConfig: Partial<AvatarConfig> | null;
-      displayName: string | null;
-    }>("/me")
+    apiFetch<{ alwaysAddWeather: boolean }>("/me")
       .then((data) => {
-        setAlwaysShowName(data.alwaysShowName);
         // Kullanici istegi: /ayarlar'da acikken, hava durumu her
         // mesajda otomatik eklensin.
         if (data.alwaysAddWeather) setAddWeather(true);
-        setMyAvatarId(data.avatarId);
-        setMyAvatarConfig(data.avatarConfig);
-        setMyDisplayName(data.displayName);
       })
       .catch(() => {});
   }, [isAuthenticated]);
@@ -229,18 +207,9 @@ export default function MesajOlusturPage() {
             onChange={setRecipientPhone}
           />
 
-          {/* Kullanici istegi: avatar+nickname, yazi alaninin USTUNDE,
-              sol kosede, sanki zaten gonderilmis bir mesajmis gibi
-              varsayilan olarak gorunur - /ayarlar'daki tercihe gore
-              (anonimlik artik mesaj bazinda secilmiyor). */}
-          {alwaysShowName && (
-            <div className="flex items-center gap-1.5">
-              <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
-              <span className="font-body text-xs font-semibold text-slate-light">
-                {myDisplayName || "İsimsiz"}
-              </span>
-            </div>
-          )}
+          {/* Kullanici istegi: avatar/nickname onizlemesi ve secenegi
+              mesaj formundan tamamen kaldirildi - sadece /ayarlar'daki
+              tercihe gore calisir, burada gosterilmez. */}
           <Textarea
             label={t("mesajOlustur.messageLabel")}
             placeholder={t("mesajOlustur.messagePlaceholder")}
