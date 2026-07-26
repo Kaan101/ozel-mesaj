@@ -10,8 +10,6 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
 import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
-import { AvatarId } from "@/components/ui/Avatar";
-import { AvatarConfig } from "@/lib/dicebear-avatar";
 import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 import { ReactionBar } from "@/components/ui/ReactionBar";
@@ -98,34 +96,15 @@ export default function MesajGosterPage() {
   // Kullanici istegi: yanit formundaki tum secenekler acilir-kapanir
   // bir bolumde - kapaliyken hicbir secenek gorunmez.
   const [isReplyOptionsExpanded, setIsReplyOptionsExpanded] = useState(false);
-  // Kullanici istegi: /ayarlar'da "profil ismimi her zaman goster"
-  // secilmisse, yanit formundaki anonimlik secenegi hic gosterilmez.
-  const [alwaysShowName, setAlwaysShowName] = useState(false);
-  // Kullanici istegi: yanit kismindaki onizlemede kendi avatarim/
-  // nickname'im gorunsun (anonim degilse).
-  const [myAvatarId, setMyAvatarId] = useState<AvatarId | null>(null);
-  const [myAvatarConfig, setMyAvatarConfig] = useState<Partial<AvatarConfig> | null>(null);
-  const [myDisplayName, setMyDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    apiFetch<{
-      id: string;
-      alwaysShowName: boolean;
-      alwaysAddWeather: boolean;
-      avatarId: AvatarId | null;
-      avatarConfig: Partial<AvatarConfig> | null;
-      displayName: string | null;
-    }>("/me")
+    apiFetch<{ id: string; alwaysAddWeather: boolean }>("/me")
       .then((data) => {
         setMyUserId(data.id);
-        setAlwaysShowName(data.alwaysShowName);
         // Kullanici istegi: /ayarlar'da acikken, hava durumu her
         // yanitta otomatik eklensin.
         if (data.alwaysAddWeather) setReplyAddWeather(true);
-        setMyAvatarId(data.avatarId);
-        setMyAvatarConfig(data.avatarConfig);
-        setMyDisplayName(data.displayName);
       })
       .catch(() => {});
   }, [isAuthenticated]);
@@ -702,18 +681,9 @@ export default function MesajGosterPage() {
 
           {/* Gorev 13.1 + 13.2: Yanit formu */}
           <Card lifted className="space-y-3">
-            {/* Kullanici istegi: avatar+nickname, "Yanıtın" alaninin
-                USTUNDE, sol kosede, sanki zaten gonderilmis bir mesajmis
-                gibi varsayilan olarak gorunur - /ayarlar'daki tercihe
-                gore (anonimlik artik mesaj bazinda secilmiyor). */}
-            {alwaysShowName && (
-              <div className="flex items-center gap-1.5">
-                <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
-                <span className="font-body text-xs font-semibold text-slate-light">
-                  {myDisplayName || "İsimsiz"}
-                </span>
-              </div>
-            )}
+            {/* Kullanici istegi: avatar/nickname onizlemesi ve secenegi
+                yanit formundan tamamen kaldirildi - sadece /ayarlar'daki
+                tercihe gore calisir, burada gosterilmez. */}
             <Textarea
               label="Yanıtın"
               value={replyBody}
