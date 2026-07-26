@@ -4,13 +4,15 @@ import { SettingsService } from "../settings/settings.service";
 import { AuditLogService } from "../audit/audit-log.service";
 import { hashPhoneNumber } from "../common/hash.util";
 import { decryptReversible } from "../common/encryption.util";
+import { NotificationService } from "../notifications/notification.service";
 
 @Injectable()
 export class SafetyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
-    private readonly auditLog: AuditLogService
+    private readonly auditLog: AuditLogService,
+    private readonly notifications: NotificationService
   ) {}
 
   // Kullanici istegi: mesaj ekranindan dogrudan "bu kisiyi engelle"
@@ -167,6 +169,18 @@ export class SafetyService {
         },
       })
       .catch(() => {}); // Blok kaydi yoksa sessizce gec.
+
+    // Kullanici istegi: blok kaldirilinca karsi tarafa bildirim
+    // gonderilir - "PUSH_NOTIFICATIONS_ENABLED" parametresine gore
+    // calisir (notifyUser bunu zaten kendi icinde kontrol ediyor).
+    await this.notifications
+      .notifyUser(
+        counterpartUserId,
+        "Engel Kaldırıldı",
+        "Seni engelleyen kişi artık seninle mesajlaşabilir.",
+        "/mesajlarim"
+      )
+      .catch(() => {});
   }
 
   async listBlockedThreadsForUser(userId: string) {

@@ -356,6 +356,15 @@ export class ThreadService {
   // thread'leri listeler - "Mesajlarim" sayfasi icin gerekli. Hicbir
   // sir donmez, sadece guvenli metadata (Bolum 8, 10).
   async listMyThreads(userId: string) {
+    // Kullanici istegi: bloke ettigim kisilerle olan konusmalar bu
+    // listede GORUNMEZ - onlar /ayarlar > Bloklanan Mesajlar'da.
+    // Blok kaldirilinca buraya geri doner.
+    const myBlocks = await this.prisma.block.findMany({
+      where: { blockerUserId: userId },
+      select: { blockedUserId: true },
+    });
+    const blockedUserIds = new Set(myBlocks.map((b) => b.blockedUserId));
+
     const threads = await this.prisma.messageThread.findMany({
       where: {
         OR: [{ initiatorUserId: userId }, { recipientUserId: userId }],
@@ -441,6 +450,11 @@ export class ThreadService {
         const hiddenAt = role === "initiator" ? t.hiddenByInitiatorAt : t.hiddenByRecipientAt;
         const isHidden = hiddenAt !== null && lastMessageAt.getTime() <= hiddenAt.getTime();
         if (isHidden) return null;
+
+        // Kullanici istegi: bloke ettigim kisilerle olan konusmalar bu
+        // listede gorunmez - engeli kaldirinca geri doner.
+        const counterpartId = role === "initiator" ? t.recipientUserId : t.initiatorUserId;
+        if (counterpartId && blockedUserIds.has(counterpartId)) return null;
 
         // Guvenlik: mesaj govdesini (body) listede sadece (a) kilitsiz
         // (lockType="none") thread'lerde, ya da (b) mesaji YAZAN kisi
@@ -712,7 +726,19 @@ export class ThreadService {
               },
             },
           })
-          .catch(() => {}); // Blok kaydi yoksa sessizce gec.
+          .then(() => {
+            // Kullanici istegi: blok kaldirilinca karsi tarafa
+            // bildirim gonderilir - PUSH_NOTIFICATIONS_ENABLED
+            // parametresine gore calisir (notifyUser kendi icinde
+            // kontrol ediyor).
+            return this.notifications.notifyUser(
+              counterpartId,
+              "Engel Kaldırıldı",
+              "Seni engelleyen kişi artık seninle mesajlaşabilir.",
+              "/mesajlarim"
+            );
+          })
+          .catch(() => {}); // Blok kaydi yoksa (zaten bloke degilse) sessizce gec.
       }
     }
 
