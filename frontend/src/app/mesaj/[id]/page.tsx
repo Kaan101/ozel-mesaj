@@ -13,6 +13,7 @@ import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
 import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 import { ReactionBar } from "@/components/ui/ReactionBar";
+import { ReplySuggestionsPopup } from "@/components/ui/ReplySuggestionsPopup";
 import { useLanguage } from "@/lib/language-context";
 import { fetchWeatherSummary } from "@/lib/weather";
 
@@ -642,10 +643,21 @@ export default function MesajGosterPage() {
                           sonraki her yanit icin gecerli. */}
                       {msg.weatherSummary && <> · {msg.weatherSummary}</>}
                     </p>
-                    <ReactionBar
-                      reactions={msg.reactions}
-                      onReact={(emoji) => handleReactToMessage(msg.id, emoji)}
-                    />
+                    <div className="flex items-center gap-3">
+                      <ReactionBar
+                        reactions={msg.reactions}
+                        onReact={(emoji) => handleReactToMessage(msg.id, emoji)}
+                      />
+                      {/* Kullanici istegi: karsi taraftan gelen mesajin
+                          icerigine gore pratik yanit onerileri sunan
+                          bir popup - "Yanıtla" ile acilir. */}
+                      {isFromCounterpart && (
+                        <ReplySuggestionsPopup
+                          incomingText={msg.body}
+                          onSelect={(text) => setReplyBody(text)}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
                 {/* Kullanici geri bildirimi: masaustu (fare) icin
