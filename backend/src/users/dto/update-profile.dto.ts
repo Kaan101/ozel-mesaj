@@ -29,15 +29,12 @@ export class UpdateProfileDto {
   @IsObject()
   avatarConfig?: Record<string, unknown>;
 
-  // Kullanici istegi: avatar ve nickname gorunurlugu AYRI AYRI
-  // kontrol edilir - mesaj bazinda secim yok, sadece bu ayar gecerli.
+  // Kullanici istegi: ayri bir "nickname gorunsun" parametresi yok -
+  // avatar KAPALIYSA hem avatar hem nickname gizlenir, avatar
+  // ACIKSA nickname alaninda (displayName) yazi varsa otomatik gorunur.
   @IsOptional()
   @IsBoolean()
   showAvatar?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  showNickname?: boolean;
 
   // Kullanici istegi: acikken, mesaj/yanit gonderiminde hava durumu
   // otomatik eklenir.
