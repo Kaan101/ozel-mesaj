@@ -199,7 +199,7 @@ export default function AyarlarPage() {
             onClick={() => setIsBlockedExpanded((v) => !v)}
             className="flex w-full items-center justify-between"
           >
-            <h2 className="font-display text-lg font-bold text-slate">Bloklanmış Mesajlar</h2>
+            <h2 className="font-display text-lg font-bold text-slate">Bloklanan Mesajlar</h2>
             <span
               className={`font-body text-slate-light transition-transform ${
                 isBlockedExpanded ? "rotate-180" : ""
