@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -20,7 +20,8 @@ interface PendingMessage {
 }
 
 // Kullanici istegi: toksik kelime listesi artik veritabaninda -
-// kelime + puan olarak duzenlenebilir.
+// kelime + puan olarak duzenlenebilir. Ayni puana sahip kelimeler
+// TEK bir grupta (metin alaninda, virgulle ayrilmis) yonetilir.
 interface ToxicWord {
   id: string;
   word: string;
@@ -30,8 +31,8 @@ interface ToxicWord {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
 // Kullanici istegi: Guardrail yonetim ekrani - toksik kelimeler
-// (duzenlenebilir), esik parametresi ve inceleme bekleyen mesajlar
-// burada gorulur, admin onaylar/iptal eder.
+// (puana gore gruplu, toplu duzenlenebilir), esik parametresi ve
+// inceleme bekleyen mesajlar burada gorulur, admin onaylar/iptal eder.
 export default function AdminGuardrailPage() {
   const [adminKey, setAdminKey] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -39,18 +40,23 @@ export default function AdminGuardrailPage() {
   const [pending, setPending] = useState<PendingMessage[]>([]);
   const [words, setWords] = useState<ToxicWord[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [thresholdInput, setThresholdInput] = useState("");
   const [isSavingThreshold, setIsSavingThreshold] = useState(false);
 
-  // Kullanici istegi: mevcut kelimelerin puanini/metnini duzenleyebilme -
-  // her satir icin ayri bir taslak (draft) state.
-  const [wordDrafts, setWordDrafts] = useState<Record<string, { word: string; score: string }>>(
-    {}
-  );
-  const [newWord, setNewWord] = useState("");
-  const [newScore, setNewScore] = useState("40");
+  // Kullanici istegi: puana gore gruplanmis kelimeler icin, her
+  // grubun DUZENLENEN (henuz kaydedilmemis) metnini tutan taslak
+  // state - anahtar = puan degeri.
+  const [groupDrafts, setGroupDrafts] = useState<Record<number, string>>({});
+  const [savingScore, setSavingScore] = useState<number | null>(null);
+
+  // Kullanici istegi: yeni bir puan grubu (birden fazla kelime, tek
+  // puanla) eklenebilsin.
+  const [newGroupScore, setNewGroupScore] = useState("40");
+  const [newGroupWords, setNewGroupWords] = useState("");
+  const [isAddingGroup, setIsAddingGroup] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_secret");
@@ -68,6 +74,25 @@ export default function AdminGuardrailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked]);
+
+  // Kullanici istegi: kelimeler puana gore gruplanir - her grup icin
+  // taslak metni (words.join(", ")) hesaplanir.
+  const groupedByScore = useMemo(() => {
+    const groups = new Map<number, ToxicWord[]>();
+    for (const w of words) {
+      if (!groups.has(w.score)) groups.set(w.score, []);
+      groups.get(w.score)!.push(w);
+    }
+    return Array.from(groups.entries()).sort((a, b) => b[0] - a[0]);
+  }, [words]);
+
+  useEffect(() => {
+    const drafts: Record<number, string> = {};
+    for (const [score, list] of groupedByScore) {
+      drafts[score] = list.map((w) => w.word).join(", ");
+    }
+    setGroupDrafts(drafts);
+  }, [groupedByScore]);
 
   async function fetchInfo() {
     setIsLoading(true);
@@ -107,13 +132,7 @@ export default function AdminGuardrailPage() {
       const res = await fetch(`${API_BASE_URL}/admin/guardrail/words`, {
         headers: { "x-admin-secret": adminKey },
       });
-      if (res.ok) {
-        const data: ToxicWord[] = await res.json();
-        setWords(data);
-        const drafts: Record<string, { word: string; score: string }> = {};
-        for (const w of data) drafts[w.id] = { word: w.word, score: String(w.score) };
-        setWordDrafts(drafts);
-      }
+      if (res.ok) setWords(await res.json());
     } catch {
       // Sessizce gec.
     }
@@ -122,11 +141,12 @@ export default function AdminGuardrailPage() {
   async function handleSaveThreshold() {
     setIsSavingThreshold(true);
     try {
-      await fetch(`${API_BASE_URL}/admin/settings`, {
+      const res = await fetch(`${API_BASE_URL}/admin/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
         body: JSON.stringify({ key: "TOXIC_MESSAGE_THRESHOLD", value: Number(thresholdInput) }),
       });
+      if (!res.ok) throw new Error();
       await fetchInfo();
     } catch {
       setError("Eşik güncellenemedi.");
@@ -138,10 +158,11 @@ export default function AdminGuardrailPage() {
   async function handleApprove(messageId: string) {
     setProcessingId(messageId);
     try {
-      await fetch(`${API_BASE_URL}/admin/guardrail/messages/${messageId}/approve`, {
+      const res = await fetch(`${API_BASE_URL}/admin/guardrail/messages/${messageId}/approve`, {
         method: "POST",
         headers: { "x-admin-secret": adminKey },
       });
+      if (!res.ok) throw new Error();
       setPending((prev) => prev.filter((m) => m.messageId !== messageId));
     } catch {
       setError("İşlem başarısız oldu.");
@@ -159,10 +180,11 @@ export default function AdminGuardrailPage() {
       return;
     setProcessingId(messageId);
     try {
-      await fetch(`${API_BASE_URL}/admin/guardrail/messages/${messageId}/reject`, {
+      const res = await fetch(`${API_BASE_URL}/admin/guardrail/messages/${messageId}/reject`, {
         method: "POST",
         headers: { "x-admin-secret": adminKey },
       });
+      if (!res.ok) throw new Error();
       setPending((prev) => prev.filter((m) => m.messageId !== messageId));
     } catch {
       setError("İşlem başarısız oldu.");
@@ -171,61 +193,108 @@ export default function AdminGuardrailPage() {
     }
   }
 
-  // Kullanici istegi: yeni kelime + puan ekleyebilme.
-  async function handleAddWord() {
-    if (!newWord.trim()) return;
+  // Kullanici istegi: bir puan grubunun metnini (virgul/satirla
+  // ayrilmis kelimeler) duzenleyip "Kaydet" - yeni/degisen kelimeler
+  // upsert edilir, metinden CIKARILAN kelimeler silinir.
+  async function handleSaveGroup(score: number) {
+    setSavingScore(score);
+    setError(null);
+    setSuccessMessage(null);
     try {
-      await fetch(`${API_BASE_URL}/admin/guardrail/words`, {
+      const draftWords = (groupDrafts[score] ?? "")
+        .split(/[,\n]/)
+        .map((w) => w.trim())
+        .filter((w) => w.length > 0);
+
+      const originalWords = groupedByScore.find(([s]) => s === score)?.[1] ?? [];
+      const originalWordSet = new Set(originalWords.map((w) => w.word));
+      const draftWordSet = new Set(draftWords);
+
+      // Metinden cikarilan (artik listede olmayan) kelimeler silinir.
+      const toDelete = originalWords.filter((w) => !draftWordSet.has(w.word));
+
+      const bulkRes = await fetch(`${API_BASE_URL}/admin/guardrail/words/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
-        body: JSON.stringify({ word: newWord.trim(), score: Number(newScore) }),
+        body: JSON.stringify({ words: draftWords, score }),
       });
-      setNewWord("");
-      setNewScore("40");
+      if (!bulkRes.ok) throw new Error();
+
+      for (const w of toDelete) {
+        await fetch(`${API_BASE_URL}/admin/guardrail/words/${w.id}`, {
+          method: "DELETE",
+          headers: { "x-admin-secret": adminKey },
+        });
+      }
+
+      setSuccessMessage(`${draftWordSet.size} kelimelik ${score} puanlık grup kaydedildi.`);
       await fetchWords();
     } catch {
-      setError("Kelime eklenemedi.");
+      setError("Grup kaydedilemedi.");
+    } finally {
+      setSavingScore(null);
     }
   }
 
-  // Kullanici istegi: mevcut bir kelimenin metnini/puanini
-  // guncelleyebilme.
-  async function handleUpdateWord(id: string) {
-    const draft = wordDrafts[id];
-    if (!draft || !draft.word.trim()) return;
+  async function handleDeleteGroup(score: number) {
+    const groupWords = groupedByScore.find(([s]) => s === score)?.[1] ?? [];
+    if (!confirm(`${score} puanlık grubun tamamı (${groupWords.length} kelime) silinecek. Emin misin?`))
+      return;
+    setSavingScore(score);
     try {
-      await fetch(`${API_BASE_URL}/admin/guardrail/words/${id}`, {
-        method: "PATCH",
+      for (const w of groupWords) {
+        await fetch(`${API_BASE_URL}/admin/guardrail/words/${w.id}`, {
+          method: "DELETE",
+          headers: { "x-admin-secret": adminKey },
+        });
+      }
+      await fetchWords();
+    } catch {
+      setError("Grup silinemedi.");
+    } finally {
+      setSavingScore(null);
+    }
+  }
+
+  // Kullanici istegi: istenildigi kadar puana gore AYRI kelime
+  // grubu eklenebilsin - yeni bir puan + birden fazla kelime.
+  async function handleAddGroup() {
+    const wordsList = newGroupWords
+      .split(/[,\n]/)
+      .map((w) => w.trim())
+      .filter((w) => w.length > 0);
+    if (wordsList.length === 0) return;
+
+    setIsAddingGroup(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/guardrail/words/bulk`, {
+        method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
-        body: JSON.stringify({ word: draft.word.trim(), score: Number(draft.score) }),
+        body: JSON.stringify({ words: wordsList, score: Number(newGroupScore) }),
       });
+      if (!res.ok) throw new Error();
+      setNewGroupWords("");
+      setSuccessMessage(`${wordsList.length} kelime, ${newGroupScore} puanla eklendi.`);
       await fetchWords();
     } catch {
-      setError("Kelime güncellenemedi.");
+      setError("Grup eklenemedi.");
+    } finally {
+      setIsAddingGroup(false);
     }
   }
 
-  async function handleDeleteWord(id: string) {
-    if (!confirm("Bu kelimeyi listeden kaldırmak istediğine emin misin?")) return;
-    try {
-      await fetch(`${API_BASE_URL}/admin/guardrail/words/${id}`, {
-        method: "DELETE",
-        headers: { "x-admin-secret": adminKey },
-      });
-      setWords((prev) => prev.filter((w) => w.id !== id));
-    } catch {
-      setError("Kelime silinemedi.");
-    }
-  }
-
-  // Kullanici istegi: ilk kurulumda (bos liste), varsayilan kelimelerle
-  // tek tikla doldurabilme.
+  // Kullanici istegi: varsayilan kelimeler artik uygulama baslarken
+  // OTOMATIK yuklenir (tablo bossa) - bu buton sadece manuel/tekrar
+  // tetiklemek isteyenler icin (orn. bazi varsayilan kelimeleri
+  // silip fikrini degistirenler).
   async function handleSeedDefaults() {
     try {
-      await fetch(`${API_BASE_URL}/admin/guardrail/words/seed-defaults`, {
+      const res = await fetch(`${API_BASE_URL}/admin/guardrail/words/seed-defaults`, {
         method: "POST",
         headers: { "x-admin-secret": adminKey },
       });
+      if (!res.ok) throw new Error();
       await fetchWords();
     } catch {
       setError("Varsayılan liste yüklenemedi.");
@@ -272,6 +341,9 @@ export default function AdminGuardrailPage() {
 
         {isLoading && <p className="font-body text-sm text-slate-light">Yükleniyor...</p>}
         {error && <p className="font-body text-sm text-coral">{error}</p>}
+        {successMessage && (
+          <p className="font-body text-sm text-meadow-hover">{successMessage}</p>
+        )}
 
         {/* Esik parametresi */}
         <Card lifted className="space-y-3">
@@ -294,8 +366,8 @@ export default function AdminGuardrailPage() {
           </div>
         </Card>
 
-        {/* Duzenlenebilir toksik kelime listesi */}
-        <Card lifted className="space-y-3">
+        {/* Puana gore gruplanmis, toplu duzenlenebilir kelime listesi */}
+        <Card lifted className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-bold text-slate">Toksik Kelime Listesi</h2>
             {words.length === 0 && (
@@ -307,71 +379,75 @@ export default function AdminGuardrailPage() {
               </button>
             )}
           </div>
+          <p className="font-body text-xs text-slate-light">
+            Her kart bir PUAN grubudur - o puana sahip tüm kelimeler tek alanda, virgülle
+            ayrılmış olarak düzenlenir. İstediğin kadar farklı puanlı grup ekleyebilirsin.
+          </p>
 
-          {/* Yeni kelime ekleme */}
-          <div className="flex items-end gap-2">
-            <Input
-              label="Yeni Kelime"
-              value={newWord}
-              onChange={(e) => setNewWord(e.target.value)}
-              placeholder="örn. hakaret"
-            />
-            <Input
-              label="Puan"
-              type="number"
-              value={newScore}
-              onChange={(e) => setNewScore(e.target.value)}
-              className="max-w-[90px]"
-            />
-            <Button onClick={handleAddWord} disabled={!newWord.trim()}>
-              Ekle
+          {/* Mevcut puan gruplari */}
+          {groupedByScore.map(([score, list]) => (
+            <div key={score} className="rounded-2xl border-2 border-slate-light/30 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="font-body text-sm font-semibold text-slate">
+                  Puan: {score} <span className="text-slate-light">({list.length} kelime)</span>
+                </p>
+                <button
+                  onClick={() => handleDeleteGroup(score)}
+                  className="font-body text-xs text-coral underline underline-offset-2"
+                >
+                  Grubu Sil
+                </button>
+              </div>
+              <textarea
+                value={groupDrafts[score] ?? ""}
+                onChange={(e) =>
+                  setGroupDrafts((prev) => ({ ...prev, [score]: e.target.value }))
+                }
+                rows={2}
+                className="w-full resize-none rounded-2xl border-2 border-sky-light bg-white px-3 py-2 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+              />
+              <Button
+                onClick={() => handleSaveGroup(score)}
+                disabled={savingScore === score}
+                variant="secondary"
+              >
+                {savingScore === score ? "Kaydediliyor..." : "Kaydet"}
+              </Button>
+            </div>
+          ))}
+
+          {/* Yeni puan grubu ekleme */}
+          <div className="rounded-2xl border-2 border-dashed border-slate-light/40 p-3 space-y-2">
+            <p className="font-body text-sm font-semibold text-slate">Yeni Puan Grubu Ekle</p>
+            <div className="flex items-start gap-2">
+              <Input
+                label="Puan"
+                type="number"
+                value={newGroupScore}
+                onChange={(e) => setNewGroupScore(e.target.value)}
+                className="max-w-[90px]"
+              />
+              <div className="flex-1 flex flex-col gap-1.5">
+                <label className="font-display text-sm font-semibold text-slate">
+                  Kelimeler (virgül veya satırla ayır)
+                </label>
+                <textarea
+                  value={newGroupWords}
+                  onChange={(e) => setNewGroupWords(e.target.value)}
+                  rows={2}
+                  placeholder="örn. hakaret, küfür1, küfür2"
+                  className="w-full resize-none rounded-2xl border-2 border-sky-light bg-white px-3 py-2 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={handleAddGroup}
+              disabled={isAddingGroup || !newGroupWords.trim()}
+              variant="secondary"
+            >
+              {isAddingGroup ? "Ekleniyor..." : "Grubu Ekle"}
             </Button>
           </div>
-
-          {/* Mevcut kelimeler - duzenlenebilir tablo */}
-          {words.length === 0 ? (
-            <p className="font-body text-sm text-slate-light">Henüz kelime eklenmedi.</p>
-          ) : (
-            <div className="space-y-2">
-              {words.map((w) => (
-                <div key={w.id} className="flex items-center gap-2">
-                  <input
-                    value={wordDrafts[w.id]?.word ?? ""}
-                    onChange={(e) =>
-                      setWordDrafts((prev) => ({
-                        ...prev,
-                        [w.id]: { ...prev[w.id], word: e.target.value },
-                      }))
-                    }
-                    className="flex-1 rounded-2xl border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
-                  />
-                  <input
-                    type="number"
-                    value={wordDrafts[w.id]?.score ?? ""}
-                    onChange={(e) =>
-                      setWordDrafts((prev) => ({
-                        ...prev,
-                        [w.id]: { ...prev[w.id], score: e.target.value },
-                      }))
-                    }
-                    className="w-20 rounded-2xl border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
-                  />
-                  <button
-                    onClick={() => handleUpdateWord(w.id)}
-                    className="rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light whitespace-nowrap"
-                  >
-                    Kaydet
-                  </button>
-                  <button
-                    onClick={() => handleDeleteWord(w.id)}
-                    className="rounded-full border-2 border-coral px-3 py-1.5 font-body text-xs font-semibold text-coral hover:bg-coral-light whitespace-nowrap"
-                  >
-                    Sil
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </Card>
 
         {/* Inceleme bekleyen mesajlar */}

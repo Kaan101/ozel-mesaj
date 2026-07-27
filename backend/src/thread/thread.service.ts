@@ -1,4 +1,4 @@
-import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException, OnModuleInit, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../common/prisma.service";
 import { RedisService } from "../common/redis.service";
@@ -17,7 +17,7 @@ import { getToxicityScore, DEFAULT_TOXIC_WORDS } from "../common/toxicity.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 
 @Injectable()
-export class ThreadService {
+export class ThreadService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
@@ -1195,8 +1195,35 @@ export class ThreadService {
     return this.prisma.toxicWord.findMany({ orderBy: { score: "desc" } });
   }
 
+  // Kullanici istegi (bug duzeltmesi): "create" yerine "upsert"
+  // kullanilir - ayni kelime tekrar eklenmeye calisilirsa (unique
+  // kisitlamasi) sunucu hatasi FIRLATMAK yerine sessizce puanini
+  // gunceller.
   async addToxicWord(word: string, score: number) {
-    return this.prisma.toxicWord.create({ data: { word: word.trim(), score } });
+    const trimmed = word.trim();
+    return this.prisma.toxicWord.upsert({
+      where: { word: trimmed },
+      update: { score },
+      create: { word: trimmed, score },
+    });
+  }
+
+  // Kullanici istegi: bir alanda BIRDEN FAZLA kelime (virgul/satir
+  // ile ayrilmis) tek seferde, AYNI puanla eklenebilsin.
+  async addToxicWordsBulk(words: string[], score: number): Promise<{ count: number }> {
+    const trimmed = words.map((w) => w.trim()).filter((w) => w.length > 0);
+    if (trimmed.length === 0) return { count: 0 };
+
+    await Promise.all(
+      trimmed.map((word) =>
+        this.prisma.toxicWord.upsert({
+          where: { word },
+          update: { score },
+          create: { word, score },
+        })
+      )
+    );
+    return { count: trimmed.length };
   }
 
   async updateToxicWord(id: string, word: string, score: number) {
@@ -1217,5 +1244,19 @@ export class ThreadService {
 
     await this.prisma.toxicWord.createMany({ data: toInsert, skipDuplicates: true });
     return { inserted: toInsert.length };
+  }
+
+  // Kullanici istegi: varsayilan kelimeler ELLE tiklamaya gerek
+  // kalmadan, uygulama BASLARKEN otomatik olarak (tablo bossa) yuklenir.
+  async onModuleInit(): Promise<void> {
+    try {
+      const count = await this.prisma.toxicWord.count();
+      if (count === 0) {
+        await this.seedDefaultToxicWords();
+      }
+    } catch {
+      // Baslangicta DB henuz hazir degilse (migration calismadan once
+      // vb.) sessizce gec - bir sonraki restart'ta tekrar denenir.
+    }
   }
 }
