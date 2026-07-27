@@ -373,6 +373,21 @@ model Report {
 // gerekmeden degistirilebilmesi icin).
 // --------------------------------------------------------
 
+// Kullanici istegi: toksik kelime listesi artik veritabaninda -
+// admin /admin/guardrail ekranindan kelime+puan ekleyebilir,
+// mevcutlari guncelleyebilir/silebilir. Eski hardcoded liste
+// (toxicity.util.ts) sadece ILK migration'da tohumlama icin kullanildi.
+model ToxicWord {
+  id    String @id @default(uuid()) @db.Uuid
+  word  String @unique
+  score Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("toxic_words")
+}
+
 model AppSetting {
   key       String   @id
   value     String

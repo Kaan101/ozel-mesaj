@@ -4,61 +4,65 @@
 // (TOXIC_MESSAGE_THRESHOLD) gore, skor esigin USTUNDEYSE mesaj
 // GONDERILEMEZ (guardrail).
 //
-// Iki siddet katmani: agir (kufur/hakaret/tehdit - yuksek puan) ve
-// hafif (kaba/rahatsiz edici - dusuk puan). Birden fazla kelime
-// eslesirse puanlar TOPLANIR (100'de sinirlanir).
-export const SEVERE_WORDS = [
-  "orospu",
-  "piç",
-  "pic",
-  "yavşak",
-  "yavsak",
-  "sikeyim",
-  "siktir",
-  "amk",
-  "amına koyayım",
-  "ananı",
-  "anani",
-  "göt",
-  "got herif",
-  "ibne",
-  "kaltak",
-  "şerefsiz",
-  "serefsiz",
-  "gerizekalı",
-  "gerizekali",
-  "salak",
-  "aptal",
-  "geber",
-  "öldüreceğim",
-  "oldurecegim",
-  "seni bulup",
+// Kullanici istegi: kelime listesi artik VERITABANINDA (ToxicWord
+// modeli) - admin /admin/guardrail ekranindan kelime+puan
+// ekleyebilir/guncelleyebilir/silebilir. Bu dosyadaki DEFAULT_TOXIC_WORDS
+// sadece ILK KURULUMDA (bos tabloyu) tohumlamak icin kullanilir.
+export interface ToxicWordEntry {
+  word: string;
+  score: number;
+}
+
+export const DEFAULT_TOXIC_WORDS: ToxicWordEntry[] = [
+  // Agir (kufur/hakaret/tehdit) - 40 puan
+  { word: "orospu", score: 40 },
+  { word: "piç", score: 40 },
+  { word: "pic", score: 40 },
+  { word: "yavşak", score: 40 },
+  { word: "yavsak", score: 40 },
+  { word: "sikeyim", score: 40 },
+  { word: "siktir", score: 40 },
+  { word: "amk", score: 40 },
+  { word: "amına koyayım", score: 40 },
+  { word: "ananı", score: 40 },
+  { word: "anani", score: 40 },
+  { word: "göt", score: 40 },
+  { word: "got herif", score: 40 },
+  { word: "ibne", score: 40 },
+  { word: "kaltak", score: 40 },
+  { word: "şerefsiz", score: 40 },
+  { word: "serefsiz", score: 40 },
+  { word: "gerizekalı", score: 40 },
+  { word: "gerizekali", score: 40 },
+  { word: "salak", score: 40 },
+  { word: "aptal", score: 40 },
+  { word: "geber", score: 40 },
+  { word: "öldüreceğim", score: 40 },
+  { word: "oldurecegim", score: 40 },
+  { word: "seni bulup", score: 40 },
+  // Hafif (kaba/rahatsiz edici) - 20 puan
+  { word: "aptalsın", score: 20 },
+  { word: "aptalsin", score: 20 },
+  { word: "sersem", score: 20 },
+  { word: "ahmak", score: 20 },
+  { word: "beyinsiz", score: 20 },
+  { word: "dangalak", score: 20 },
+  { word: "hıyar", score: 20 },
+  { word: "hiyar", score: 20 },
+  { word: "malsın", score: 20 },
+  { word: "malsin", score: 20 },
 ];
 
-export const MILD_WORDS = [
-  "aptalsın",
-  "aptalsin",
-  "sersem",
-  "ahmak",
-  "beyinsiz",
-  "dangalak",
-  "hıyar",
-  "hiyar",
-  "malsın",
-  "malsin",
-];
-
-// Kullanici istegi: mesaj metnini analiz edip 0-100 arasi bir
-// toksisite skoru dondurur.
-export function getToxicityScore(text: string): number {
+// Kullanici istegi: mesaj metnini, verilen kelime listesine (DB'den
+// gelir) gore analiz edip 0-100 arasi bir toksisite skoru dondurur.
+export function getToxicityScore(text: string, wordList: ToxicWordEntry[]): number {
   const lower = text.toLocaleLowerCase("tr-TR");
   let score = 0;
 
-  for (const word of SEVERE_WORDS) {
-    if (lower.includes(word)) score += 40;
-  }
-  for (const word of MILD_WORDS) {
-    if (lower.includes(word)) score += 20;
+  for (const entry of wordList) {
+    if (lower.includes(entry.word.toLocaleLowerCase("tr-TR"))) {
+      score += entry.score;
+    }
   }
 
   // Kullanici istegi: asiri buyuk harf kullanimi ("BAĞIRMA" hissi)

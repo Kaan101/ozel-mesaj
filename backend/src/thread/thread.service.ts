@@ -13,7 +13,7 @@ import { encryptReversible, decryptReversible } from "../common/encryption.util"
 import { formatDayMonth } from "../common/date-format.util";
 import { NotificationService } from "../notifications/notification.service";
 import { summarizeReactions } from "../common/reactions.util";
-import { getToxicityScore } from "../common/toxicity.util";
+import { getToxicityScore, DEFAULT_TOXIC_WORDS } from "../common/toxicity.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 
 @Injectable()
@@ -93,7 +93,8 @@ export class ThreadService {
     // Skor esigi asarsa, alici otomatik olarak gonderen kisiyi
     // bloke eder (admin onaylarsa bu blok kaldirilir).
     const toxicityThreshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
-    const toxicityScore = getToxicityScore(dto.body);
+    const toxicWords = await this.prisma.toxicWord.findMany({ select: { word: true, score: true } });
+    const toxicityScore = getToxicityScore(dto.body, toxicWords);
     const isToxic = toxicityScore >= toxicityThreshold;
 
     // Gorev 7.2: Alici, gonderici tarafindan (initiator) daha once
@@ -778,7 +779,8 @@ export class ThreadService {
     // /admin/guardrail ekranindan onaylar/iptal eder. Toksik
     // bulunursa karsi taraf otomatik olarak gonderen kisiyi bloke eder.
     const toxicityThreshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
-    const toxicityScore = getToxicityScore(body);
+    const toxicWords = await this.prisma.toxicWord.findMany({ select: { word: true, score: true } });
+    const toxicityScore = getToxicityScore(body, toxicWords);
     const isToxic = toxicityScore >= toxicityThreshold;
 
     // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
@@ -1182,5 +1184,38 @@ export class ThreadService {
         )
         .catch(() => {});
     }
+  }
+
+  // ============================================================
+  // Kullanici istegi: toksik kelime listesi artik veritabaninda -
+  // admin ekleyebilir/guncelleyebilir/silebilir.
+  // ============================================================
+
+  async listToxicWords() {
+    return this.prisma.toxicWord.findMany({ orderBy: { score: "desc" } });
+  }
+
+  async addToxicWord(word: string, score: number) {
+    return this.prisma.toxicWord.create({ data: { word: word.trim(), score } });
+  }
+
+  async updateToxicWord(id: string, word: string, score: number) {
+    return this.prisma.toxicWord.update({ where: { id }, data: { word: word.trim(), score } });
+  }
+
+  async deleteToxicWord(id: string): Promise<void> {
+    await this.prisma.toxicWord.delete({ where: { id } }).catch(() => {});
+  }
+
+  // Kullanici istegi: ilk kurulumda, bos tabloyu varsayilan kelime
+  // listesiyle doldurma (tekrar cagrilirsa zaten var olanlari atlar).
+  async seedDefaultToxicWords(): Promise<{ inserted: number }> {
+    const existing = await this.prisma.toxicWord.findMany({ select: { word: true } });
+    const existingWords = new Set(existing.map((w) => w.word));
+    const toInsert = DEFAULT_TOXIC_WORDS.filter((w) => !existingWords.has(w.word));
+    if (toInsert.length === 0) return { inserted: 0 };
+
+    await this.prisma.toxicWord.createMany({ data: toInsert, skipDuplicates: true });
+    return { inserted: toInsert.length };
   }
 }
