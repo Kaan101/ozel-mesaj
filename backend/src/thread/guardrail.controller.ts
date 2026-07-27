@@ -1,12 +1,12 @@
-import { Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { ThreadService } from "./thread.service";
 import { SettingsService } from "../settings/settings.service";
 import { AdminGuard } from "../settings/guards/admin.guard";
-import { SEVERE_WORDS, MILD_WORDS } from "../common/toxicity.util";
 
-// Kullanici istegi: Guardrail yonetim ekrani - toksik kelimeler,
-// esik parametresi ve inceleme bekleyen (pending) mesajlar burada
-// yonetilir. Sadece admin erisimi (x-admin-secret header).
+// Kullanici istegi: Guardrail yonetim ekrani - toksik kelimeler
+// (artik DB'de, duzenlenebilir), esik parametresi ve inceleme
+// bekleyen (pending) mesajlar burada yonetilir. Sadece admin
+// erisimi (x-admin-secret header).
 @Controller("admin/guardrail")
 @UseGuards(AdminGuard)
 export class GuardrailController {
@@ -15,15 +15,11 @@ export class GuardrailController {
     private readonly settings: SettingsService
   ) {}
 
-  // Toksik kelime listeleri ve esik parametresini doner.
+  // Esik parametresini doner (kelime listesi artik ayri endpoint'te).
   @Get()
   async getGuardrailInfo() {
     const threshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
-    return {
-      threshold,
-      severeWords: SEVERE_WORDS,
-      mildWords: MILD_WORDS,
-    };
+    return { threshold };
   }
 
   // Inceleme bekleyen (pending) toksik mesajlari listeler.
@@ -46,5 +42,35 @@ export class GuardrailController {
   async reject(@Param("id") messageId: string) {
     await this.threadService.rejectToxicMessage(messageId);
     return { message: "Mesaj iptal edildi." };
+  }
+
+  // Kullanici istegi: toksik kelime listesi duzenlenebilir - listele,
+  // ekle, guncelle, sil.
+  @Get("words")
+  async listWords() {
+    return this.threadService.listToxicWords();
+  }
+
+  @Post("words")
+  async addWord(@Body() dto: { word: string; score: number }) {
+    return this.threadService.addToxicWord(dto.word, dto.score);
+  }
+
+  @Patch("words/:id")
+  async updateWord(@Param("id") id: string, @Body() dto: { word: string; score: number }) {
+    return this.threadService.updateToxicWord(id, dto.word, dto.score);
+  }
+
+  @Delete("words/:id")
+  async deleteWord(@Param("id") id: string) {
+    await this.threadService.deleteToxicWord(id);
+    return { message: "Kelime silindi." };
+  }
+
+  // Kullanici istegi: ilk kurulumda (bos tablo), varsayilan kelime
+  // listesiyle tohumlama - tekrar cagrilirsa zaten var olanlari atlar.
+  @Post("words/seed-defaults")
+  async seedDefaults() {
+    return this.threadService.seedDefaultToxicWords();
   }
 }
