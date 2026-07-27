@@ -15,6 +15,15 @@ export class UsersController {
     return this.usersService.getProfile(userId);
   }
 
+  // Kullanici istegi: giris sonrasi, kullanici daha once mesaj atmis
+  // veya havuza soru birakmis mi kontrol edilir - varsa genel landing
+  // yerine kisisellestirilmis "Panelim" sayfasina yonlendirilir.
+  @Get("has-activity")
+  async hasActivity(@Req() request: Request) {
+    const userId = (request as any).user.sub;
+    return this.usersService.hasActivity(userId);
+  }
+
   @Patch()
   async updateProfile(@Req() request: Request, @Body() dto: UpdateProfileDto) {
     const userId = (request as any).user.sub;

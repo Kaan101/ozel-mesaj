@@ -5,6 +5,19 @@ import { PrismaService } from "../common/prisma.service";
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Kullanici istegi: kullanicinin daha once mesaj atmis (thread
+  // baslatmis/katilmis) ya da havuza soru birakmis olup olmadigini
+  // kontrol eder - giris sonrasi yonlendirme icin kullanilir.
+  async hasActivity(userId: string): Promise<{ hasActivity: boolean }> {
+    const [threadCount, poolEntryCount] = await Promise.all([
+      this.prisma.messageThread.count({
+        where: { OR: [{ initiatorUserId: userId }, { recipientUserId: userId }] },
+      }),
+      this.prisma.poolEntry.count({ where: { ownerUserId: userId } }),
+    ]);
+    return { hasActivity: threadCount > 0 || poolEntryCount > 0 };
+  }
+
   // Gorev 8.1: Kullanici profilini doner. Telefon numarasi/hash'i
   // ASLA response'a dahil edilmez (Bolum 8, 10).
   async getProfile(userId: string) {

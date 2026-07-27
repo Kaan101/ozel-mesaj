@@ -11,6 +11,7 @@ import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { AvatarPicker } from "@/components/ui/AvatarPicker";
 import { AvatarId } from "@/components/ui/Avatar";
 import { useLanguage } from "@/lib/language-context";
+import { getPostLoginRedirect } from "@/lib/post-login-redirect";
 
 type Step = "form" | "checking" | "birthdate" | "rejected" | "avatar";
 
@@ -67,8 +68,7 @@ function GirisFormContent() {
     // once giris yapti (isAuthenticated true oldu) ama once avatar
     // secimini tamamlamasi gerekiyor.
     if (!authLoading && isAuthenticated && step !== "avatar" && step !== "checking" && step !== "birthdate" && step !== "rejected") {
-      const next = searchParams.get("next") ?? "/";
-      router.replace(next);
+      getPostLoginRedirect(searchParams.get("next")).then((next) => router.replace(next));
     }
   }, [authLoading, isAuthenticated, step, router, searchParams]);
 
@@ -199,7 +199,7 @@ function GirisFormContent() {
         return;
       }
 
-      const next = searchParams.get("next") ?? "/";
+      const next = await getPostLoginRedirect(searchParams.get("next"));
       router.push(next);
     } catch (err) {
       setStep("form");
@@ -240,7 +240,7 @@ function GirisFormContent() {
         setStep("avatar");
         return;
       }
-      const next = searchParams.get("next") ?? "/";
+      const next = await getPostLoginRedirect(searchParams.get("next"));
       router.push(next);
     } catch {
       setError("Bir şeyler ters gitti. Lütfen tekrar dene.");
@@ -256,7 +256,7 @@ function GirisFormContent() {
         method: "PATCH",
         body: JSON.stringify({ avatarId: selectedAvatarId }),
       });
-      const next = searchParams.get("next") ?? "/";
+      const next = await getPostLoginRedirect(searchParams.get("next"));
       router.push(next);
     } catch {
       setError("Avatar kaydedilemedi. Lütfen tekrar dene.");
