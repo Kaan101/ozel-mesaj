@@ -92,6 +92,13 @@ export class ThreadService {
       throw new ForbiddenException("Bu kullaniciya mesaj gonderemezsiniz.");
     }
 
+    // Kullanici istegi: alici /ayarlar'da "genel blok" (kimse mesaj
+    // gonderemesin) acmişsa, HERKESE (ozel bir engelleme kaydi
+    // olmasa bile) yeni mesaj engellenir.
+    if (recipient.blockAllMessages) {
+      throw new ForbiddenException("Bu kullanıcı şu anda kimseden mesaj kabul etmiyor.");
+    }
+
     // "none" modunda hash'lenecek bir sir yok (kullanici geri
     // bildirimi: bilinen alici icin kilit zorunlu olmasin).
     const lockSecretHash = dto.lockType === "none" ? null : await hashSecret(dto.lockSecret!);
@@ -735,6 +742,16 @@ export class ThreadService {
           throw new ForbiddenException(
             "Bu kişi seni engellediği için mesaj gönderemezsin."
           );
+        }
+
+        // Kullanici istegi: karsi taraf /ayarlar'da "genel blok"
+        // acmişsa, mevcut bir konusmada bile mesaj gonderilemez.
+        const counterpart = await this.prisma.user.findUnique({
+          where: { id: counterpartId },
+          select: { blockAllMessages: true },
+        });
+        if (counterpart?.blockAllMessages) {
+          throw new ForbiddenException("Bu kullanıcı şu anda kimseden mesaj kabul etmiyor.");
         }
 
         await this.prisma.block

@@ -46,6 +46,9 @@ model User {
   // (Görünen İsim alani) doluysa otomatik gorunur, avatar kapaliyken
   // ikisi de gizlenir.
   showAvatar   Boolean @default(false) @map("show_avatar")
+  // Kullanici istegi: genel blok - acikken HIC KIMSE (yeni ya da
+  // mevcut konusma fark etmeksizin) bu kullaniciya mesaj gonderemez.
+  blockAllMessages Boolean @default(false) @map("block_all_messages")
   // Eski alan - artik kullanilmiyor (kullanici istegiyle kaldirildi,
   // avatar acik+displayName dolu yeterli), ama gecmis veri/migration
   // tutarliligi icin DB'den silinmedi.

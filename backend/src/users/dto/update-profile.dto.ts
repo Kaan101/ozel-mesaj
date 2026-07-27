@@ -36,6 +36,11 @@ export class UpdateProfileDto {
   @IsBoolean()
   showAvatar?: boolean;
 
+  // Kullanici istegi: genel blok - acikken hic kimse mesaj gonderemez.
+  @IsOptional()
+  @IsBoolean()
+  blockAllMessages?: boolean;
+
   // Kullanici istegi: acikken, mesaj/yanit gonderiminde hava durumu
   // otomatik eklenir.
   @IsOptional()

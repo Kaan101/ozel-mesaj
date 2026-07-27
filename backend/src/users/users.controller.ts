@@ -45,6 +45,14 @@ export class UsersController {
     return { isAdult: true };
   }
 
+  // Kullanici istegi: /ayarlar'dan tek tikla, kendi gonderdigi tum
+  // mesajlari silebilme.
+  @Delete("messages")
+  async deleteAllMyMessages(@Req() request: Request) {
+    const userId = (request as any).user.sub;
+    return this.usersService.deleteAllMyMessages(userId);
+  }
+
   @Delete()
   @HttpCode(204)
   async deleteAccount(@Req() request: Request) {

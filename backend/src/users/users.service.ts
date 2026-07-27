@@ -41,6 +41,9 @@ export class UsersService {
       // - nickname icin ayri bir parametre yok, avatar acikken
       // displayName doluysa otomatik gorunur.
       showAvatar: user.showAvatar,
+      // Kullanici istegi: genel blok - acikken hic kimse mesaj
+      // gonderemez.
+      blockAllMessages: user.blockAllMessages,
       // Kullanici istegi: acikken, mesaj/yanit gonderiminde hava
       // durumu otomatik eklenir.
       alwaysAddWeather: user.alwaysAddWeather,
@@ -89,6 +92,7 @@ export class UsersService {
       avatarId?: string;
       avatarConfig?: Record<string, unknown>;
       showAvatar?: boolean;
+      blockAllMessages?: boolean;
       alwaysAddWeather?: boolean;
     }
   ) {
@@ -103,6 +107,7 @@ export class UsersService {
       avatarId: user.avatarId,
       avatarConfig: user.avatarConfig,
       showAvatar: user.showAvatar,
+      blockAllMessages: user.blockAllMessages,
       alwaysAddWeather: user.alwaysAddWeather,
     };
   }
@@ -110,6 +115,17 @@ export class UsersService {
   // Gorev 8.3: KVKK kapsaminda hesap/veri silme talebi - HARD-DELETE,
   // soft-delete degil (Bolum 10). Kullanicinin dahil oldugu tum
   // thread'ler (initiator veya recipient olarak) ve mesajlar, sahip
+  // Kullanici istegi: /ayarlar'dan tek tikla, kendi GONDERDIGI tum
+  // mesajlari silebilme (yumusak silme - deletedAt - diger silme
+  // islemleriyle AYNI desen, hukuki ispat icin arsiv kopyasi etkilenmez).
+  async deleteAllMyMessages(userId: string): Promise<{ count: number }> {
+    const result = await this.prisma.message.updateMany({
+      where: { senderUserId: userId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+    return { count: result.count };
+  }
+
   // olduğu pool_entries, block/report kayitlari da silinir - foreign
   // key kisitlarini (ON DELETE RESTRICT) karsilamak icin dogru sirada.
   async deleteAccount(userId: string): Promise<void> {

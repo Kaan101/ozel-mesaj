@@ -18,6 +18,7 @@ interface Profile {
   status: string;
   createdAt: string;
   showAvatar: boolean;
+  blockAllMessages: boolean;
   alwaysAddWeather: boolean;
   avatarConfig: AvatarConfig | null;
 }
@@ -42,6 +43,10 @@ export default function AyarlarPage() {
   // Kullanici istegi: profil ismini her zaman goster secenegi -
   // acikken, mesaj formlarindaki "anonim kal" secenegi gizlenir.
   const [showAvatar, setShowAvatar] = useState(false);
+  // Kullanici istegi: genel blok - acikken hic kimse mesaj gonderemez.
+  const [blockAllMessages, setBlockAllMessages] = useState(false);
+  const [isDeletingMessages, setIsDeletingMessages] = useState(false);
+  const [deleteMessagesResult, setDeleteMessagesResult] = useState<string | null>(null);
   // Kullanici istegi: acikken, her mesaj/yanit gonderiminde hava
   // durumu otomatik eklenir.
   const [alwaysAddWeather, setAlwaysAddWeather] = useState(false);
@@ -78,6 +83,7 @@ export default function AyarlarPage() {
       setProfile(data);
       setDisplayName(data.displayName ?? "");
       setShowAvatar(data.showAvatar);
+      setBlockAllMessages(data.blockAllMessages);
       setAlwaysAddWeather(data.alwaysAddWeather);
       if (data.avatarConfig) {
         setAvatarConfig({ ...DEFAULT_AVATAR_CONFIG, ...data.avatarConfig });
@@ -113,7 +119,7 @@ export default function AyarlarPage() {
     try {
       await apiFetch("/me", {
         method: "PATCH",
-        body: JSON.stringify({ displayName, showAvatar, alwaysAddWeather }),
+        body: JSON.stringify({ displayName, showAvatar, blockAllMessages, alwaysAddWeather }),
       });
       setSaveMessage("Kaydedildi.");
     } catch {
@@ -136,6 +142,28 @@ export default function AyarlarPage() {
       setAvatarSaveMessage("Kaydedilemedi. Lütfen tekrar dene.");
     } finally {
       setIsSavingAvatar(false);
+    }
+  }
+
+  // Kullanici istegi: /ayarlar'dan tek tikla, kendi gonderdigi tum
+  // mesajlari silebilme.
+  async function handleDeleteAllMessages() {
+    if (
+      !confirm(
+        "Gönderdiğin TÜM mesajlar kalıcı olarak silinecek (karşı tarafın ekranından da kaybolur). Emin misin?"
+      )
+    ) {
+      return;
+    }
+    setIsDeletingMessages(true);
+    setDeleteMessagesResult(null);
+    try {
+      const result = await apiFetch<{ count: number }>("/me/messages", { method: "DELETE" });
+      setDeleteMessagesResult(`${result.count} mesaj silindi.`);
+    } catch {
+      setDeleteMessagesResult("Silinemedi. Lütfen tekrar dene.");
+    } finally {
+      setIsDeletingMessages(false);
     }
   }
 
@@ -288,6 +316,18 @@ export default function AyarlarPage() {
                 : "Hava Durumu: Her mesajda ayrı ayrı seçmek istiyorum"
             }
           />
+          {/* Kullanici istegi: genel blok - acikken hic kimse (yeni
+              ya da mevcut konusma fark etmeksizin) mesaj gonderemez. */}
+          <Toggle
+            id="block-all-messages-toggle"
+            checked={blockAllMessages}
+            onChange={setBlockAllMessages}
+            label={
+              blockAllMessages
+                ? "Kimse bana mesaj gönderemesin (açık)"
+                : "Kimse bana mesaj gönderemesin (kapalı)"
+            }
+          />
           {saveMessage && (
             <p className="font-body text-sm text-meadow-hover">{saveMessage}</p>
           )}
@@ -309,6 +349,27 @@ export default function AyarlarPage() {
         {/* Gorev 13.5: KVKK - veri silme talebi (onay adimli) */}
         <Card className="border-2 border-coral-light">
           <h2 className="font-display text-lg font-bold text-coral">Tehlikeli Bölge</h2>
+
+          {/* Kullanici istegi: hesabi silmeden, sadece gonderdigi tum
+              mesajlari silebilme secenegi. */}
+          <p className="font-body text-sm text-slate-light mt-2">
+            Gönderdiğin tüm mesajlar (karşı tarafın ekranından da) kalıcı olarak silinir.
+            Konuşmaların ve hesabın kalır.
+          </p>
+          <Button
+            variant="ghost"
+            className="mt-2 text-coral"
+            onClick={handleDeleteAllMessages}
+            disabled={isDeletingMessages}
+          >
+            {isDeletingMessages ? "Siliniyor..." : "Tüm Mesajlarımı Sil"}
+          </Button>
+          {deleteMessagesResult && (
+            <p className="font-body text-xs text-slate-light mt-1">{deleteMessagesResult}</p>
+          )}
+
+          <hr className="my-4 border-coral-light" />
+
           <p className="font-body text-sm text-slate-light mt-2">
             Hesabını sildiğinde tüm mesajların, konuşmaların ve sorularının kalıcı olarak
             silinir. Bu işlem geri alınamaz.
