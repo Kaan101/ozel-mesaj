@@ -53,7 +53,17 @@ export function SiteHeader() {
     // degismeden) kaybolsun - /mesaj/[id] sayfasi bu event'i
     // mesajlar yuklenince yayinlar.
     window.addEventListener("thread-seen-updated", checkUnread);
-    return () => window.removeEventListener("thread-seen-updated", checkUnread);
+
+    // Bug duzeltmesi: yeni bir mesaj GELDIGINDE (sayfa degismeden,
+    // hicbir sey "okunmadan") noktanin gorunmesi icin de periyodik
+    // kontrol gerekiyordu - Mesajlarim sayfasindaki 5 saniyelik
+    // yoklamayla AYNI aralik.
+    const interval = setInterval(checkUnread, 5000);
+
+    return () => {
+      window.removeEventListener("thread-seen-updated", checkUnread);
+      clearInterval(interval);
+    };
   }, [isAuthenticated, pathname]);
 
   // Admin ekraninda header gostermiyoruz (bilerek gizli/linksiz tutulan
