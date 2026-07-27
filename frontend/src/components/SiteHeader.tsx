@@ -28,21 +28,32 @@ export function SiteHeader() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    apiFetch<{ id: string; lastMessageAt: string }[]>("/threads/mine")
-      .then((threads) => {
-        let seenMap: Record<string, string> = {};
-        try {
-          seenMap = JSON.parse(localStorage.getItem("seen_thread_map") ?? "{}");
-        } catch {
-          seenMap = {};
-        }
-        const anyUnread = threads.some((t) => {
-          const lastSeenAt = seenMap[t.id];
-          return !lastSeenAt || new Date(t.lastMessageAt) > new Date(lastSeenAt);
-        });
-        setHasUnread(anyUnread);
-      })
-      .catch(() => {});
+
+    function checkUnread() {
+      apiFetch<{ id: string; lastMessageAt: string }[]>("/threads/mine")
+        .then((threads) => {
+          let seenMap: Record<string, string> = {};
+          try {
+            seenMap = JSON.parse(localStorage.getItem("seen_thread_last_message_at") ?? "{}");
+          } catch {
+            seenMap = {};
+          }
+          const anyUnread = threads.some((t) => {
+            const lastSeenAt = seenMap[t.id];
+            return !lastSeenAt || new Date(t.lastMessageAt) > new Date(lastSeenAt);
+          });
+          setHasUnread(anyUnread);
+        })
+        .catch(() => {});
+    }
+
+    checkUnread();
+
+    // Kullanici istegi: mesaji okudugunda yesil nokta ANINDA (sayfa
+    // degismeden) kaybolsun - /mesaj/[id] sayfasi bu event'i
+    // mesajlar yuklenince yayinlar.
+    window.addEventListener("thread-seen-updated", checkUnread);
+    return () => window.removeEventListener("thread-seen-updated", checkUnread);
   }, [isAuthenticated, pathname]);
 
   // Admin ekraninda header gostermiyoruz (bilerek gizli/linksiz tutulan
