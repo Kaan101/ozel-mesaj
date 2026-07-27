@@ -80,6 +80,29 @@ export default function MesajGosterPage() {
   const [secret, setSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
+
+  // Kullanici istegi: konusma HANGI yoldan acilirsa acilsin (Mesajlarim
+  // listesinden, dogrudan link/bildirimden vb.), mesajlar yuklenir
+  // yuklenmez menudeki yesil nokta ANINDA kaybolsun - Mesajlarim
+  // sayfasindaki AYNI localStorage anahtarina yazar.
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const latestMessageAt = messages.reduce(
+      (max, m) => (m.createdAt > max ? m.createdAt : max),
+      messages[0].createdAt
+    );
+    try {
+      const raw = localStorage.getItem("seen_thread_last_message_at");
+      const seenMap = raw ? JSON.parse(raw) : {};
+      seenMap[threadId] = latestMessageAt;
+      localStorage.setItem("seen_thread_last_message_at", JSON.stringify(seenMap));
+      // Ayni sekmede acik olan SiteHeader'in ANINDA (sayfa degismeden)
+      // haberdar olmasi icin custom event yayinlanir.
+      window.dispatchEvent(new Event("thread-seen-updated"));
+    } catch {
+      // localStorage erisilemezse (gizli sekme vb.) sessizce gec.
+    }
+  }, [messages, threadId]);
   const [threadToken, setThreadToken] = useState<string | null>(null);
   // Bu oturumda benim gonderdigim mesajlarin ID'leri - anonim mesajlarda
   // backend senderUserId'yi kimseye dondurmedigi icin (Bolum 8), "kimin
