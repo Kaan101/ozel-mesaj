@@ -100,8 +100,12 @@ export default function MesajOlusturPage() {
         const message = (err.body as any)?.message;
         return Array.isArray(message) ? message[0] : message ?? "Girdiğin bilgiyi kontrol et.";
       }
+      // Kullanici istegi: bir kisi bloke oldugunda (ya da baska bir
+      // guardrail/blok nedeniyle) mesaj gonderilemezse, backend'in
+      // GERCEK (spesifik) hata mesaji gosterilir - sabit bir mesaj
+      // yerine "Mesaj göndermeniz engellendi" gibi net bir bilgi verir.
       if (err.status === 403) {
-        return "Bu numaraya mesaj gönderemezsin.";
+        return err.message || "Mesaj göndermeniz engellendi.";
       }
     }
     return "Mesaj gönderilemedi. Lütfen tekrar dene.";

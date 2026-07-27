@@ -674,10 +674,16 @@ export class ThreadService implements OnModuleInit {
         // konusma gorunumunde gozukmez (arsiv/log kaydi etkilenmez).
         deletedAt: null,
         // Kullanici istegi (Guardrail): toksisite nedeniyle "pending"
-        // (inceleme bekliyor) ya da admin tarafindan "rejected"
-        // (iptal edilmis) mesajlar konusmada HIC gorunmez - admin
-        // onaylayana kadar.
-        moderationStatus: "approved",
+        // (inceleme bekliyor) mesajlar KARSI TARAFA hic gorunmez -
+        // ama GONDEREN KENDI mesajini (kirmizi cerceveyle, "inceleniyor"
+        // olarak) gorebilir. "rejected" (iptal edilmis) hic kimseye
+        // gorunmez.
+        OR: [
+          { moderationStatus: "approved" },
+          ...(requestingUserId
+            ? [{ moderationStatus: "pending", senderUserId: requestingUserId }]
+            : []),
+        ],
         ...(hiddenAtThreshold ? { createdAt: { gt: hiddenAtThreshold } } : {}),
       },
       orderBy: { createdAt: "asc" },
@@ -724,6 +730,9 @@ export class ThreadService implements OnModuleInit {
       body: message.body,
       isAnonymous: message.isAnonymous,
       isSystemMessage: message.isSystemMessage,
+      // Kullanici istegi: guardrail'e takilip "pending" durumunda
+      // olan kendi mesajini gonderen kirmizi cerceveyle gorebilsin.
+      moderationStatus: message.moderationStatus,
       senderUserId: message.isAnonymous || message.isSystemMessage ? undefined : message.senderUserId,
       // Kullanici istegi (DUZELTME): avatar/nickname gorunurlugu artik
       // CANLI degil, mesaj GONDERILDIGI ANDAKI durumda DONAR
@@ -784,6 +793,11 @@ export class ThreadService implements OnModuleInit {
     const toxicWords = await this.prisma.toxicWord.findMany({ select: { word: true, score: true } });
     const toxicityScore = getToxicityScore(body, toxicWords);
     const isToxic = toxicityScore >= toxicityThreshold;
+    // TESHIS (gecici): "Sorun Yok" sonrasi ayni seviyedeki toksik
+    // mesajlarin tekrar yakalanmama sorununu arastirmak icin.
+    console.log(
+      `[TESHIS sendMessage-toxicity] threadId=${threadId} senderUserId=${senderUserId} bodyLength=${body.length} toxicWordCount=${toxicWords.length} score=${toxicityScore} threshold=${toxicityThreshold} isToxic=${isToxic}`
+    );
 
     // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
     // gonderenin /ayarlar'daki avatar gorunurluk tercihinden
