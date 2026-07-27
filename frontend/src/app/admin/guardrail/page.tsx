@@ -124,7 +124,12 @@ export default function AdminGuardrailPage() {
   }
 
   async function handleReject(messageId: string) {
-    if (!confirm("Bu mesaj kalıcı olarak iptal edilecek. Emin misin?")) return;
+    if (
+      !confirm(
+        "Bu mesaj 'Sorun var' olarak işaretlenecek - gönderen kişiye bildirilecek, blok kalıcı olacak. Emin misin?"
+      )
+    )
+      return;
     setProcessingId(messageId);
     try {
       await fetch(`${API_BASE_URL}/admin/guardrail/messages/${messageId}/reject`, {
@@ -238,14 +243,14 @@ export default function AdminGuardrailPage() {
                     disabled={processingId === m.messageId}
                     className="rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light disabled:opacity-50"
                   >
-                    Onayla
+                    Sorun Yok
                   </button>
                   <button
                     onClick={() => handleReject(m.messageId)}
                     disabled={processingId === m.messageId}
                     className="rounded-full border-2 border-coral px-3 py-1.5 font-body text-xs font-semibold text-coral hover:bg-coral-light disabled:opacity-50"
                   >
-                    İptal Et
+                    Sorun Var
                   </button>
                 </div>
               </Card>

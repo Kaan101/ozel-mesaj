@@ -161,6 +161,20 @@ export class ThreadService {
           create: { blockerUserId: recipient.id, blockedUserId: initiatorUserId },
         })
         .catch(() => {});
+
+      // Kullanici istegi: her bloke islemi loglanir (konulma/kaldirilma
+      // tarihleriyle) - /admin/gunlukler ekraninda "block_created" ile
+      // filtrelenebilir.
+      await this.auditLog.log({
+        eventType: "block_created",
+        userId: recipient.id,
+        threadId: thread.id,
+        metadata: {
+          blockedUserId: initiatorUserId,
+          reason: "toxic_message_detected",
+          toxicityScore,
+        },
+      });
     } else {
       // Aliciya bildirim SMS'i - OTP kodu degil, sadece "sana mesaj var" bilgisi.
       // Kullanici istegi: mesaj "pending" (henuz gorunmuyor) ise bu
@@ -824,6 +838,18 @@ export class ThreadService {
               create: { blockerUserId: counterpartId, blockedUserId: senderUserId },
             })
             .catch(() => {});
+
+          // Kullanici istegi: her bloke islemi loglanir.
+          await this.auditLog.log({
+            eventType: "block_created",
+            userId: counterpartId,
+            threadId,
+            metadata: {
+              blockedUserId: senderUserId,
+              reason: "toxic_message_detected",
+              toxicityScore,
+            },
+          });
         } else {
           await this.prisma.block
             .delete({
@@ -1099,6 +1125,32 @@ export class ThreadService {
               },
             },
           })
+          .then(() => {
+            // Kullanici istegi: her bloke islemi loglanir (kaldirilma
+            // tarihi dahil).
+            return this.auditLog.log({
+              eventType: "block_removed",
+              userId: counterpartId,
+              threadId: message.threadId,
+              metadata: {
+                blockedUserId: message.senderUserId,
+                reason: "admin_approved_message",
+                messageId,
+              },
+            });
+          })
+          .catch(() => {});
+
+        // Kullanici istegi: "Sorun yok" (onayla) secilince, blok
+        // kalktigi icin karsi tarafa bildirim gider - PUSH_NOTIFICATIONS_ENABLED
+        // parametresine gore calisir.
+        this.notifications
+          .notifyUser(
+            counterpartId,
+            "Engel Kaldırıldı",
+            "İncelenen bir mesaj sonucunda seni engelleyen kişi artık seninle mesajlaşabilir.",
+            "/mesajlarim"
+          )
           .catch(() => {});
       }
     }
@@ -1107,9 +1159,28 @@ export class ThreadService {
   // Admin, toksik bulunan bir mesaji IPTAL EDER: mesaj kalici olarak
   // gizli kalir (yumusak silinir), otomatik blok KALICI hale gelir.
   async rejectToxicMessage(messageId: string): Promise<void> {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { senderUserId: true },
+    });
+
     await this.prisma.message.update({
       where: { id: messageId },
       data: { moderationStatus: "rejected", deletedAt: new Date() },
     });
+
+    // Kullanici istegi: "Sorun var" secilince, mesajin sahibine
+    // mesajinin uygunsuz bulundugu bildirilir - PUSH_NOTIFICATIONS_ENABLED
+    // parametresine gore calisir.
+    if (message?.senderUserId) {
+      this.notifications
+        .notifyUser(
+          message.senderUserId,
+          "Mesajın Uygunsuz Bulundu",
+          "Gönderdiğin bir mesaj incelendi ve uygunsuz bulundu. Bu kişiyle mesajlaşman engellendi.",
+          "/mesajlarim"
+        )
+        .catch(() => {});
+    }
   }
 }
