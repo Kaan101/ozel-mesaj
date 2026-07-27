@@ -56,6 +56,13 @@ export class GuardrailController {
     return this.threadService.addToxicWord(dto.word, dto.score);
   }
 
+  // Kullanici istegi: bir alanda birden fazla kelime (virgul/satir
+  // ile ayrilmis) AYNI puanla tek seferde eklenebilsin.
+  @Post("words/bulk")
+  async addWordsBulk(@Body() dto: { words: string[]; score: number }) {
+    return this.threadService.addToxicWordsBulk(dto.words, dto.score);
+  }
+
   @Patch("words/:id")
   async updateWord(@Param("id") id: string, @Body() dto: { word: string; score: number }) {
     return this.threadService.updateToxicWord(id, dto.word, dto.score);
