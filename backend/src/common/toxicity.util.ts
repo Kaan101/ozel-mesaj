@@ -7,7 +7,7 @@
 // Iki siddet katmani: agir (kufur/hakaret/tehdit - yuksek puan) ve
 // hafif (kaba/rahatsiz edici - dusuk puan). Birden fazla kelime
 // eslesirse puanlar TOPLANIR (100'de sinirlanir).
-const SEVERE_WORDS = [
+export const SEVERE_WORDS = [
   "orospu",
   "piç",
   "pic",
@@ -35,7 +35,7 @@ const SEVERE_WORDS = [
   "seni bulup",
 ];
 
-const MILD_WORDS = [
+export const MILD_WORDS = [
   "aptalsın",
   "aptalsin",
   "sersem",

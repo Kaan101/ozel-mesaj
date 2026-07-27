@@ -9,7 +9,7 @@ import { SettingsService } from "../settings/settings.service";
 import { AuditLogService } from "../audit/audit-log.service";
 import { hashPhoneNumber } from "../common/hash.util";
 import { compareSecret, hashSecret } from "../common/bcrypt.util";
-import { encryptReversible } from "../common/encryption.util";
+import { encryptReversible, decryptReversible } from "../common/encryption.util";
 import { formatDayMonth } from "../common/date-format.util";
 import { NotificationService } from "../notifications/notification.service";
 import { summarizeReactions } from "../common/reactions.util";
@@ -87,15 +87,14 @@ export class ThreadService {
     }
 
     // Kullanici istegi: yazilan mesaj toksisite skorlamasindan gecer
-    // (guardrail) - sistem parametresindeki esigin USTUNDEYSE
-    // gonderim reddedilir. Anahtar kelime/kufur listesiyle calisir,
-    // ucretsiz, harici bir servise istek atmaz.
+    // (guardrail) - sistem parametresindeki esigin USTUNDEYSE mesaj
+    // HEMEN GONDERILMEZ, "pending" (inceleme bekliyor) durumuna
+    // girer - admin /admin/guardrail ekranindan onaylar/iptal eder.
+    // Skor esigi asarsa, alici otomatik olarak gonderen kisiyi
+    // bloke eder (admin onaylarsa bu blok kaldirilir).
     const toxicityThreshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
-    if (getToxicityScore(dto.body) >= toxicityThreshold) {
-      throw new ForbiddenException(
-        "Mesajın uygunsuz/saldırgan içerik barındırıyor olabilir. Lütfen ifadeni yumuşatarak tekrar dene."
-      );
-    }
+    const toxicityScore = getToxicityScore(dto.body);
+    const isToxic = toxicityScore >= toxicityThreshold;
 
     // Gorev 7.2: Alici, gonderici tarafindan (initiator) daha once
     // engellendiyse yeni thread olusturulmasi reddedilir (Bolum 10).
@@ -133,16 +132,41 @@ export class ThreadService {
               isAnonymous,
               destroyAfterRead: dto.destroyAfterRead ?? false,
               weatherSummary: dto.weatherSummary ?? null,
+              moderationStatus: isToxic ? "pending" : "approved",
+              toxicityScore,
             },
           ],
         },
       },
     });
 
-    // Aliciya bildirim SMS'i - OTP kodu degil, sadece "sana mesaj var" bilgisi.
+    // Aliciya bildirim SMS'i icin metin - "none"/toksik durumlarinda
+    // bile hesaplaniyor cunku appUrl asagida email/push icin de
+    // kullaniliyor.
     const appUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
     const text = `Sana ozel bir mesaj var. Gormek icin: ${appUrl}/mesaj/${thread.id}`;
-    await this.sms.send(dto.recipientPhone, text);
+
+    if (isToxic) {
+      // Kullanici istegi: toksik bulunursa sistem, aliciyi gonderenin
+      // otomatik olarak bloklamis hali yapar (admin onaylarsa kalkar).
+      await this.prisma.block
+        .upsert({
+          where: {
+            blockerUserId_blockedUserId: {
+              blockerUserId: recipient.id,
+              blockedUserId: initiatorUserId,
+            },
+          },
+          update: {},
+          create: { blockerUserId: recipient.id, blockedUserId: initiatorUserId },
+        })
+        .catch(() => {});
+    } else {
+      // Aliciya bildirim SMS'i - OTP kodu degil, sadece "sana mesaj var" bilgisi.
+      // Kullanici istegi: mesaj "pending" (henuz gorunmuyor) ise bu
+      // bildirim GONDERILMEZ - yanlis beklenti yaratmasin.
+      await this.sms.send(dto.recipientPhone, text);
+    }
 
     // Kullanici istegi: hukuki ispat icin, mesajin SIFRELI bir kopyasi
     // ayri bir arsiv tablosuna yaziliyor - "okunduktan sonra sil"
@@ -173,26 +197,30 @@ export class ThreadService {
     // Kullanici istegi: gonderen opsiyonel bir e-posta da eklediyse,
     // ek bir bildirim kanali olarak oraya da gonder (giris hala
     // telefon/OTP ile yapiliyor, e-posta sadece bildirim amacli).
-    if (dto.recipientNotificationEmail) {
-      await this.email.send(
-        dto.recipientNotificationEmail,
-        "Sana özel bir mesaj var",
-        `Sana özel bir mesaj var. Görmek için: ${appUrl}/mesaj/${thread.id}`
-      );
+    // Kullanici istegi: mesaj "pending" (henuz gorunmuyor) ise HICBIR
+    // bildirim kanali (e-posta/push) tetiklenmez.
+    if (!isToxic) {
+      if (dto.recipientNotificationEmail) {
+        await this.email.send(
+          dto.recipientNotificationEmail,
+          "Sana özel bir mesaj var",
+          `Sana özel bir mesaj var. Görmek için: ${appUrl}/mesaj/${thread.id}`
+        );
+      }
+
+      // Kullanici istegi: alıcıya push bildirimi - icerik BILEREK genel
+      // tutulur, mesaj metni bildirimde gorunmez.
+      this.notifications
+        .notifyUser(
+          recipient.id,
+          "Sana bir mesaj var",
+          "YouHaveMi üzerinden sana özel bir mesaj gönderildi.",
+          `/mesaj/${thread.id}`
+        )
+        .catch(() => {});
     }
 
-    // Kullanici istegi: alıcıya push bildirimi - icerik BILEREK genel
-    // tutulur, mesaj metni bildirimde gorunmez.
-    this.notifications
-      .notifyUser(
-        recipient.id,
-        "Sana bir mesaj var",
-        "YouHaveMi üzerinden sana özel bir mesaj gönderildi.",
-        `/mesaj/${thread.id}`
-      )
-      .catch(() => {});
-
-    return { threadId: thread.id };
+    return { threadId: thread.id, pendingModeration: isToxic };
   }
 
   private threadAttemptsKey(threadId: string): string {
@@ -313,7 +341,7 @@ export class ThreadService {
         recipientUserId: true,
         recipientRevealedAt: true,
         messages: {
-          where: { deletedAt: null },
+          where: { deletedAt: null, moderationStatus: "approved" },
           orderBy: { createdAt: "asc" },
           take: 1,
           select: { body: true },
@@ -418,7 +446,7 @@ export class ThreadService {
         // degil - aksi halde yeni gelen yanitlar listeye hic yansimaz
         // (kullanici geri bildirimi).
         messages: {
-          where: { deletedAt: null },
+          where: { deletedAt: null, moderationStatus: "approved" },
           orderBy: { createdAt: "desc" },
           take: 1,
           select: { body: true, createdAt: true },
@@ -435,7 +463,7 @@ export class ThreadService {
     const firstMessages =
       threadIds.length > 0
         ? await this.prisma.message.findMany({
-            where: { threadId: { in: threadIds }, deletedAt: null },
+            where: { threadId: { in: threadIds }, deletedAt: null, moderationStatus: "approved" },
             orderBy: { createdAt: "asc" },
             distinct: ["threadId"],
             select: { threadId: true, body: true },
@@ -628,6 +656,11 @@ export class ThreadService {
         // Kullanici istegi: gonderen tarafindan silinmis mesajlar
         // konusma gorunumunde gozukmez (arsiv/log kaydi etkilenmez).
         deletedAt: null,
+        // Kullanici istegi (Guardrail): toksisite nedeniyle "pending"
+        // (inceleme bekliyor) ya da admin tarafindan "rejected"
+        // (iptal edilmis) mesajlar konusmada HIC gorunmez - admin
+        // onaylayana kadar.
+        moderationStatus: "approved",
         ...(hiddenAtThreshold ? { createdAt: { gt: hiddenAtThreshold } } : {}),
       },
       orderBy: { createdAt: "asc" },
@@ -726,14 +759,13 @@ export class ThreadService {
     }
 
     // Kullanici istegi: yazilan mesaj toksisite skorlamasindan gecer
-    // (guardrail) - sistem parametresindeki esigin USTUNDEYSE
-    // gonderim reddedilir.
+    // (guardrail) - sistem parametresindeki esigin USTUNDEYSE mesaj
+    // HEMEN GORUNMEZ, "pending" durumuna girer - admin
+    // /admin/guardrail ekranindan onaylar/iptal eder. Toksik
+    // bulunursa karsi taraf otomatik olarak gonderen kisiyi bloke eder.
     const toxicityThreshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
-    if (getToxicityScore(body) >= toxicityThreshold) {
-      throw new ForbiddenException(
-        "Mesajın uygunsuz/saldırgan içerik barındırıyor olabilir. Lütfen ifadeni yumuşatarak tekrar dene."
-      );
-    }
+    const toxicityScore = getToxicityScore(body);
+    const isToxic = toxicityScore >= toxicityThreshold;
 
     // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
     // gonderenin /ayarlar'daki avatar gorunurluk tercihinden
@@ -776,28 +808,46 @@ export class ThreadService {
           throw new ForbiddenException("Bu kullanıcı şu anda kimseden mesaj kabul etmiyor.");
         }
 
-        await this.prisma.block
-          .delete({
-            where: {
-              blockerUserId_blockedUserId: {
-                blockerUserId: senderUserId,
-                blockedUserId: counterpartId,
+        if (isToxic) {
+          // Kullanici istegi: toksik bulunursa sistem, karsi tarafi
+          // gonderenin otomatik olarak bloklamis hali yapar (admin
+          // onaylarsa kalkar).
+          await this.prisma.block
+            .upsert({
+              where: {
+                blockerUserId_blockedUserId: {
+                  blockerUserId: counterpartId,
+                  blockedUserId: senderUserId,
+                },
               },
-            },
-          })
-          .then(() => {
-            // Kullanici istegi: blok kaldirilinca karsi tarafa
-            // bildirim gonderilir - PUSH_NOTIFICATIONS_ENABLED
-            // parametresine gore calisir (notifyUser kendi icinde
-            // kontrol ediyor).
-            return this.notifications.notifyUser(
-              counterpartId,
-              "Engel Kaldırıldı",
-              "Seni engelleyen kişi artık seninle mesajlaşabilir.",
-              "/mesajlarim"
-            );
-          })
-          .catch(() => {}); // Blok kaydi yoksa (zaten bloke degilse) sessizce gec.
+              update: {},
+              create: { blockerUserId: counterpartId, blockedUserId: senderUserId },
+            })
+            .catch(() => {});
+        } else {
+          await this.prisma.block
+            .delete({
+              where: {
+                blockerUserId_blockedUserId: {
+                  blockerUserId: senderUserId,
+                  blockedUserId: counterpartId,
+                },
+              },
+            })
+            .then(() => {
+              // Kullanici istegi: blok kaldirilinca karsi tarafa
+              // bildirim gonderilir - PUSH_NOTIFICATIONS_ENABLED
+              // parametresine gore calisir (notifyUser kendi icinde
+              // kontrol ediyor).
+              return this.notifications.notifyUser(
+                counterpartId,
+                "Engel Kaldırıldı",
+                "Seni engelleyen kişi artık seninle mesajlaşabilir.",
+                "/mesajlarim"
+              );
+            })
+            .catch(() => {}); // Blok kaydi yoksa (zaten bloke degilse) sessizce gec.
+        }
       }
     }
 
@@ -840,6 +890,8 @@ export class ThreadService {
         isAnonymous,
         destroyAfterRead,
         weatherSummary: weatherSummary ?? null,
+        moderationStatus: isToxic ? "pending" : "approved",
+        toxicityScore,
       },
     });
 
@@ -868,7 +920,9 @@ export class ThreadService {
       where: { id: threadId },
       select: { initiatorUserId: true, recipientUserId: true },
     });
-    if (thread) {
+    // Kullanici istegi: mesaj "pending" (henuz gorunmuyor) ise push
+    // bildirimi GONDERILMEZ - yanlis beklenti yaratmasin.
+    if (thread && !isToxic) {
       const recipientUserId =
         thread.initiatorUserId === senderUserId ? thread.recipientUserId : thread.initiatorUserId;
       if (recipientUserId) {
@@ -888,6 +942,7 @@ export class ThreadService {
       body: message.body,
       isAnonymous: message.isAnonymous,
       createdAt: message.createdAt,
+      pendingModeration: isToxic,
     };
   }
 
@@ -963,5 +1018,98 @@ export class ThreadService {
       create: { messageId, userId, emoji },
     });
     return { removed: false };
+  }
+
+  // ============================================================
+  // Kullanici istegi: Guardrail yonetim ekrani icin metotlar -
+  // toksik bulunup "pending" durumuna giren mesajlari listeleme,
+  // admin onayi/iptali.
+  // ============================================================
+
+  // Toksik bulunup inceleme bekleyen (pending) tum mesajlari,
+  // gonderen/alici telefon numaralariyla birlikte listeler.
+  async listPendingToxicMessages() {
+    const messages = await this.prisma.message.findMany({
+      where: { moderationStatus: "pending" },
+      orderBy: { createdAt: "desc" },
+      include: {
+        sender: { select: { phoneNumberEncrypted: true, displayName: true } },
+        thread: {
+          select: {
+            id: true,
+            initiatorUserId: true,
+            recipientUserId: true,
+            recipient: { select: { phoneNumberEncrypted: true, displayName: true } },
+            initiator: { select: { phoneNumberEncrypted: true, displayName: true } },
+          },
+        },
+      },
+    });
+
+    return messages.map((m) => {
+      const recipientIsInitiator = m.thread.initiatorUserId !== m.senderUserId;
+      const recipientUser = recipientIsInitiator ? m.thread.initiator : m.thread.recipient;
+      return {
+        messageId: m.id,
+        threadId: m.threadId,
+        body: m.body,
+        toxicityScore: m.toxicityScore,
+        createdAt: m.createdAt,
+        senderPhone: m.sender?.phoneNumberEncrypted
+          ? decryptReversible(m.sender.phoneNumberEncrypted)
+          : null,
+        senderDisplayName: m.sender?.displayName ?? null,
+        recipientPhone: recipientUser?.phoneNumberEncrypted
+          ? decryptReversible(recipientUser.phoneNumberEncrypted)
+          : null,
+      };
+    });
+  }
+
+  // Admin, toksik bulunan bir mesaji ONAYLAR: mesaj artik gorunur
+  // olur, otomatik konulan blok kaldirilir.
+  async approveToxicMessage(messageId: string): Promise<void> {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { threadId: true, senderUserId: true },
+    });
+    if (!message) return;
+
+    await this.prisma.message.update({
+      where: { id: messageId },
+      data: { moderationStatus: "approved" },
+    });
+
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: message.threadId },
+      select: { initiatorUserId: true, recipientUserId: true },
+    });
+    if (thread && message.senderUserId) {
+      const counterpartId =
+        thread.initiatorUserId === message.senderUserId
+          ? thread.recipientUserId
+          : thread.initiatorUserId;
+      if (counterpartId) {
+        await this.prisma.block
+          .delete({
+            where: {
+              blockerUserId_blockedUserId: {
+                blockerUserId: counterpartId,
+                blockedUserId: message.senderUserId,
+              },
+            },
+          })
+          .catch(() => {});
+      }
+    }
+  }
+
+  // Admin, toksik bulunan bir mesaji IPTAL EDER: mesaj kalici olarak
+  // gizli kalir (yumusak silinir), otomatik blok KALICI hale gelir.
+  async rejectToxicMessage(messageId: string): Promise<void> {
+    await this.prisma.message.update({
+      where: { id: messageId },
+      data: { moderationStatus: "rejected", deletedAt: new Date() },
+    });
   }
 }
