@@ -484,7 +484,9 @@ export class ThreadService implements OnModuleInit {
             select: { threadId: true, body: true },
           })
         : [];
-    const firstMessageByThreadId = new Map(firstMessages.map((m) => [m.threadId, m.body]));
+    const firstMessageByThreadId = new Map<string, string>(
+      firstMessages.map((m): [string, string] => [m.threadId, m.body])
+    );
 
     // Kullanici istegi: BEN gonderen (initiator) isem ve karsi taraf
     // (recipient) beni bloke ettiyse, iletisim kutusunda telefon
