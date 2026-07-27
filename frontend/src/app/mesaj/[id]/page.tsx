@@ -40,6 +40,9 @@ interface DisplayMessage {
   createdAt: string;
   reactions: { counts: Record<string, number>; myReaction: string | null };
   weatherSummary?: string | null;
+  // Kullanici istegi: guardrail'e takilip "pending" durumundaki
+  // kendi mesajimi kirmizi cerceveyle gorebilmek icin.
+  moderationStatus?: string;
 }
 
 type ViewState = "loading" | "unlock" | "unlocking" | "reveal-gate" | "messages" | "error";
@@ -334,8 +337,16 @@ export default function MesajGosterPage() {
         const msgs = await apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`);
         setMessages(msgs);
       }
-    } catch {
-      setReplyError("Yanıt gönderilemedi. Lütfen tekrar dene.");
+    } catch (err) {
+      // Kullanici istegi: bir kisi bloke oldugunda (ya da baska bir
+      // guardrail/blok nedeniyle) mesaj gonderilemezse, backend'in
+      // GERCEK (spesifik) hata mesaji gosterilir - genel bir mesaj
+      // yerine "Mesaj göndermeniz engellendi" gibi net bir bilgi verir.
+      setReplyError(
+        err instanceof ApiError && err.message
+          ? err.message
+          : "Mesaj göndermeniz engellendi. Lütfen tekrar dene."
+      );
     } finally {
       setIsReplying(false);
     }
@@ -632,11 +643,19 @@ export default function MesajGosterPage() {
             const isMine =
               (!!msg.senderUserId && msg.senderUserId === myUserId) || myMessageIds.has(msg.id);
             const isFromCounterpart = !isMine;
+            // Kullanici istegi: guardrail'e takilip inceleme bekleyen
+            // (pending) KENDI mesajim kirmizi cerceveyle gorunur -
+            // "incelemede" oldugunu anlayabilmem icin.
+            const isPendingReview = msg.moderationStatus === "pending";
             const messageCard = (
               <Card
-                className={`relative ${isFromCounterpart ? "border-2 border-meadow" : ""} ${
-                  !isFromCounterpart ? "pr-9" : ""
-                }`}
+                className={`relative ${
+                  isPendingReview
+                    ? "border-2 border-coral"
+                    : isFromCounterpart
+                      ? "border-2 border-meadow"
+                      : ""
+                } ${!isFromCounterpart ? "pr-9" : ""}`}
               >
                 <div className="flex items-start gap-3">
                   {msg.senderAvatarId && (
@@ -665,6 +684,9 @@ export default function MesajGosterPage() {
                           AYNI FONTTA gosterilir - hem ilk mesaj hem
                           sonraki her yanit icin gecerli. */}
                       {msg.weatherSummary && <> · {msg.weatherSummary}</>}
+                      {isPendingReview && (
+                        <span className="ml-1 font-semibold text-coral">· İnceleniyor</span>
+                      )}
                     </p>
                     <div className="flex items-center gap-3">
                       <ReactionBar
