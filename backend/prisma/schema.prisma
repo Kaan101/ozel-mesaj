@@ -207,6 +207,13 @@ model Message {
   // ASLA saklanmaz, sadece hesaplanan ozet.
   weatherSummary String? @map("weather_summary")
 
+  // Kullanici istegi: Guardrail - toksisite skoru esigi asan mesajlar
+  // hemen gonderilmez, "pending" durumunda kuyruga girer (alici
+  // GOREMEZ), admin onaylar/iptal eder. Skor da admin ekraninda
+  // gosterilmek uzere saklanir.
+  moderationStatus String  @default("approved") @map("moderation_status") // approved | pending | rejected
+  toxicityScore    Int?    @map("toxicity_score")
+
   reactions MessageReaction[]
 
   @@index([threadId])
