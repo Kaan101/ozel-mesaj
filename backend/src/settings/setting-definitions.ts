@@ -165,4 +165,11 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: "Iletisim Adresi",
     description: "Footer ve KVKK Aydinlatma Metni'nde gosterilen adres bilgisi.",
   },
+  {
+    key: "TOXIC_MESSAGE_THRESHOLD",
+    envFallback: "TOXIC_MESSAGE_THRESHOLD",
+    defaultValue: 70,
+    label: "Toksik Mesaj Esigi (0-100)",
+    description: "Bir mesajin toksisite skoru (anahtar kelime/kufur listesiyle hesaplanir) bu esigin USTUNDEYSE gonderim reddedilir. Dusuk deger daha siki filtreleme demektir. 100 girilirse fiilen devre disi kalir (hicbir mesaj bu kadar yuksek skor almaz).",
+  },
 ];

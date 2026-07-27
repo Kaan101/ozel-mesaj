@@ -13,6 +13,7 @@ import { encryptReversible } from "../common/encryption.util";
 import { formatDayMonth } from "../common/date-format.util";
 import { NotificationService } from "../notifications/notification.service";
 import { summarizeReactions } from "../common/reactions.util";
+import { getToxicityScore } from "../common/toxicity.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
 
 @Injectable()
@@ -83,6 +84,17 @@ export class ThreadService {
     const initiator = await this.prisma.user.findUnique({ where: { id: initiatorUserId } });
     if (initiator?.status === "suspended") {
       throw new ForbiddenException("Hesabın askıya alındığı için mesaj gönderemezsin.");
+    }
+
+    // Kullanici istegi: yazilan mesaj toksisite skorlamasindan gecer
+    // (guardrail) - sistem parametresindeki esigin USTUNDEYSE
+    // gonderim reddedilir. Anahtar kelime/kufur listesiyle calisir,
+    // ucretsiz, harici bir servise istek atmaz.
+    const toxicityThreshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
+    if (getToxicityScore(dto.body) >= toxicityThreshold) {
+      throw new ForbiddenException(
+        "Mesajın uygunsuz/saldırgan içerik barındırıyor olabilir. Lütfen ifadeni yumuşatarak tekrar dene."
+      );
     }
 
     // Gorev 7.2: Alici, gonderici tarafindan (initiator) daha once
@@ -711,6 +723,16 @@ export class ThreadService {
     const sender = await this.prisma.user.findUnique({ where: { id: senderUserId } });
     if (sender?.status === "suspended") {
       throw new ForbiddenException("Hesabın askıya alındığı için mesaj gönderemezsin.");
+    }
+
+    // Kullanici istegi: yazilan mesaj toksisite skorlamasindan gecer
+    // (guardrail) - sistem parametresindeki esigin USTUNDEYSE
+    // gonderim reddedilir.
+    const toxicityThreshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
+    if (getToxicityScore(body) >= toxicityThreshold) {
+      throw new ForbiddenException(
+        "Mesajın uygunsuz/saldırgan içerik barındırıyor olabilir. Lütfen ifadeni yumuşatarak tekrar dene."
+      );
     }
 
     // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
