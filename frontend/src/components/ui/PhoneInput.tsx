@@ -130,6 +130,14 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
           onChange={(e) => handleNationalInput(e.target.value)}
           placeholder="xxx xxx xxxx"
           inputMode="tel"
+          // Kullanici istegi (bug duzeltmesi - mobil): tarayicinin
+          // "en son girilen numarayi" otomatik doldurmasi ("titreme"/
+          // uyumsuzluk hatasina yol aciyordu - controlled input ile
+          // tarayici autofill'i CEKISIYORDU) - autoComplete="off" ve
+          // "tel"/"phone" gibi taninan bir isim VERMEYEREK bu
+          // otomatik doldurma tamamen devre disi birakilir.
+          autoComplete="off"
+          name="national-phone-digits"
           className="flex-1 rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-body text-slate focus:outline-none focus:border-sky min-w-0"
         />
 
