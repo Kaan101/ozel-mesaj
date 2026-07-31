@@ -41,6 +41,34 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Kullanici istegi (bug duzeltmesi): disaridan (orn. Rehberden Sec
+  // ile) "value" prop'u PROGRAMATIK olarak degistirilirse, bu bileşen
+  // bunu ONCEDEN hic yansitmiyordu - sadece kendi ic state'ini
+  // (nationalDigits/country) kullanip disariya bildiriyordu, ters
+  // yonde (disaridan gelen deger) HIC okumuyordu. Burada, eger
+  // "value" component'in KENDI uretecegi degerden FARKLIYSA (yani
+  // disaridan/programatik bir atama oldugunu anlariz), value'yu
+  // PARSE edip ic state'i guncelleriz.
+  useEffect(() => {
+    const expected = nationalDigits ? `+${country.dialCode}${nationalDigits}` : "";
+    if (value === expected) return; // Kendi degisikligimiz - dokunma.
+
+    if (!value) {
+      setNationalDigits("");
+      return;
+    }
+
+    // En uzun dial code'dan basliyoruz ki "+1" ile "+1XX" karismasin.
+    const matched = [...COUNTRIES]
+      .sort((a, b) => b.dialCode.length - a.dialCode.length)
+      .find((c) => value.startsWith(`+${c.dialCode}`));
+    if (matched) {
+      setCountry(matched);
+      setNationalDigits(value.slice(1 + matched.dialCode.length).replace(/\D/g, ""));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   // Disariya her degisiklikte tam numarayi bildir.
   useEffect(() => {
     if (nationalDigits) {
