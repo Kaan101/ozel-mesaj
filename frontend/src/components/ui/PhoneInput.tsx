@@ -42,42 +42,40 @@ function formatAs3_3_4(digits: string): string {
 // algilansin; algilanamazsa kullanicinin ONCEKI secimi (localStorage)
 // varsayilan olarak gelsin, o da yoksa Turkiye varsayilan kalsin.
 //
-// Kullanici istegi (KOKTEN bug duzeltmesi - mobil): numara alani
-// artik TAMAMEN "uncontrolled" (React'in "value" ile surekli kontrol
-// ETMEDIGI, sadece "defaultValue" ile baslattigi, sonrasinda DOM'un
-// kendi haline birakildigi) bir input. Onceki "controlled" (value=...)
-// yaklasim, React'in HER render'da input'un gorunen degerini KENDI
-// STATE'INE gore ZORLA sifirlamasina neden oluyordu - mobil
-// tarayicinin "hatirlanan numarayi" otomatik doldurmasi/onerisi ile
-// bu ZORLA SIFIRLAMA CATISIYOR, ekranin "sapitmasina"/titremesine yol
-// aciyordu. Artik input'a HICBIR ZAMAN programatik olarak value
-// YAZILMIYOR (disaridan "Rehberden Sec" gibi bir durumda parent,
-// "key" prop'unu degistirerek bu componenti YENIDEN MOUNT EDER - bu,
-// input'u SIFIRDAN, dogal/native sekilde yeni bir defaultValue ile
-// baslatir, "canli" bir DOM manipulasyonu yapmadan).
+// Kullanici istegi (bug duzeltmesi - GUVENILIR versiyon): onceki
+// "key ile yeniden mount et" yontemi PRODUCTION'da GUVENILIR
+// CALISMADI (state gorunurde "parse edilmis" gorunse de, DOM/UI'a
+// yansimiyordu). Artik: input'un DEGERI hala "uncontrolled" (React
+// "value" ile ZORLAMIYOR - bu, mobil autofill "titremesini" onleyen
+// asil mekanizma), AMA disaridan (orn. Rehberden Sec) "value" prop'u
+// DEGISTIGINDE, bir useEffect ile hem "country" STATE'i hem input'un
+// DOM degeri (ref uzerinden, IMPERATIF olarak, TEK SEFERLIK) senkron
+// edilir - boylece hem yazarken cakisma OLMAZ hem disaridan gelen
+// secim GUVENILIR sekilde yansir.
 export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInputProps) {
-  const initialParsed = parsePhone(value);
-  // TESHIS (gecici): ulke kodu yansimama sorununu arastirmak icin -
-  // "value" prop'unun mount aninda GERCEKTE ne oldugunu ve parse
-  // sonucunu goruyoruz.
-  if (typeof window !== "undefined") {
-    console.log("[TESHIS PhoneInput] mount value=", JSON.stringify(value), "parsed=", initialParsed);
-  }
-  const [country, setCountry] = useState<CountryOption>(initialParsed?.country ?? COUNTRIES[0]);
+  const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const didInit = useRef(false);
+  // Bu component'in EN SON kendi ürettiği (onChange ile disariya
+  // bildirdigi) tam numarayi tutar - "value" prop'u bununla AYNIYSA,
+  // bu KENDI degisikligimizdir (dokunmayiz); FARKLIYSA, DISARIDAN
+  // (orn. Rehberden Sec) bir atama olmustur (senkronize ederiz).
+  const lastEmittedValue = useRef<string>("");
 
-  // Ilk yuklemede (SADECE BIR KERE, mount aninda): eger disaridan
-  // gelen bir "value" yoksa, ulke tercihini onceki secim -> otomatik
-  // algilama -> varsayilan (TR) sirasiyla belirle.
+  // Ilk yuklemede (SADECE BIR KERE): disaridan gelen "value" varsa
+  // onu isle, yoksa onceki tercih -> otomatik algilama -> varsayilan.
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
 
-    if (initialParsed) {
-      onCountryChange?.(initialParsed.country.iso2);
+    const parsed = parsePhone(value);
+    if (parsed) {
+      setCountry(parsed.country);
+      lastEmittedValue.current = value;
+      if (inputRef.current) inputRef.current.value = formatAs3_3_4(parsed.nationalDigits);
+      onCountryChange?.(parsed.country.iso2);
       return;
     }
 
@@ -89,6 +87,28 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
     onCountryChange?.(initial.iso2);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Kullanici istegi (GUVENILIR senkronizasyon): "value" prop'u
+  // DISARIDAN (Rehberden Sec gibi) degisirse, ulke + input DOM
+  // degerini IMPERATIF olarak (React'in "value" attribute'unu
+  // ZORLAMASI OLMADAN, sadece bir kere) guncelleriz. Kullanicinin
+  // KENDI yazdigi degisiklikler "lastEmittedValue" ile ESLESTIGI icin
+  // burada TEKRAR islenmez (autofill/yazma cakismasi olmaz).
+  useEffect(() => {
+    if (!didInit.current) return; // ilk yukleme effect'i zaten halletti.
+    if (value === lastEmittedValue.current) return; // kendi degisikligimiz.
+
+    const parsed = parsePhone(value);
+    lastEmittedValue.current = value;
+    if (parsed) {
+      setCountry(parsed.country);
+      if (inputRef.current) inputRef.current.value = formatAs3_3_4(parsed.nationalDigits);
+      onCountryChange?.(parsed.country.iso2);
+    } else if (!value) {
+      if (inputRef.current) inputRef.current.value = "";
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   // Disariya tiklaninca dropdown'i kapat.
   useEffect(() => {
@@ -102,7 +122,9 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
   }, []);
 
   function notifyChange(nationalDigits: string, activeCountry: CountryOption) {
-    onChange(nationalDigits ? `+${activeCountry.dialCode}${nationalDigits}` : "");
+    const fullPhone = nationalDigits ? `+${activeCountry.dialCode}${nationalDigits}` : "";
+    lastEmittedValue.current = fullPhone;
+    onChange(fullPhone);
   }
 
   function handleSelectCountry(c: CountryOption) {
@@ -110,9 +132,6 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
     localStorage.setItem(STORAGE_KEY, c.iso2);
     setIsDropdownOpen(false);
     onCountryChange?.(c.iso2);
-    // Ulke degisince, input'ta halihazirda yazili olan haneleri KORUYUP
-    // sadece YENI ulke koduyla disariya bildiriyoruz (input'un DOM
-    // degerine DOKUNMUYORUZ - sadece OKUYORUZ).
     const currentDigits = (inputRef.current?.value ?? "").replace(/\D/g, "");
     notifyChange(currentDigits, c);
   }
@@ -143,12 +162,12 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
           <span className="text-slate-light text-xs">▾</span>
         </button>
 
-        {/* Numara girisi - KASITLI OLARAK "value" prop'u YOK
-            (uncontrolled). Sadece ilk yuklemedeki haneler
-            "defaultValue" ile verilir, sonrasi DOM'a birakilir. */}
+        {/* Numara girisi - "value" prop'u YOK (uncontrolled). Ilk
+            deger "defaultValue" ile, disaridan degisiklikler ise
+            yukaridaki useEffect'te ref uzerinden IMPERATIF yazilir. */}
         <input
           ref={inputRef}
-          defaultValue={formatAs3_3_4(initialParsed?.nationalDigits ?? "")}
+          defaultValue=""
           onInput={handleInput}
           placeholder="xxx xxx xxxx"
           inputMode="tel"

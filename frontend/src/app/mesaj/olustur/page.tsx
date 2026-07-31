@@ -206,6 +206,10 @@ export default function MesajOlusturPage() {
         </div>
 
         <Card lifted className="space-y-5">
+          {/* Kullanici istegi (bug duzeltmesi): PhoneInput artik
+              "Rehberden Sec" ile gelen degisiklikleri KENDI ICINDE
+              (ref uzerinden, guvenilir sekilde) senkronize ediyor -
+              parent'in "key" ile yeniden mount etmesine gerek yok. */}
           <PhoneInput
             label={t("mesajOlustur.phoneLabel")}
             value={recipientPhone}
