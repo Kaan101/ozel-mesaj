@@ -470,15 +470,13 @@ export class ThreadService implements OnModuleInit {
           // gorunsun - avatar gercek kimlik tasimadigi icin sakincasiz.
           initiator: { select: { avatarId: true, avatarConfig: true } },
           recipient: { select: { avatarId: true, avatarConfig: true } },
-          // Bug duzeltmesi: listede EN SON mesaj gosterilmeli, ilk mesaj
-          // degil - aksi halde yeni gelen yanitlar listeye hic yansimaz
-          // (kullanici geri bildirimi).
-          messages: {
-            where: { deletedAt: null, moderationStatus: "approved" },
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: { body: true, createdAt: true },
-          },
+          // Kullanici istegi (KRITIK performans duzeltmesi): "son mesaj
+          // tarihi" icin buradaki ic ice ("nested") "messages: { take: 1 }"
+          // sorgusu KALDIRILDI - Prisma bunu HER THREAD ICIN AYRI BIR
+          // SORGU olarak calistiriyordu (klasik N+1 deseni), 108 thread
+          // icin ~715ms'lik gecikmenin ANA NEDENI buydu. Yerine, asagida
+          // "lastMessages" adiyla TEK BIR TOPLU sorguyla (distinct +
+          // orderBy desc) ayni bilgi elde ediliyor.
         },
       }),
     ]);
@@ -502,13 +500,25 @@ export class ThreadService implements OnModuleInit {
       .filter((t) => t.initiatorUserId === userId && t.recipientUserId)
       .map((t) => t.recipientUserId as string);
 
-    const [firstMessages, blocksAgainstMe] = await Promise.all([
+    const [firstMessages, lastMessages, blocksAgainstMe] = await Promise.all([
       threadIds.length > 0
         ? this.prisma.message.findMany({
             where: { threadId: { in: threadIds }, deletedAt: null, moderationStatus: "approved" },
             orderBy: { createdAt: "asc" },
             distinct: ["threadId"],
             select: { threadId: true, body: true },
+          })
+        : Promise.resolve([]),
+      // Kullanici istegi (KRITIK performans duzeltmesi): "son mesaj
+      // tarihi" artik HER THREAD ICIN AYRI SORGU (N+1) yerine, TUM
+      // thread'ler icin TEK bir toplu sorguda (distinct + desc)
+      // aliniyor.
+      threadIds.length > 0
+        ? this.prisma.message.findMany({
+            where: { threadId: { in: threadIds }, deletedAt: null, moderationStatus: "approved" },
+            orderBy: { createdAt: "desc" },
+            distinct: ["threadId"],
+            select: { threadId: true, createdAt: true },
           })
         : Promise.resolve([]),
       counterpartIdsWhereIAmInitiator.length > 0
@@ -521,6 +531,9 @@ export class ThreadService implements OnModuleInit {
           })
         : Promise.resolve([]),
     ]);
+    const lastMessageAtByThreadId = new Map<string, Date>(
+      lastMessages.map((m): [string, Date] => [m.threadId, m.createdAt])
+    );
     const t2 = Date.now();
     console.log(
       `[TESHIS listMyThreads] adim2 (firstMessages+blocksAgainstMe sorgusu): ${t2 - t1}ms`
@@ -538,7 +551,7 @@ export class ThreadService implements OnModuleInit {
     const mapped = threads
       .map((t) => {
         const role = t.initiatorUserId === userId ? "initiator" : "recipient";
-        const lastMessageAt = t.messages[0]?.createdAt ?? t.createdAt;
+        const lastMessageAt = lastMessageAtByThreadId.get(t.id) ?? t.createdAt;
 
         // Kullanici istegi (bug duzeltmesi): kullanici bu thread'i
         // sildiyse (hiddenAt dolu), ama SONRASINDA yeni bir mesaj
