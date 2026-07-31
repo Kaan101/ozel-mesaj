@@ -165,6 +165,15 @@ model MessageThread {
   reports  Report[]
   unlocks  ThreadUnlock[]
 
+  // Kullanici istegi (KRITIK performans duzeltmesi): "listMyThreads"
+  // sorgusu "WHERE initiatorUserId = X OR recipientUserId = X"
+  // seklinde calisiyor - bu iki sutunda INDEX OLMADAN, veritabani HER
+  // SEFERINDE TUM TABLOYU TARAMAK ZORUNDA (full table scan) kaliyordu.
+  // Bu, Mesajlarim'in Havuz'a gore COK YAVAS yuklenme sikayetinin
+  // (thread/kullanici sayisi arttikca katlanarak kotulesen) KOK
+  // NEDENIYDI.
+  @@index([initiatorUserId])
+  @@index([recipientUserId])
   @@map("message_threads")
 }
 
