@@ -24,6 +24,10 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
   const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
   const [nationalDigits, setNationalDigits] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // Kullanici istegi (bug duzeltmesi - mobil autofill): alan
+  // baslangicta salt-okunur, kullanici DOKUNUNCA yazilabilir olur -
+  // tarayicilarin bu alani otomatik doldurmasini engeller.
+  const [isReadOnly, setIsReadOnly] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const didInit = useRef(false);
 
@@ -130,13 +134,21 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
           onChange={(e) => handleNationalInput(e.target.value)}
           placeholder="xxx xxx xxxx"
           inputMode="tel"
-          // Kullanici istegi (bug duzeltmesi - mobil): tarayicinin
-          // "en son girilen numarayi" otomatik doldurmasi ("titreme"/
-          // uyumsuzluk hatasina yol aciyordu - controlled input ile
-          // tarayici autofill'i CEKISIYORDU) - autoComplete="off" ve
-          // "tel"/"phone" gibi taninan bir isim VERMEYEREK bu
-          // otomatik doldurma tamamen devre disi birakilir.
-          autoComplete="off"
+          // Kullanici istegi (bug duzeltmesi - mobil): "autoComplete=off"
+          // bazi mobil tarayicilarda YETERSIZ kaliyor (yoksayiliyor) -
+          // tarayici yine de "en son girilen numarayi" otomatik
+          // doldurmaya calisiyor, bu da controlled input ile CEKISIP
+          // "titreme" hissi yaratiyordu. Daha GUCLU iki onlem birlikte:
+          // (1) "new-password" hack'i - tarayicilarin cogu bunu ozel
+          // olarak taniyip telefon/form autofill eslestirmesi YAPMAZ.
+          // (2) Alan varsayilan olarak "readOnly" baslar, SADECE
+          // kullanici DOKUNUNCA (onFocus) yazilabilir hale gelir -
+          // tarayicilar genelde salt-okunur alanlari OTOMATIK DOLDURMAZ.
+          autoComplete="new-password"
+          data-form-type="other"
+          data-lpignore="true"
+          readOnly={isReadOnly}
+          onFocus={() => setIsReadOnly(false)}
           name="national-phone-digits"
           className="flex-1 rounded-2xl border-2 border-sky-light bg-white px-4 py-3 font-body text-slate focus:outline-none focus:border-sky min-w-0"
         />
