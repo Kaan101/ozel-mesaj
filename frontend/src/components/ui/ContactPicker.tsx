@@ -27,6 +27,12 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
       setIsLoading(true);
       try {
         const data = await apiFetch<Contact[]>("/contacts");
+        // TESHIS (gecici): ulke kodu yansimama sorununu arastirmak
+        // icin, backend'den gelen GERCEK telefon formatini goruyoruz.
+        console.log(
+          "[TESHIS ContactPicker] rehberden gelen numaralar:",
+          data.map((c) => c.phoneNumber)
+        );
         setContacts(data);
       } catch {
         // Sessizce gec - kullanici numarayi elle yazmaya devam edebilir.
