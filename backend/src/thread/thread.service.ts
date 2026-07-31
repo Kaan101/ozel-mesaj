@@ -430,51 +430,63 @@ export class ThreadService implements OnModuleInit {
   // thread'leri listeler - "Mesajlarim" sayfasi icin gerekli. Hicbir
   // sir donmez, sadece guvenli metadata (Bolum 8, 10).
   async listMyThreads(userId: string) {
-    // Kullanici istegi: bloke ettigim kisilerle olan konusmalar bu
-    // listede GORUNMEZ - onlar /ayarlar > Bloklanan Mesajlar'da.
-    // Blok kaldirilinca buraya geri doner.
-    const myBlocks = await this.prisma.block.findMany({
-      where: { blockerUserId: userId },
-      select: { blockedUserId: true },
-    });
-    const blockedUserIds = new Set(myBlocks.map((b) => b.blockedUserId));
-
-    const threads = await this.prisma.messageThread.findMany({
-      where: {
-        OR: [{ initiatorUserId: userId }, { recipientUserId: userId }],
-        // Not: "silinmis" thread'leri burada kesin olarak filtrelemiyoruz
-        // artik - bunun yerine asagida, lastMessageAt ile hiddenAt zaman
-        // damgasini karsilastirarak karar veriyoruz (kullanici istegi:
-        // silindikten SONRA yeni mesaj gelirse iletisim geri acilsin).
-      },
-      select: {
-        id: true,
-        originType: true,
-        lockType: true,
-        questionText: true,
-        recipientPhoneDisplay: true,
-        answerTextDisplay: true,
-        createdAt: true,
-        initiatorUserId: true,
-        recipientUserId: true,
-        hiddenByInitiatorAt: true,
-        hiddenByRecipientAt: true,
-        recipientRevealedAt: true,
-        // Kullanici geri bildirimi: karsi tarafin avatari listede de
-        // gorunsun - avatar gercek kimlik tasimadigi icin sakincasiz.
-        initiator: { select: { avatarId: true, avatarConfig: true } },
-        recipient: { select: { avatarId: true, avatarConfig: true } },
-        // Bug duzeltmesi: listede EN SON mesaj gosterilmeli, ilk mesaj
-        // degil - aksi halde yeni gelen yanitlar listeye hic yansimaz
-        // (kullanici geri bildirimi).
-        messages: {
-          where: { deletedAt: null, moderationStatus: "approved" },
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: { body: true, createdAt: true },
+    // TESHIS (gecici): Mesajlarim'in NEREDE yavaşladigini olcmek icin
+    // zamanlama noktalari - Railway loglarinda gorunur.
+    const t0 = Date.now();
+    // Kullanici istegi (performans duzeltmesi): "myBlocks" ve "threads"
+    // sorgulari BIRBIRINDEN BAGIMSIZ (biri digerinin sonucuna ihtiyac
+    // duymuyor) - once SIRAYLA (await await) calisiyordu, bu da
+    // gereksiz yere 2 sorgu suresini TOPLUYORDU. Promise.all ile
+    // PARALEL calistirilir - Mesajlarim'in yavas yuklenme sikayetini
+    // (Havuz'da olmayan) gidermeye yonelik bir optimizasyon.
+    const [myBlocks, threads] = await Promise.all([
+      this.prisma.block.findMany({
+        where: { blockerUserId: userId },
+        select: { blockedUserId: true },
+      }),
+      this.prisma.messageThread.findMany({
+        where: {
+          OR: [{ initiatorUserId: userId }, { recipientUserId: userId }],
+          // Not: "silinmis" thread'leri burada kesin olarak filtrelemiyoruz
+          // artik - bunun yerine asagida, lastMessageAt ile hiddenAt zaman
+          // damgasini karsilastirarak karar veriyoruz (kullanici istegi:
+          // silindikten SONRA yeni mesaj gelirse iletisim geri acilsin).
         },
-      },
-    });
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          originType: true,
+          lockType: true,
+          questionText: true,
+          recipientPhoneDisplay: true,
+          answerTextDisplay: true,
+          createdAt: true,
+          initiatorUserId: true,
+          recipientUserId: true,
+          hiddenByInitiatorAt: true,
+          hiddenByRecipientAt: true,
+          recipientRevealedAt: true,
+          // Kullanici geri bildirimi: karsi tarafin avatari listede de
+          // gorunsun - avatar gercek kimlik tasimadigi icin sakincasiz.
+          initiator: { select: { avatarId: true, avatarConfig: true } },
+          recipient: { select: { avatarId: true, avatarConfig: true } },
+          // Bug duzeltmesi: listede EN SON mesaj gosterilmeli, ilk mesaj
+          // degil - aksi halde yeni gelen yanitlar listeye hic yansimaz
+          // (kullanici geri bildirimi).
+          messages: {
+            where: { deletedAt: null, moderationStatus: "approved" },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { body: true, createdAt: true },
+          },
+        },
+      }),
+    ]);
+    const t1 = Date.now();
+    console.log(
+      `[TESHIS listMyThreads] adim1 (myBlocks+threads sorgusu): ${t1 - t0}ms, threads.length=${threads.length}`
+    );
+    const blockedUserIds = new Set(myBlocks.map((b) => b.blockedUserId));
 
     // Kullanici istegi: dogrudan mesajlarda da baslik ILK mesaja
     // sabitlenir - yeni mesajlar geldikce basligi DEGISTIRMEZ (havuz
@@ -482,15 +494,37 @@ export class ThreadService implements OnModuleInit {
     // "distinct" ozelligi, orderBy ile birlikte her thread icin TEK
     // sorguda "ilk" satiri getirmemizi sagliyor.
     const threadIds = threads.map((t) => t.id);
-    const firstMessages =
+
+    // Kullanici istegi (performans duzeltmesi): "firstMessages" ve
+    // "blocksAgainstMe" de birbirinden BAGIMSIZ (ikisi de threads'e
+    // bagli ama BIRBIRINE degil) - paralel calistirilir.
+    const counterpartIdsWhereIAmInitiator = threads
+      .filter((t) => t.initiatorUserId === userId && t.recipientUserId)
+      .map((t) => t.recipientUserId as string);
+
+    const [firstMessages, blocksAgainstMe] = await Promise.all([
       threadIds.length > 0
-        ? await this.prisma.message.findMany({
+        ? this.prisma.message.findMany({
             where: { threadId: { in: threadIds }, deletedAt: null, moderationStatus: "approved" },
             orderBy: { createdAt: "asc" },
             distinct: ["threadId"],
             select: { threadId: true, body: true },
           })
-        : [];
+        : Promise.resolve([]),
+      counterpartIdsWhereIAmInitiator.length > 0
+        ? this.prisma.block.findMany({
+            where: {
+              blockedUserId: userId,
+              blockerUserId: { in: counterpartIdsWhereIAmInitiator },
+            },
+            select: { blockerUserId: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const t2 = Date.now();
+    console.log(
+      `[TESHIS listMyThreads] adim2 (firstMessages+blocksAgainstMe sorgusu): ${t2 - t1}ms`
+    );
     const firstMessageByThreadId = new Map<string, string>(
       firstMessages.map((m): [string, string] => [m.threadId, m.body])
     );
@@ -499,19 +533,6 @@ export class ThreadService implements OnModuleInit {
     // (recipient) beni bloke ettiyse, iletisim kutusunda telefon
     // numarasinin yaninda kirmizi bir nokta gosterilir. Tum thread'ler
     // icin TEK sorguda kontrol ediyoruz (N+1 sorgudan kacinmak icin).
-    const counterpartIdsWhereIAmInitiator = threads
-      .filter((t) => t.initiatorUserId === userId && t.recipientUserId)
-      .map((t) => t.recipientUserId as string);
-    const blocksAgainstMe =
-      counterpartIdsWhereIAmInitiator.length > 0
-        ? await this.prisma.block.findMany({
-            where: {
-              blockedUserId: userId,
-              blockerUserId: { in: counterpartIdsWhereIAmInitiator },
-            },
-            select: { blockerUserId: true },
-          })
-        : [];
     const blockedByUserIdSet = new Set(blocksAgainstMe.map((b) => b.blockerUserId));
 
     const mapped = threads
@@ -600,6 +621,10 @@ export class ThreadService implements OnModuleInit {
     // Son aktiviteye gore sirala (en son yaniti gelen en ustte) -
     // sadece olusturulma tarihine gore siralamak, yeni yanit gelen
     // eski bir konusmanin listede "asagida kalmasina" sebep oluyordu.
+    const t3 = Date.now();
+    console.log(
+      `[TESHIS listMyThreads] adim3 (map/sort islemesi): ${t3 - t2}ms | TOPLAM: ${t3 - t0}ms`
+    );
     return mapped.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
   }
 
