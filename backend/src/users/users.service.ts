@@ -134,6 +134,11 @@ export class UsersService {
       await tx.block.deleteMany({
         where: { OR: [{ blockerUserId: userId }, { blockedUserId: userId }] },
       });
+      // Kullanici istegi (bug duzeltmesi): Rehber (Contact) kayitlari
+      // - hesap silinirken bunlar temizlenmezse, "owner_user_id"
+      // foreign key kisitlamasi (RESTRICT) yuzunden silme islemi
+      // HATA VERIRDI.
+      await tx.contact.deleteMany({ where: { ownerUserId: userId } });
 
       const threads = await tx.messageThread.findMany({
         where: { OR: [{ initiatorUserId: userId }, { recipientUserId: userId }] },
