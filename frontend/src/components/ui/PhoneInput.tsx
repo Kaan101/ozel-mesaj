@@ -57,6 +57,12 @@ function formatAs3_3_4(digits: string): string {
 // baslatir, "canli" bir DOM manipulasyonu yapmadan).
 export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInputProps) {
   const initialParsed = parsePhone(value);
+  // TESHIS (gecici): ulke kodu yansimama sorununu arastirmak icin -
+  // "value" prop'unun mount aninda GERCEKTE ne oldugunu ve parse
+  // sonucunu goruyoruz.
+  if (typeof window !== "undefined") {
+    console.log("[TESHIS PhoneInput] mount value=", JSON.stringify(value), "parsed=", initialParsed);
+  }
   const [country, setCountry] = useState<CountryOption>(initialParsed?.country ?? COUNTRIES[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
