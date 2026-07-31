@@ -12,6 +12,7 @@ import { compareSecret, hashSecret } from "../common/bcrypt.util";
 import { encryptReversible, decryptReversible } from "../common/encryption.util";
 import { formatDayMonth } from "../common/date-format.util";
 import { NotificationService } from "../notifications/notification.service";
+import { ContactsService } from "../contacts/contacts.service";
 import { summarizeReactions } from "../common/reactions.util";
 import { getToxicityScore, DEFAULT_TOXIC_WORDS } from "../common/toxicity.util";
 import { CreateThreadDto } from "./dto/create-thread.dto";
@@ -27,7 +28,8 @@ export class ThreadService implements OnModuleInit {
     private readonly settings: SettingsService,
     private readonly auditLog: AuditLogService,
     private readonly jwt: JwtService,
-    private readonly notifications: NotificationService
+    private readonly notifications: NotificationService,
+    private readonly contacts: ContactsService
   ) {}
 
   // Gorev 5.1: Alici telefonu + mesaj + kilit tipi alir, thread ve ilk
@@ -140,6 +142,11 @@ export class ThreadService implements OnModuleInit {
         },
       },
     });
+
+    // Kullanici istegi: gonderdigim her numara otomatik rehbere
+    // kaydedilir (zaten varsa dokunulmaz - toksik/pending durumdan
+    // bagimsiz, gonderim GIRISIMI yeterli).
+    await this.contacts.upsertContactFromOutgoingMessage(initiatorUserId, dto.recipientPhone);
 
     // Aliciya bildirim SMS'i icin metin - "none"/toksik durumlarinda
     // bile hesaplaniyor cunku appUrl asagida email/push icin de
@@ -811,7 +818,7 @@ export class ThreadService implements OnModuleInit {
     // devam edebilirler.
     const threadForBlockCheck = await this.prisma.messageThread.findUnique({
       where: { id: threadId },
-      select: { initiatorUserId: true, recipientUserId: true },
+      select: { initiatorUserId: true, recipientUserId: true, recipientPhoneDisplay: true },
     });
     if (threadForBlockCheck) {
       const counterpartId =
@@ -819,6 +826,21 @@ export class ThreadService implements OnModuleInit {
           ? threadForBlockCheck.recipientUserId
           : threadForBlockCheck.initiatorUserId;
       if (counterpartId) {
+        // Kullanici istegi: karsi taraf (BEN, bu sendMessage'i cagiran
+        // gonderen kisi) yanit verirse, alicinin (counterpartId)
+        // rehberinde GORUNEN avatar/nickname bilgisi (hangisi varsa,
+        // anonimse hicbiri) guncellenir.
+        if (sender?.phoneNumberEncrypted) {
+          const senderPhone = decryptReversible(sender.phoneNumberEncrypted);
+          this.contacts
+            .updateContactFromReply(counterpartId, senderPhone, {
+              avatarId: isAnonymous ? null : (sender.avatarId ?? null),
+              avatarConfig: isAnonymous ? null : sender.avatarConfig,
+              displayName: isAnonymous ? null : (sender.displayName ?? null),
+            })
+            .catch(() => {});
+        }
+
         // Kullanici istegi (guvenlik duzeltmesi): karsi taraf BENI
         // (gonderen) bloke ettiyse, mesaj gonderemem - bu kontrol
         // eksikti, sadece createThread'de vardi, mevcut bir konusmada
@@ -891,6 +913,23 @@ export class ThreadService implements OnModuleInit {
               );
             })
             .catch(() => {}); // Blok kaydi yoksa (zaten bloke degilse) sessizce gec.
+
+          // Kullanici istegi: karsi taraf (alici) yanit veriyorsa,
+          // GONDERENIN (initiator'in) rehberindeki bu kisi kaydi,
+          // yanit verenin GUNCEL avatar/nickname bilgisiyle (hangisi
+          // GORUNUYORSA - showAvatar/displayName'e gore) guncellenir.
+          if (
+            threadForBlockCheck.recipientUserId === senderUserId &&
+            threadForBlockCheck.recipientPhoneDisplay
+          ) {
+            await this.contacts
+              .updateContactFromReply(counterpartId, threadForBlockCheck.recipientPhoneDisplay, {
+                avatarId: sender?.showAvatar ? (sender.avatarId ?? null) : null,
+                avatarConfig: sender?.showAvatar ? sender.avatarConfig : null,
+                displayName: sender?.showAvatar ? (sender.displayName ?? null) : null,
+              })
+              .catch(() => {});
+          }
         }
       }
     }

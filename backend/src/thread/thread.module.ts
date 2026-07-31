@@ -11,10 +11,11 @@ import { SettingsModule } from "../settings/settings.module";
 import { ThreadAccessGuard } from "./guards/thread-access.guard";
 import { ThreadAccessOrOwnerGuard } from "./guards/thread-access-or-owner.guard";
 import { ThreadWriteGuard } from "./guards/thread-write.guard";
+import { ContactsModule } from "../contacts/contacts.module";
 
 @Module({
   // JwtService artik GlobalJwtModule uzerinden global olarak saglaniyor.
-  imports: [SmsModule, EmailModule, AuthModule, SafetyModule, SettingsModule],
+  imports: [SmsModule, EmailModule, AuthModule, SafetyModule, SettingsModule, ContactsModule],
   controllers: [ThreadController, GuardrailController],
   providers: [
     ThreadService,

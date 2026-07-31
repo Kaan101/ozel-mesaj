@@ -6,6 +6,7 @@ import { PrismaModule } from "./common/prisma.module";
 import { GlobalJwtModule } from "./common/global-jwt.module";
 import { RedisService } from "./common/redis.service";
 import { ThreadModule } from "./thread/thread.module";
+import { ContactsModule } from "./contacts/contacts.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { PoolModule } from "./pool/pool.module";
 import { SafetyModule } from "./safety/safety.module";
@@ -22,6 +23,7 @@ import { AuditRequestInterceptor } from "./audit/audit-request.interceptor";
     GlobalJwtModule,
     AuthModule,
     ThreadModule,
+    ContactsModule,
     JobsModule,
     PoolModule,
     SafetyModule,
