@@ -84,6 +84,15 @@ export function AccountMenu() {
           >
             Ayarlar
           </Link>
+          {/* Kullanici istegi: Rehber, ana menuden Profil (hesap)
+              menusune tasindi. */}
+          <Link
+            href="/rehber"
+            onClick={() => setIsOpen(false)}
+            className="block px-4 py-2 font-body text-sm text-slate hover:bg-mint"
+          >
+            Rehber
+          </Link>
           <button
             type="button"
             onClick={handleLogout}
