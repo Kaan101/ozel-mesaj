@@ -90,6 +90,11 @@ export function SiteHeader() {
           )}
           {t("nav.myMessages")}
         </Link>
+        {/* Kullanici istegi: Rehber - gonderdigin numaralarin otomatik
+            kaydedildigi, elle de duzenlenebilen bir adres defteri. */}
+        <Link href="/rehber" className="font-body text-sm text-slate-light hover:text-slate">
+          Rehber
+        </Link>
         {/* Kullanici istegi: hesap menusu - temsili avatar resmiyle
             acilir, altinda Ayarlar ve Cikis/Giris Yap secenekleri var. */}
         <AccountMenu />

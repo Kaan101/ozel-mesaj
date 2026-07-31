@@ -15,6 +15,7 @@ import { SafetyService } from "../safety/safety.service";
 import { SettingsService } from "../settings/settings.service";
 import { AuditLogService } from "../audit/audit-log.service";
 import { NotificationService } from "../notifications/notification.service";
+import { ContactsService } from "../contacts/contacts.service";
 
 // Gorev 5.8: Senaryo A (dogrudan mesaj) akisinin tum backend adimlarini
 // (thread olusturma, unlock, mesaj listeleme/gonderme) kapsayan unit
@@ -68,6 +69,13 @@ describe("ThreadService", () => {
         { provide: AuditLogService, useValue: { log: jest.fn() } },
         { provide: JwtService, useValue: { signAsync: jest.fn(), verifyAsync: jest.fn() } },
         { provide: NotificationService, useValue: { notifyUser: jest.fn().mockResolvedValue(undefined) } },
+        {
+          provide: ContactsService,
+          useValue: {
+            upsertContactFromOutgoingMessage: jest.fn().mockResolvedValue(undefined),
+            updateContactFromReply: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 

@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput } from "@/components/ui/PhoneInput";
+import { ContactPicker } from "@/components/ui/ContactPicker";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { useAutoRedirect } from "@/lib/use-auto-redirect";
 import { fetchWeatherSummary } from "@/lib/weather";
@@ -210,6 +211,10 @@ export default function MesajOlusturPage() {
             value={recipientPhone}
             onChange={setRecipientPhone}
           />
+          {/* Kullanici istegi: mesaj gonderirken rehberden secim yapma
+              fonksiyonu - numarayi elle yazmak yerine kayitli bir
+              kisiyi secebilme. */}
+          <ContactPicker onSelect={setRecipientPhone} />
 
           {/* Kullanici istegi: avatar/nickname onizlemesi ve secenegi
               mesaj formundan tamamen kaldirildi - sadece /ayarlar'daki
