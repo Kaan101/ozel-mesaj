@@ -172,4 +172,18 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: "Toksik Mesaj Esigi (0-100)",
     description: "Bir mesajin toksisite skoru (anahtar kelime/kufur listesiyle hesaplanir) bu esigin USTUNDEYSE gonderim reddedilir. Dusuk deger daha siki filtreleme demektir. 100 girilirse fiilen devre disi kalir (hicbir mesaj bu kadar yuksek skor almaz).",
   },
+  {
+    key: "TOXIC_BLOCK_DAYS_FIRST",
+    envFallback: "TOXIC_BLOCK_DAYS_FIRST",
+    defaultValue: 7,
+    label: "1. Ihlalde Blok Suresi (Gun)",
+    description: "Bir kisinin mesaji ILK KEZ 'Sorun Var' ile onaylanirsa, kac gun boyunca engellenecegi.",
+  },
+  {
+    key: "TOXIC_BLOCK_DAYS_SECOND",
+    envFallback: "TOXIC_BLOCK_DAYS_SECOND",
+    defaultValue: 30,
+    label: "2. Ihlalde Blok Suresi (Gun)",
+    description: "Bir kisinin mesaji IKINCI KEZ 'Sorun Var' ile onaylanirsa, kac gun boyunca engellenecegi. 3. ve sonraki ihlallerde blok SURESIZ olur.",
+  },
 ];

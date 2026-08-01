@@ -51,7 +51,7 @@ export class ThreadService implements OnModuleInit {
     // "tam anonim" olup olmadigi artik SADECE showAvatar'a bakar.
     const initiatorProfile = await this.prisma.user.findUnique({
       where: { id: initiatorUserId },
-      select: { showAvatar: true },
+      select: { showAvatar: true, isUnderReview: true },
     });
     const isAnonymous = dto.isAnonymous ?? !initiatorProfile?.showAvatar;
 
@@ -97,7 +97,10 @@ export class ThreadService implements OnModuleInit {
     const toxicityThreshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
     const toxicWords = await this.prisma.toxicWord.findMany({ select: { word: true, score: true } });
     const toxicityScore = getToxicityScore(dto.body, toxicWords);
-    const isToxic = toxicityScore >= toxicityThreshold;
+    // Kullanici istegi: "inceleme altindaki" (isUnderReview) bir
+    // kisiden gelen TUM mesajlar, icerik ne olursa olsun, otomatik
+    // olarak pending'e duser.
+    const isToxic = toxicityScore >= toxicityThreshold || !!initiatorProfile?.isUnderReview;
 
     // Gorev 7.2: Alici, gonderici tarafindan (initiator) daha once
     // engellendiyse yeni thread olusturulmasi reddedilir (Bolum 10).
@@ -822,12 +825,11 @@ export class ThreadService implements OnModuleInit {
     const toxicityThreshold = await this.settings.getNumber("TOXIC_MESSAGE_THRESHOLD");
     const toxicWords = await this.prisma.toxicWord.findMany({ select: { word: true, score: true } });
     const toxicityScore = getToxicityScore(body, toxicWords);
-    const isToxic = toxicityScore >= toxicityThreshold;
-    // TESHIS (gecici): "Sorun Yok" sonrasi ayni seviyedeki toksik
-    // mesajlarin tekrar yakalanmama sorununu arastirmak icin.
-    console.log(
-      `[TESHIS sendMessage-toxicity] threadId=${threadId} senderUserId=${senderUserId} bodyLength=${body.length} toxicWordCount=${toxicWords.length} score=${toxicityScore} threshold=${toxicityThreshold} isToxic=${isToxic}`
-    );
+    // Kullanici istegi: "inceleme altindaki" (isUnderReview) bir
+    // kisiden gelen TUM mesajlar, icerik ne olursa olsun, otomatik
+    // olarak pending'e duser - "Sorun Var" onaylandiktan SONRAKI
+    // mesajlarin da hep incelemeye dusmesini saglar.
+    const isToxic = toxicityScore >= toxicityThreshold || !!sender?.isUnderReview;
 
     // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
     // gonderenin /ayarlar'daki avatar gorunurluk tercihinden
@@ -1241,7 +1243,7 @@ export class ThreadService implements OnModuleInit {
   async rejectToxicMessage(messageId: string): Promise<void> {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
-      select: { senderUserId: true },
+      select: { senderUserId: true, threadId: true },
     });
 
     await this.prisma.message.update({
@@ -1249,19 +1251,77 @@ export class ThreadService implements OnModuleInit {
       data: { moderationStatus: "rejected", deletedAt: new Date() },
     });
 
-    // Kullanici istegi: "Sorun var" secilince, mesajin sahibine
-    // mesajinin uygunsuz bulundugu bildirilir - PUSH_NOTIFICATIONS_ENABLED
-    // parametresine gore calisir.
-    if (message?.senderUserId) {
-      this.notifications
-        .notifyUser(
-          message.senderUserId,
-          "Mesajın Uygunsuz Bulundu",
-          "Gönderdiğin bir mesaj incelendi ve uygunsuz bulundu. Bu kişiyle mesajlaşman engellendi.",
-          "/mesajlarim"
-        )
-        .catch(() => {});
+    if (!message?.senderUserId) return;
+
+    // Kullanici istegi: "Sorun Var" onaylanan HER ihlalde sayac artar,
+    // kisi "inceleme altina" alinir (sonraki TUM mesajlari otomatik
+    // pending'e duser - bkz. createThread/sendMessage), ve kademeli
+    // blok suresi (1.=X gun, 2.=Y gun, 3.+=suresiz) uygulanir.
+    const updatedSender = await this.prisma.user.update({
+      where: { id: message.senderUserId },
+      data: {
+        toxicViolationCount: { increment: 1 },
+        isUnderReview: true,
+      },
+      select: { toxicViolationCount: true },
+    });
+    const violationCount = updatedSender.toxicViolationCount;
+
+    const [daysFirst, daysSecond] = await Promise.all([
+      this.settings.getNumber("TOXIC_BLOCK_DAYS_FIRST"),
+      this.settings.getNumber("TOXIC_BLOCK_DAYS_SECOND"),
+    ]);
+
+    let expiresAt: Date | null;
+    let durationText: string;
+    if (violationCount <= 1) {
+      expiresAt = new Date(Date.now() + daysFirst * 24 * 60 * 60 * 1000);
+      durationText = `${daysFirst} gün boyunca`;
+    } else if (violationCount === 2) {
+      expiresAt = new Date(Date.now() + daysSecond * 24 * 60 * 60 * 1000);
+      durationText = `${daysSecond} gün boyunca`;
+    } else {
+      expiresAt = null; // suresiz
+      durationText = "süresiz olarak";
     }
+
+    // Bu mesajin gittigi kisi (alici/bloklayan taraf) bulunup, blok
+    // kaydi bu YENI sureyle GUNCELLENIR (mesaj toksik bulundugunda
+    // otomatik olusan blok kaydi zaten vardi, simdi suresi belirleniyor).
+    const thread = await this.prisma.messageThread.findUnique({
+      where: { id: message.threadId },
+      select: { initiatorUserId: true, recipientUserId: true },
+    });
+    if (thread) {
+      const counterpartId =
+        thread.initiatorUserId === message.senderUserId
+          ? thread.recipientUserId
+          : thread.initiatorUserId;
+      if (counterpartId) {
+        await this.prisma.block.upsert({
+          where: {
+            blockerUserId_blockedUserId: {
+              blockerUserId: counterpartId,
+              blockedUserId: message.senderUserId,
+            },
+          },
+          update: { expiresAt },
+          create: { blockerUserId: counterpartId, blockedUserId: message.senderUserId, expiresAt },
+        });
+      }
+    }
+
+    // Kullanici istegi: "Sorun var" secilince, mesajin sahibine
+    // mesajinin toksik bulundugu VE bu mesaji gonderemeyecegi acikca
+    // bildirilir - kademeli blok suresi de belirtilir.
+    this.notifications
+      .notifyUser(
+        message.senderUserId,
+        "Mesajın Toksik Bulundu",
+        `Gönderdiğin mesaj incelendi ve toksik bulundu. Bu mesajı gönderemezsin. Bu kişiyle ${durationText} mesajlaşman engellendi.`,
+        "/mesajlarim"
+      )
+      .catch(() => {});
   }
 
   // ============================================================
@@ -1336,5 +1396,39 @@ export class ThreadService implements OnModuleInit {
       // Baslangicta DB henuz hazir degilse (migration calismadan once
       // vb.) sessizce gec - bir sonraki restart'ta tekrar denenir.
     }
+  }
+
+  // ============================================================
+  // Kullanici istegi: "inceleme altindaki" kisileri yonetme.
+  // ============================================================
+
+  // Su an inceleme altinda olan (isUnderReview=true) tum kisileri,
+  // ihlal sayisi ve telefon numarasiyla listeler.
+  async listUsersUnderReview() {
+    const users = await this.prisma.user.findMany({
+      where: { isUnderReview: true },
+      select: {
+        id: true,
+        displayName: true,
+        toxicViolationCount: true,
+        phoneNumberEncrypted: true,
+      },
+    });
+    return users.map((u) => ({
+      userId: u.id,
+      displayName: u.displayName,
+      violationCount: u.toxicViolationCount,
+      phone: u.phoneNumberEncrypted ? decryptReversible(u.phoneNumberEncrypted) : null,
+    }));
+  }
+
+  // Kullanici istegi: admin, bir kisiyi inceleme durumundan CIKARIR -
+  // bundan sonraki mesajlari tekrar NORMAL (skor bazli) degerlendirilir.
+  // Ihlal sayaci SIFIRLANMAZ (kademeli ceza gecmisi korunur).
+  async exitReview(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isUnderReview: false },
+    });
   }
 }

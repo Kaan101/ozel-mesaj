@@ -80,4 +80,18 @@ export class GuardrailController {
   async seedDefaults() {
     return this.threadService.seedDefaultToxicWords();
   }
+
+  // Kullanici istegi: su an inceleme altinda olan tum kisileri listele.
+  @Get("under-review")
+  async listUnderReview() {
+    return this.threadService.listUsersUnderReview();
+  }
+
+  // Kullanici istegi: admin, bir kisiyi inceleme durumundan cikarir -
+  // mesajlari tekrar normal (skor bazli) degerlendirilir.
+  @Post("under-review/:userId/exit")
+  async exitReview(@Param("userId") userId: string) {
+    await this.threadService.exitReview(userId);
+    return { message: "Kişi incelemeden çıkarıldı." };
+  }
 }

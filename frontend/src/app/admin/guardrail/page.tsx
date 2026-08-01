@@ -19,6 +19,16 @@ interface PendingMessage {
   recipientPhone: string | null;
 }
 
+// Kullanici istegi: "inceleme altindaki" (isUnderReview) kisiler -
+// bunlarin TUM mesajlari (icerik ne olursa olsun) otomatik pending'e
+// duser, admin manuel olarak "incelemeden cikarana" kadar.
+interface UserUnderReview {
+  userId: string;
+  displayName: string | null;
+  violationCount: number;
+  phone: string | null;
+}
+
 // Kullanici istegi: toksik kelime listesi artik veritabaninda -
 // kelime + puan olarak duzenlenebilir. Ayni puana sahip kelimeler
 // TEK bir grupta (metin alaninda, virgulle ayrilmis) yonetilir.
@@ -38,6 +48,8 @@ export default function AdminGuardrailPage() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [threshold, setThreshold] = useState<number | null>(null);
   const [pending, setPending] = useState<PendingMessage[]>([]);
+  const [underReview, setUnderReview] = useState<UserUnderReview[]>([]);
+  const [exitingId, setExitingId] = useState<string | null>(null);
   const [words, setWords] = useState<ToxicWord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -71,6 +83,7 @@ export default function AdminGuardrailPage() {
       fetchInfo();
       fetchPending();
       fetchWords();
+      fetchUnderReview();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked]);
@@ -124,6 +137,38 @@ export default function AdminGuardrailPage() {
       if (res.ok) setPending(await res.json());
     } catch {
       // Sessizce gec.
+    }
+  }
+
+  // Kullanici istegi: su an inceleme altinda olan kisileri cekme.
+  async function fetchUnderReview() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/guardrail/under-review`, {
+        headers: { "x-admin-secret": adminKey },
+      });
+      if (res.ok) setUnderReview(await res.json());
+    } catch {
+      // Sessizce gec.
+    }
+  }
+
+  // Kullanici istegi: admin, bir kisiyi inceleme durumundan cikarir -
+  // mesajlari tekrar normal (skor bazli) degerlendirilir.
+  async function handleExitReview(userId: string) {
+    if (!confirm("Bu kişi incelemeden çıkarılacak - mesajları tekrar normal değerlendirilecek. Emin misin?"))
+      return;
+    setExitingId(userId);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/guardrail/under-review/${userId}/exit`, {
+        method: "POST",
+        headers: { "x-admin-secret": adminKey },
+      });
+      if (!res.ok) throw new Error();
+      setUnderReview((prev) => prev.filter((u) => u.userId !== userId));
+    } catch {
+      setError("İşlem başarısız oldu.");
+    } finally {
+      setExitingId(null);
     }
   }
 
@@ -186,6 +231,9 @@ export default function AdminGuardrailPage() {
       });
       if (!res.ok) throw new Error();
       setPending((prev) => prev.filter((m) => m.messageId !== messageId));
+      // Kullanici istegi: "Sorun Var" onaylanan kisi inceleme altina
+      // girer - listeyi tazeliyoruz.
+      await fetchUnderReview();
     } catch {
       setError("İşlem başarısız oldu.");
     } finally {
@@ -449,6 +497,37 @@ export default function AdminGuardrailPage() {
             </Button>
           </div>
         </Card>
+
+        {/* Kullanici istegi: inceleme altindaki (isUnderReview) kisiler -
+            bunlarin TUM mesajlari otomatik pending'e duser. */}
+        <h2 className="font-display text-lg font-bold text-slate">
+          İncelemedeki Kişiler ({underReview.length})
+        </h2>
+        {underReview.length === 0 ? (
+          <p className="font-body text-sm text-slate-light">İnceleme altında kimse yok.</p>
+        ) : (
+          <div className="space-y-2">
+            {underReview.map((u) => (
+              <Card key={u.userId} lifted className="flex items-center justify-between">
+                <div>
+                  <p className="font-body text-sm text-slate">
+                    {u.displayName || u.phone || "—"}
+                  </p>
+                  <p className="font-body text-xs text-slate-light">
+                    {u.phone} · İhlal sayısı: <span className="font-semibold text-coral">{u.violationCount}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleExitReview(u.userId)}
+                  disabled={exitingId === u.userId}
+                  className="rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light disabled:opacity-50 whitespace-nowrap"
+                >
+                  {exitingId === u.userId ? "..." : "İncelemeden Çıkar"}
+                </button>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Inceleme bekleyen mesajlar */}
         <h2 className="font-display text-lg font-bold text-slate">
