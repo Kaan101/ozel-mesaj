@@ -344,9 +344,15 @@ export default function AdminBlokePage() {
                 {blocks.map((b) => (
                   <tr key={b.blockId}>
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">
-                      {b.blockerPhone ?? "—"}
-                      {b.blockerDisplayName && (
-                        <span className="text-slate-light"> ({b.blockerDisplayName})</span>
+                      {b.blockerDisplayName === "Sistem" ? (
+                        <span className="font-semibold text-coral">🤖 Sistem</span>
+                      ) : (
+                        <>
+                          {b.blockerPhone ?? "—"}
+                          {b.blockerDisplayName && (
+                            <span className="text-slate-light"> ({b.blockerDisplayName})</span>
+                          )}
+                        </>
                       )}
                     </td>
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">

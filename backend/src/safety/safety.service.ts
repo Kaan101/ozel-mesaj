@@ -93,13 +93,17 @@ export class SafetyService {
 
   // ThreadService bu metodu kullanarak "recipient, initiator'i
   // engellemis mi?" diye kontrol eder.
-  async isBlocked(blockerUserId: string, blockedUserId: string): Promise<boolean> {
-    const block = await this.prisma.block.findUnique({
+  // Kullanici istegi: sadece "bloklu mu" (true/false) degil, blogun
+  // TIPINI (manual/toxic_pending/toxic_confirmed) ve suresini de
+  // donerek, cagiran taraf DOGRU hata mesajini (orn. "sistem tarafindan
+  // bloklandiniz" vs "bu kisi sizi engelledi") olusturabilsin.
+  async isBlocked(blockerUserId: string, blockedUserId: string) {
+    return this.prisma.block.findUnique({
       where: {
         blockerUserId_blockedUserId: { blockerUserId, blockedUserId },
       },
+      include: { blocked: { select: { toxicViolationCount: true } } },
     });
-    return block !== null;
   }
 
   // Kullanici istegi: bir kisi mesaj alip gonderen kisiyi bloklamis
@@ -119,18 +123,29 @@ export class SafetyService {
       },
     });
 
-    return blocks.map((b) => ({
-      blockId: b.id,
-      blockerPhone: b.blocker.phoneNumberEncrypted
-        ? decryptReversible(b.blocker.phoneNumberEncrypted)
-        : null,
-      blockerDisplayName: b.blocker.displayName,
-      blockedPhone: b.blocked.phoneNumberEncrypted
-        ? decryptReversible(b.blocked.phoneNumberEncrypted)
-        : null,
-      blockedDisplayName: b.blocked.displayName,
-      createdAt: b.createdAt,
-    }));
+    return blocks.map((b) => {
+      // Kullanici istegi: sistem tarafindan (toksik icerik nedeniyle)
+      // konulan bloklarda, "Bloklayan" olarak GERCEK kisi yerine
+      // "Sistem" gosterilir - bu bir KISISEL tercih degil, otomatik
+      // bir guvenlik onlemidir.
+      const isSystemBlock = b.type === "toxic_pending" || b.type === "toxic_confirmed";
+      return {
+        blockId: b.id,
+        type: b.type,
+        expiresAt: b.expiresAt,
+        blockerPhone: isSystemBlock
+          ? null
+          : b.blocker.phoneNumberEncrypted
+            ? decryptReversible(b.blocker.phoneNumberEncrypted)
+            : null,
+        blockerDisplayName: isSystemBlock ? "Sistem" : b.blocker.displayName,
+        blockedPhone: b.blocked.phoneNumberEncrypted
+          ? decryptReversible(b.blocked.phoneNumberEncrypted)
+          : null,
+        blockedDisplayName: b.blocked.displayName,
+        createdAt: b.createdAt,
+      };
+    });
   }
 
   // Kullanici istegi: admin, bir blogu dogrudan (taraflardan biri

@@ -104,9 +104,9 @@ export class ThreadService implements OnModuleInit {
 
     // Gorev 7.2: Alici, gonderici tarafindan (initiator) daha once
     // engellendiyse yeni thread olusturulmasi reddedilir (Bolum 10).
-    const isBlocked = await this.safety.isBlocked(recipient.id, initiatorUserId);
-    if (isBlocked) {
-      throw new ForbiddenException("Bu kullaniciya mesaj gonderemezsiniz.");
+    const blockRecord = await this.safety.isBlocked(recipient.id, initiatorUserId);
+    if (blockRecord) {
+      throw new ForbiddenException(this.buildBlockedErrorMessage(blockRecord));
     }
 
     // Kullanici istegi: alici /ayarlar'da "genel blok" (kimse mesaj
@@ -262,6 +262,36 @@ export class ThreadService implements OnModuleInit {
 
   private threadAttemptsKey(threadId: string): string {
     return `thread-attempts:${threadId}`;
+  }
+
+  // Kullanici istegi: bloklanma nedenine gore FARKLI bir hata mesaji
+  // olusturur - bir kisi BIZZAT bloklamissa "bu kisi sizi engelledi"
+  // dogru bir ifade, AMA sistem toksik icerik nedeniyle otomatik
+  // bloklamissa bu YANLIS/kafa karistirici olur - o durumda "sistem
+  // tarafindan bloklandiniz" denir, sure bilgisiyle birlikte.
+  private buildBlockedErrorMessage(block: {
+    type: string;
+    expiresAt: Date | null;
+    blocked?: { toxicViolationCount: number } | null;
+  }): string {
+    if (block.type === "toxic_pending") {
+      return "Gönderdiğin bir mesaj toksik içerik şüphesiyle incelemede olduğu için, bu kişiyle şu an mesajlaşamazsın.";
+    }
+    if (block.type === "toxic_confirmed") {
+      if (!block.expiresAt) {
+        return "Toksik içerik nedeniyle sistem tarafından süresiz olarak bloklandın. Bu kişiyle mesajlaşamazsın.";
+      }
+      const remainingMs = block.expiresAt.getTime() - Date.now();
+      const remainingDays = Math.max(1, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
+      // Kullanici istegi: eger bu 2. ihlalse, "bir kez daha olursa
+      // suresiz" uyarisi bu hata mesajinda da tekrarlanir.
+      const escalation =
+        block.blocked?.toxicViolationCount === 2
+          ? " Bir kez daha tekrarı halinde süresiz bloklanacaksın."
+          : "";
+      return `Toksik içerik nedeniyle sistem tarafından bloklandın. Bu kişiyle ${remainingDays} gün daha mesajlaşamazsın.${escalation}`;
+    }
+    return "Bu kullanıcıya mesaj gönderemezsiniz.";
   }
 
   // Gorev 5.2 + 5.7: Katman 2 (Authorization) - "dogru kisi olmak" yetmez,
@@ -884,9 +914,7 @@ export class ThreadService implements OnModuleInit {
         // (sendMessage) hic yoktu.
         const counterpartBlockedMe = await this.safety.isBlocked(counterpartId, senderUserId);
         if (counterpartBlockedMe) {
-          throw new ForbiddenException(
-            "Bu kişi seni engellediği için mesaj gönderemezsin."
-          );
+          throw new ForbiddenException(this.buildBlockedErrorMessage(counterpartBlockedMe));
         }
 
         // Kullanici istegi: karsi taraf /ayarlar'da "genel blok"
@@ -1350,12 +1378,13 @@ export class ThreadService implements OnModuleInit {
     // Kullanici istegi: "Sorun var" secilince, mesajin sahibine
     // mesajinin toksik bulundugu VE bu mesaji gonderemeyecegi acikca
     // bildirilir - kademeli blok suresi ve BIR SONRAKI ihlalde ne
-    // olacagi (uyari niteliginde) de belirtilir.
+    // olacagi (uyari niteliginde) de belirtilir. Baslik "Sistem"
+    // kaynakli oldugunu acikca belirtir (kisisel bir blok DEGIL).
     this.notifications
       .notifyUser(
         message.senderUserId,
-        "Mesajın Toksik Bulundu",
-        `Gönderdiğin mesaj incelendi ve toksik bulundu. Bu mesajı gönderemezsin. Hesabın bu kişiyle ${durationText} bloke edildi.${escalationWarning}`,
+        "Sistem: Hesabın Bloklandı",
+        `Gönderdiğin mesaj toksik bulundu. Sistem tarafından bu kişiyle ${durationText} bloklandın.${escalationWarning}`,
         "/mesajlarim"
       )
       .catch(() => {});
