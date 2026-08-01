@@ -430,9 +430,6 @@ export class ThreadService implements OnModuleInit {
   // thread'leri listeler - "Mesajlarim" sayfasi icin gerekli. Hicbir
   // sir donmez, sadece guvenli metadata (Bolum 8, 10).
   async listMyThreads(userId: string) {
-    // TESHIS (gecici): Mesajlarim'in NEREDE yavaşladigini olcmek icin
-    // zamanlama noktalari - Railway loglarinda gorunur.
-    const t0 = Date.now();
     // Kullanici istegi (performans duzeltmesi): "myBlocks" ve "threads"
     // sorgulari BIRBIRINDEN BAGIMSIZ (biri digerinin sonucuna ihtiyac
     // duymuyor) - once SIRAYLA (await await) calisiyordu, bu da
@@ -480,10 +477,6 @@ export class ThreadService implements OnModuleInit {
         },
       }),
     ]);
-    const t1 = Date.now();
-    console.log(
-      `[TESHIS listMyThreads] adim1 (myBlocks+threads sorgusu): ${t1 - t0}ms, threads.length=${threads.length}`
-    );
     const blockedUserIds = new Set(myBlocks.map((b) => b.blockedUserId));
 
     // Kullanici istegi: dogrudan mesajlarda da baslik ILK mesaja
@@ -533,10 +526,6 @@ export class ThreadService implements OnModuleInit {
     ]);
     const lastMessageAtByThreadId = new Map<string, Date>(
       lastMessages.map((m): [string, Date] => [m.threadId, m.createdAt])
-    );
-    const t2 = Date.now();
-    console.log(
-      `[TESHIS listMyThreads] adim2 (firstMessages+blocksAgainstMe sorgusu): ${t2 - t1}ms`
     );
     const firstMessageByThreadId = new Map<string, string>(
       firstMessages.map((m): [string, string] => [m.threadId, m.body])
@@ -634,10 +623,6 @@ export class ThreadService implements OnModuleInit {
     // Son aktiviteye gore sirala (en son yaniti gelen en ustte) -
     // sadece olusturulma tarihine gore siralamak, yeni yanit gelen
     // eski bir konusmanin listede "asagida kalmasina" sebep oluyordu.
-    const t3 = Date.now();
-    console.log(
-      `[TESHIS listMyThreads] adim3 (map/sort islemesi): ${t3 - t2}ms | TOPLAM: ${t3 - t0}ms`
-    );
     return mapped.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
   }
 
