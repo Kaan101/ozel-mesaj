@@ -295,13 +295,17 @@ export default function MesajOlusturPage() {
                   burada secenek gosterilmez. */}
 
               {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
-                  (izin verirse) mesajla birlikte gonderebilme. */}
-              <Toggle
-                id="add-weather-toggle"
-                checked={addWeather}
-                onChange={setAddWeather}
-                label="Hava Durumunu Ekle"
-              />
+                  (izin verirse) mesajla birlikte gonderebilme. Kullanici
+                  istegi: "Okununca Sil" secenegiyle arasina belirgin bir
+                  bosluk birakildi. */}
+              <div className="pt-2">
+                <Toggle
+                  id="add-weather-toggle"
+                  checked={addWeather}
+                  onChange={setAddWeather}
+                  label="Hava Durumunu Ekle"
+                />
+              </div>
 
               {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
                   telefon/OTP ile giris yapiyor, bu sadece ek bir bildirim
