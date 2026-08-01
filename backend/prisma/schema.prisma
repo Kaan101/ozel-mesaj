@@ -49,6 +49,16 @@ model User {
   // Kullanici istegi: genel blok - acikken HIC KIMSE (yeni ya da
   // mevcut konusma fark etmeksizin) bu kullaniciya mesaj gonderemez.
   blockAllMessages Boolean @default(false) @map("block_all_messages")
+  // Kullanici istegi: Guardrail - bir kisinin bir mesaji "Sorun Var"
+  // ile onaylanirsa (gercekten toksik bulunursa), bu sayac artar ve
+  // kademeli engel suresi (1. ihlal=X gun, 2.=Y gun, 3.+=suresiz) bu
+  // sayaca gore belirlenir.
+  toxicViolationCount Int @default(0) @map("toxic_violation_count")
+  // Kullanici istegi: bir kisi "inceleme altina" alinirsa (Sorun Var
+  // sonrasi), bu kisiden gelen SONRAKI TUM mesajlar (icerik ne olursa
+  // olsun) otomatik olarak inceleme kuyruguna dusmeye devam eder - admin
+  // bu bayragi manuel olarak kaldirana kadar.
+  isUnderReview Boolean @default(false) @map("is_under_review")
   // Eski alan - artik kullanilmiyor (kullanici istegiyle kaldirildi,
   // avatar acik+displayName dolu yeterli), ama gecmis veri/migration
   // tutarliligi icin DB'den silinmedi.
@@ -337,6 +347,10 @@ model Block {
   blocked       User   @relation("Blocked", fields: [blockedUserId], references: [id])
 
   createdAt DateTime @default(now()) @map("created_at")
+  // Kullanici istegi: kademeli toksisite cezasi - null ise SURESIZ
+  // (3. ve sonraki ihlaller), doluysa o tarihte otomatik kalkar (1./2.
+  // ihlal). Duzenli bir arka plan gorevi bu tarihi gecen bloklari siler.
+  expiresAt DateTime? @map("expires_at")
 
   // Ayni kisi ayni numarayi birden fazla kez engelleyemez.
   @@unique([blockerUserId, blockedUserId])

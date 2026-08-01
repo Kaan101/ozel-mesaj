@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Interval } from "@nestjs/schedule";
 import { PrismaService } from "../common/prisma.service";
 import { SettingsService } from "../settings/settings.service";
+import { NotificationService } from "../notifications/notification.service";
 
 // Gorev 5.6: destroy_after_read=true olan mesajlar, okunduktan
 // (read_at set edildikten) belirli bir sure sonra veritabanindan
@@ -16,7 +17,8 @@ export class MessageCleanupService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly settings: SettingsService
+    private readonly settings: SettingsService,
+    private readonly notifications: NotificationService
   ) {}
 
   // Her 10 saniyede bir calisir ve suresi gelen mesajlari siler.
@@ -75,6 +77,34 @@ export class MessageCleanupService {
           `${lifespanResult.count} mesaj, yasam suresi (${lifespanDays} gun) doldugu icin silindi (ilk mesajlar korundu).`
         );
       }
+    }
+  }
+
+  // Kullanici istegi: kademeli toksisite cezasi - 1./2. ihlalde
+  // konulan blok, belirlenen sure (expiresAt) dolunca OTOMATIK olarak
+  // kalkar (3. ve sonraki ihlallerde expiresAt null'dur, hic silinmez).
+  // Kaldirilan her blok icin, bloklanan kisiye bilgilendirme gonderilir.
+  @Interval(60_000)
+  async handleExpiredBlocks() {
+    const expiredBlocks = await this.prisma.block.findMany({
+      where: { expiresAt: { lte: new Date() } },
+      select: { id: true, blockedUserId: true, blockerUserId: true },
+    });
+
+    for (const block of expiredBlocks) {
+      await this.prisma.block.delete({ where: { id: block.id } }).catch(() => {});
+      this.notifications
+        .notifyUser(
+          block.blockedUserId,
+          "Engel Süresi Doldu",
+          "Bir kişi tarafından uygulanan geçici engelin süresi doldu, artık tekrar mesajlaşabilirsin.",
+          "/mesajlarim"
+        )
+        .catch(() => {});
+    }
+
+    if (expiredBlocks.length > 0) {
+      this.logger.log(`${expiredBlocks.length} suresi dolan blok otomatik kaldirildi.`);
     }
   }
 }
