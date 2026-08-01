@@ -47,10 +47,11 @@ export class SafetyService {
           blockedUserId: counterpartUserId,
         },
       },
-      update: {},
+      update: { type: "manual" },
       create: {
         blockerUserId: requestingUserId,
         blockedUserId: counterpartUserId,
+        type: "manual",
       },
     });
 
@@ -81,10 +82,11 @@ export class SafetyService {
           blockedUserId: blockedUser.id,
         },
       },
-      update: {},
+      update: { type: "manual" },
       create: {
         blockerUserId,
         blockedUserId: blockedUser.id,
+        type: "manual",
       },
     });
   }

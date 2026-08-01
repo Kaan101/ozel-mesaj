@@ -160,6 +160,7 @@ export class ThreadService implements OnModuleInit {
     if (isToxic) {
       // Kullanici istegi: toksik bulunursa sistem, aliciyi gonderenin
       // otomatik olarak bloklamis hali yapar (admin onaylarsa kalkar).
+      // type="toxic_pending" - arayuzde "Bloklayan: Sistem" gosterilir.
       await this.prisma.block
         .upsert({
           where: {
@@ -168,8 +169,8 @@ export class ThreadService implements OnModuleInit {
               blockedUserId: initiatorUserId,
             },
           },
-          update: {},
-          create: { blockerUserId: recipient.id, blockedUserId: initiatorUserId },
+          update: { type: "toxic_pending" },
+          create: { blockerUserId: recipient.id, blockedUserId: initiatorUserId, type: "toxic_pending" },
         })
         .catch(() => {});
 
@@ -186,6 +187,17 @@ export class ThreadService implements OnModuleInit {
           toxicityScore,
         },
       });
+
+      // Kullanici istegi: mesaj incelemeye dusunce, GONDEREN kisiye
+      // (karsi tarafa DEGIL) mesajinin inceleme altinda oldugu bildirilir.
+      this.notifications
+        .notifyUser(
+          initiatorUserId,
+          "Mesajın İncelemede",
+          "Gönderdiğin mesaj, uygunsuz içerik şüphesiyle incelemeye alındı. İnceleme sonuçlanana kadar karşı tarafa ulaşmayacak.",
+          "/mesajlarim"
+        )
+        .catch(() => {});
     } else {
       // Aliciya bildirim SMS'i - OTP kodu degil, sadece "sana mesaj var" bilgisi.
       // Kullanici istegi: mesaj "pending" (henuz gorunmuyor) ise bu
@@ -890,7 +902,8 @@ export class ThreadService implements OnModuleInit {
         if (isToxic) {
           // Kullanici istegi: toksik bulunursa sistem, karsi tarafi
           // gonderenin otomatik olarak bloklamis hali yapar (admin
-          // onaylarsa kalkar).
+          // onaylarsa kalkar). type="toxic_pending" - arayuzde
+          // "Bloklayan: Sistem" gosterilir.
           await this.prisma.block
             .upsert({
               where: {
@@ -899,8 +912,8 @@ export class ThreadService implements OnModuleInit {
                   blockedUserId: senderUserId,
                 },
               },
-              update: {},
-              create: { blockerUserId: counterpartId, blockedUserId: senderUserId },
+              update: { type: "toxic_pending" },
+              create: { blockerUserId: counterpartId, blockedUserId: senderUserId, type: "toxic_pending" },
             })
             .catch(() => {});
 
@@ -915,6 +928,17 @@ export class ThreadService implements OnModuleInit {
               toxicityScore,
             },
           });
+
+          // Kullanici istegi: mesaj incelemeye dusunce, GONDEREN kisiye
+          // mesajinin inceleme altinda oldugu bildirilir.
+          this.notifications
+            .notifyUser(
+              senderUserId,
+              "Mesajın İncelemede",
+              "Gönderdiğin mesaj, uygunsuz içerik şüphesiyle incelemeye alındı. İnceleme sonuçlanana kadar karşı tarafa ulaşmayacak.",
+              "/mesajlarim"
+            )
+            .catch(() => {});
         } else {
           await this.prisma.block
             .delete({
@@ -1274,15 +1298,19 @@ export class ThreadService implements OnModuleInit {
 
     let expiresAt: Date | null;
     let durationText: string;
+    let escalationWarning: string;
     if (violationCount <= 1) {
       expiresAt = new Date(Date.now() + daysFirst * 24 * 60 * 60 * 1000);
       durationText = `${daysFirst} gün boyunca`;
+      escalationWarning = ` Tekrarı halinde bir sonraki ihlalde ${daysSecond} gün boyunca bloke olursun.`;
     } else if (violationCount === 2) {
       expiresAt = new Date(Date.now() + daysSecond * 24 * 60 * 60 * 1000);
       durationText = `${daysSecond} gün boyunca`;
+      escalationWarning = " Tekrarı halinde bir sonraki ihlalde hesabın SÜRESİZ olarak bloke edilecek.";
     } else {
       expiresAt = null; // suresiz
       durationText = "süresiz olarak";
+      escalationWarning = "";
     }
 
     // Bu mesajin gittigi kisi (alici/bloklayan taraf) bulunup, blok
@@ -1298,6 +1326,9 @@ export class ThreadService implements OnModuleInit {
           ? thread.recipientUserId
           : thread.initiatorUserId;
       if (counterpartId) {
+        // Kullanici istegi: admin "Sorun Var" ile onaylayinca, blok
+        // tipi "toxic_confirmed" olur (kademeli ceza suresi belirlenmis
+        // demektir) - arayuzde hala "Bloklayan: Sistem" gosterilir.
         await this.prisma.block.upsert({
           where: {
             blockerUserId_blockedUserId: {
@@ -1305,20 +1336,26 @@ export class ThreadService implements OnModuleInit {
               blockedUserId: message.senderUserId,
             },
           },
-          update: { expiresAt },
-          create: { blockerUserId: counterpartId, blockedUserId: message.senderUserId, expiresAt },
+          update: { expiresAt, type: "toxic_confirmed" },
+          create: {
+            blockerUserId: counterpartId,
+            blockedUserId: message.senderUserId,
+            expiresAt,
+            type: "toxic_confirmed",
+          },
         });
       }
     }
 
     // Kullanici istegi: "Sorun var" secilince, mesajin sahibine
     // mesajinin toksik bulundugu VE bu mesaji gonderemeyecegi acikca
-    // bildirilir - kademeli blok suresi de belirtilir.
+    // bildirilir - kademeli blok suresi ve BIR SONRAKI ihlalde ne
+    // olacagi (uyari niteliginde) de belirtilir.
     this.notifications
       .notifyUser(
         message.senderUserId,
         "Mesajın Toksik Bulundu",
-        `Gönderdiğin mesaj incelendi ve toksik bulundu. Bu mesajı gönderemezsin. Bu kişiyle ${durationText} mesajlaşman engellendi.`,
+        `Gönderdiğin mesaj incelendi ve toksik bulundu. Bu mesajı gönderemezsin. Hesabın bu kişiyle ${durationText} bloke edildi.${escalationWarning}`,
         "/mesajlarim"
       )
       .catch(() => {});
