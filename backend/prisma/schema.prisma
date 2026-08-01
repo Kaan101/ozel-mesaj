@@ -337,6 +337,13 @@ model PoolEntry {
 // GÖREV 7.2 — blocks tablosu (engelleme)
 // --------------------------------------------------------
 
+enum BlockType {
+  manual
+  toxic_pending
+  toxic_confirmed
+}
+
+
 model Block {
   id String @id @default(uuid()) @db.Uuid
 
@@ -345,6 +352,8 @@ model Block {
 
   blockedUserId String @map("blocked_user_id") @db.Uuid
   blocked       User   @relation("Blocked", fields: [blockedUserId], references: [id])
+
+  type BlockType @default(manual) @map("type")
 
   createdAt DateTime @default(now()) @map("created_at")
   // Kullanici istegi: kademeli toksisite cezasi - null ise SURESIZ
