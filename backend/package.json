@@ -6,7 +6,7 @@
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
-    "start": "npx prisma migrate deploy && node dist/main",
+    "start": "npx prisma migrate deploy || echo 'UYARI: migration basarisiz oldu, loglara bakilmali'; node dist/main",
     "postinstall": "node node_modules/prisma/build/index.js generate",
     "test": "jest",
     "test:cov": "jest --coverage",
