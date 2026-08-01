@@ -141,6 +141,16 @@ export default function AdminHubPage() {
               </p>
             </Card>
           </Link>
+
+          <Link href="/admin/mesaj-onerileri">
+            <Card lifted className="h-full hover:shadow-soft-lifted transition-shadow">
+              <div className="text-3xl mb-2">💡</div>
+              <h2 className="font-display text-base font-bold text-slate">Mesaj Önerileri</h2>
+              <p className="mt-1 font-body text-xs text-slate-light">
+                Mesaj yazarken sunulan hazır öneri listesini yönet.
+              </p>
+            </Card>
+          </Link>
         </div>
       </div>
     </main>

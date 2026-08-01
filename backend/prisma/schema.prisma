@@ -337,12 +337,16 @@ model PoolEntry {
 // GÖREV 7.2 — blocks tablosu (engelleme)
 // --------------------------------------------------------
 
+// Kullanici istegi: bir blok kaydinin NEDEN olustugunu ayirt etmek -
+// "manual" bir kisi bizzat bloke etti; "toxic_pending" sistem, bir
+// mesaj toksisite skorunu asinca OTOMATIK olarak (henuz admin
+// onaylamadan) koydu; "toxic_confirmed" admin "Sorun Var" ile
+// onayladi (kademeli ceza suresi bu asamada belirlenir).
 enum BlockType {
   manual
   toxic_pending
   toxic_confirmed
 }
-
 
 model Block {
   id String @id @default(uuid()) @db.Uuid
@@ -353,6 +357,11 @@ model Block {
   blockedUserId String @map("blocked_user_id") @db.Uuid
   blocked       User   @relation("Blocked", fields: [blockedUserId], references: [id])
 
+  // Kullanici istegi: blok TIPI - "manual" ise blockerUserId GERCEKTEN
+  // bloklayan kisidir; "toxic_pending"/"toxic_confirmed" ise blok
+  // SISTEM tarafindan (toksisite nedeniyle) konulmustur - arayuzde
+  // bloklayan olarak "Sistem" gosterilir, blockerUserId sadece
+  // "kimin adina/kime karsi" bilgisini teknik olarak tutar.
   type BlockType @default(manual) @map("type")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -439,6 +448,18 @@ model Contact {
 
   @@unique([ownerUserId, phoneNumberHash])
   @@map("contacts")
+}
+
+// Kullanici istegi: mesaj yazarken sunulan hazir oneriler artik
+// veritabaninda - admin ekleyebilir/guncelleyebilir/silebilir.
+model MessageSuggestion {
+  id   String @id @default(uuid()) @db.Uuid
+  text String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("message_suggestions")
 }
 
 model ToxicWord {
