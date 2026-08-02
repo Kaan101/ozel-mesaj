@@ -6,14 +6,14 @@ import { apiFetch, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
 import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
-import { AvatarId } from "@/components/ui/Avatar";
-import { AvatarConfig } from "@/lib/dicebear-avatar";
 import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 import { ReactionBar } from "@/components/ui/ReactionBar";
+import { ReplySuggestionsPopup } from "@/components/ui/ReplySuggestionsPopup";
 import { useLanguage } from "@/lib/language-context";
 import { fetchWeatherSummary } from "@/lib/weather";
 
@@ -40,6 +40,9 @@ interface DisplayMessage {
   createdAt: string;
   reactions: { counts: Record<string, number>; myReaction: string | null };
   weatherSummary?: string | null;
+  // Kullanici istegi: guardrail'e takilip "pending" durumundaki
+  // kendi mesajimi kirmizi cerceveyle gorebilmek icin.
+  moderationStatus?: string;
 }
 
 type ViewState = "loading" | "unlock" | "unlocking" | "reveal-gate" | "messages" | "error";
@@ -80,45 +83,55 @@ export default function MesajGosterPage() {
   const [secret, setSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
+
+  // Kullanici istegi: konusma HANGI yoldan acilirsa acilsin (Mesajlarim
+  // listesinden, dogrudan link/bildirimden vb.), mesajlar yuklenir
+  // yuklenmez menudeki yesil nokta ANINDA kaybolsun - Mesajlarim
+  // sayfasindaki AYNI localStorage anahtarina yazar.
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const latestMessageAt = messages.reduce(
+      (max, m) => (m.createdAt > max ? m.createdAt : max),
+      messages[0].createdAt
+    );
+    try {
+      const raw = localStorage.getItem("seen_thread_last_message_at");
+      const seenMap = raw ? JSON.parse(raw) : {};
+      seenMap[threadId] = latestMessageAt;
+      localStorage.setItem("seen_thread_last_message_at", JSON.stringify(seenMap));
+      // Ayni sekmede acik olan SiteHeader'in ANINDA (sayfa degismeden)
+      // haberdar olmasi icin custom event yayinlanir.
+      window.dispatchEvent(new Event("thread-seen-updated"));
+    } catch {
+      // localStorage erisilemezse (gizli sekme vb.) sessizce gec.
+    }
+  }, [messages, threadId]);
   const [threadToken, setThreadToken] = useState<string | null>(null);
   // Bu oturumda benim gonderdigim mesajlarin ID'leri - anonim mesajlarda
   // backend senderUserId'yi kimseye dondurmedigi icin (Bolum 8), "kimin
   // mesaji oldugunu" bu sekilde takip ediyoruz (Bolum 13, gorsel ayrim).
   const [myMessageIds, setMyMessageIds] = useState<Set<string>>(new Set());
+  // Kullanici istegi (bug duzeltmesi): kendi mesajimi guvenilir sekilde
+  // tanimak icin kendi kullanici ID'mi de tutuyoruz - anonim OLMAYAN
+  // mesajlarda backend senderUserId'yi dondurur, bununla karsilastirip
+  // "silme" butonunun HER ZAMAN (anonim olsun olmasin) dogru gorunmesini
+  // sagliyoruz.
+  const [myUserId, setMyUserId] = useState<string | null>(null);
 
-  // Gorev 13.1 + 13.2: Yanit yazma + kimlik gosterme anahtari.
+  // Gorev 13.1 + 13.2: Yanit yazma.
   const [replyBody, setReplyBody] = useState("");
-  const [replyAnonymous, setReplyAnonymous] = useState(true);
   // Kullanici istegi: yanit formundaki tum secenekler acilir-kapanir
   // bir bolumde - kapaliyken hicbir secenek gorunmez.
   const [isReplyOptionsExpanded, setIsReplyOptionsExpanded] = useState(false);
-  // Kullanici istegi: /ayarlar'da "profil ismimi her zaman goster"
-  // secilmisse, yanit formundaki anonimlik secenegi hic gosterilmez.
-  const [alwaysShowName, setAlwaysShowName] = useState(false);
-  // Kullanici istegi: yanit kismindaki onizlemede kendi avatarim/
-  // nickname'im gorunsun (anonim degilse).
-  const [myAvatarId, setMyAvatarId] = useState<AvatarId | null>(null);
-  const [myAvatarConfig, setMyAvatarConfig] = useState<Partial<AvatarConfig> | null>(null);
-  const [myDisplayName, setMyDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    apiFetch<{
-      alwaysShowName: boolean;
-      alwaysAddWeather: boolean;
-      avatarId: AvatarId | null;
-      avatarConfig: Partial<AvatarConfig> | null;
-      displayName: string | null;
-    }>("/me")
+    apiFetch<{ id: string; alwaysAddWeather: boolean }>("/me")
       .then((data) => {
-        setAlwaysShowName(data.alwaysShowName);
-        if (data.alwaysShowName) setReplyAnonymous(false);
+        setMyUserId(data.id);
         // Kullanici istegi: /ayarlar'da acikken, hava durumu her
         // yanitta otomatik eklensin.
         if (data.alwaysAddWeather) setReplyAddWeather(true);
-        setMyAvatarId(data.avatarId);
-        setMyAvatarConfig(data.avatarConfig);
-        setMyDisplayName(data.displayName);
       })
       .catch(() => {});
   }, [isAuthenticated]);
@@ -306,7 +319,8 @@ export default function MesajGosterPage() {
         method: "POST",
         body: JSON.stringify({
           body: replyBody,
-          isAnonymous: replyAnonymous,
+          // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
+          // backend, /ayarlar'daki tercihimden otomatik turetir.
           destroyAfterRead: replyDestroyAfterRead,
           weatherSummary: weatherSummary ?? undefined,
         }),
@@ -323,8 +337,16 @@ export default function MesajGosterPage() {
         const msgs = await apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`);
         setMessages(msgs);
       }
-    } catch {
-      setReplyError("Yanıt gönderilemedi. Lütfen tekrar dene.");
+    } catch (err) {
+      // Kullanici istegi: bir kisi bloke oldugunda (ya da baska bir
+      // guardrail/blok nedeniyle) mesaj gonderilemezse, backend'in
+      // GERCEK (spesifik) hata mesaji gosterilir - genel bir mesaj
+      // yerine "Mesaj göndermeniz engellendi" gibi net bir bilgi verir.
+      setReplyError(
+        err instanceof ApiError && err.message
+          ? err.message
+          : "Mesaj göndermeniz engellendi. Lütfen tekrar dene."
+      );
     } finally {
       setIsReplying(false);
     }
@@ -612,12 +634,28 @@ export default function MesajGosterPage() {
               );
             }
 
-            const isFromCounterpart = !myMessageIds.has(msg.id);
+            // Kullanici istegi (bug duzeltmesi): kendi mesajim mi
+            // kontrolu artik SADECE bu oturumda gonderilenlerle sinirli
+            // degil - anonim OLMAYAN mesajlarda backend'in dondurdugu
+            // senderUserId, kendi ID'mle karsilastirilir. Anonim
+            // mesajlarda senderUserId gelmedigi icin (Bolum 8),
+            // myMessageIds (bu oturumda gonderdiklerim) hala gerekli.
+            const isMine =
+              (!!msg.senderUserId && msg.senderUserId === myUserId) || myMessageIds.has(msg.id);
+            const isFromCounterpart = !isMine;
+            // Kullanici istegi: guardrail'e takilip inceleme bekleyen
+            // (pending) KENDI mesajim kirmizi cerceveyle gorunur -
+            // "incelemede" oldugunu anlayabilmem icin.
+            const isPendingReview = msg.moderationStatus === "pending";
             const messageCard = (
               <Card
-                className={`relative ${isFromCounterpart ? "border-2 border-meadow" : ""} ${
-                  !isFromCounterpart ? "pr-9" : ""
-                }`}
+                className={`relative ${
+                  isPendingReview
+                    ? "border-2 border-coral"
+                    : isFromCounterpart
+                      ? "border-2 border-meadow"
+                      : ""
+                } ${!isFromCounterpart ? "pr-9" : ""}`}
               >
                 <div className="flex items-start gap-3">
                   {msg.senderAvatarId && (
@@ -646,11 +684,25 @@ export default function MesajGosterPage() {
                           AYNI FONTTA gosterilir - hem ilk mesaj hem
                           sonraki her yanit icin gecerli. */}
                       {msg.weatherSummary && <> · {msg.weatherSummary}</>}
+                      {isPendingReview && (
+                        <span className="ml-1 font-semibold text-coral">· İnceleniyor</span>
+                      )}
                     </p>
-                    <ReactionBar
-                      reactions={msg.reactions}
-                      onReact={(emoji) => handleReactToMessage(msg.id, emoji)}
-                    />
+                    <div className="flex items-center gap-3">
+                      <ReactionBar
+                        reactions={msg.reactions}
+                        onReact={(emoji) => handleReactToMessage(msg.id, emoji)}
+                      />
+                      {/* Kullanici istegi: karsi taraftan gelen mesajin
+                          icerigine gore pratik yanit onerileri sunan
+                          bir popup - "Yanıtla" ile acilir. */}
+                      {isFromCounterpart && (
+                        <ReplySuggestionsPopup
+                          incomingText={msg.body}
+                          onSelect={(text) => setReplyBody(text)}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
                 {/* Kullanici geri bildirimi: masaustu (fare) icin
@@ -684,20 +736,12 @@ export default function MesajGosterPage() {
             );
           })}
 
-          {/* Gorev 13.1 + 13.2: Yanit formu + kimlik gosterme anahtari */}
+          {/* Gorev 13.1 + 13.2: Yanit formu */}
           <Card lifted className="space-y-3">
-            {/* Kullanici istegi: avatar+nickname, "Yanıtın" alaninin
-                USTUNDE, sol kosede, sanki zaten gonderilmis bir mesajmis
-                gibi varsayilan olarak gorunur - anonimse hic gorunmez. */}
-            {!replyAnonymous && (
-              <div className="flex items-center gap-1.5">
-                <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
-                <span className="font-body text-xs font-semibold text-slate-light">
-                  {myDisplayName || "İsimsiz"}
-                </span>
-              </div>
-            )}
-            <Input
+            {/* Kullanici istegi: avatar/nickname onizlemesi ve secenegi
+                yanit formundan tamamen kaldirildi - sadece /ayarlar'daki
+                tercihe gore calisir, burada gosterilmez. */}
+            <Textarea
               label="Yanıtın"
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
@@ -728,16 +772,9 @@ export default function MesajGosterPage() {
 
             {isReplyOptionsExpanded && (
               <>
-                {/* Kullanici istegi: /ayarlar'da "her zaman goster"
-                    secilmisse bu secenek hic gosterilmez. */}
-                {!alwaysShowName && (
-                  <Toggle
-                    id="reply-anon-toggle"
-                    checked={replyAnonymous}
-                    onChange={setReplyAnonymous}
-                    label={replyAnonymous ? "Anonim kalacaksın" : "Kimliğin görünecek"}
-                  />
-                )}
+                {/* Kullanici istegi: anonimlik artik mesaj bazinda
+                    secilmiyor - /ayarlar'daki tercihten turetiliyor,
+                    burada secenek gosterilmez. */}
                 <Toggle
                   id="reply-destroy-after-read-toggle"
                   checked={replyDestroyAfterRead}
