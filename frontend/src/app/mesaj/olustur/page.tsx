@@ -190,7 +190,7 @@ export default function MesajOlusturPage() {
   }
 
   return (
-    <main className="min-h-screen bg-mint px-4 py-12">
+    <main className="min-h-screen bg-mint px-4 pt-8 pb-12">
       <div className="mx-auto max-w-md space-y-6">
         {/* Kullanici istegi: ana sayfa/Havuz/Mesajlarim ile ayni sicak,
             illustrasyonlu his - forma da eklendi. */}
