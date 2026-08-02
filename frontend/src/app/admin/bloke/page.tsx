@@ -421,19 +421,19 @@ export default function AdminBlokePage() {
             <table className="w-full border-collapse border border-slate-light/60 text-left">
               <thead>
                 <tr className="bg-mint">
-                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-[8px] font-bold text-slate">
                     Bloklayan
                   </th>
-                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-[8px] font-bold text-slate">
                     Bloklanan
                   </th>
-                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-[8px] font-bold text-slate">
                     Bloklanma
                   </th>
-                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-[8px] font-bold text-slate">
                     Bloktan Çıkış
                   </th>
-                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-[8px] font-bold text-slate">
                     Kümülatif Sayı
                   </th>
                 </tr>
@@ -441,7 +441,7 @@ export default function AdminBlokePage() {
               <tbody>
                 {blockHistory.map((h) => (
                   <tr key={h.id}>
-                    <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-[8px] text-slate">
                       {h.blockerDisplayName === "Sistem" ? (
                         <span className="font-semibold text-coral">🤖 Sistem</span>
                       ) : (
@@ -453,16 +453,16 @@ export default function AdminBlokePage() {
                         </>
                       )}
                     </td>
-                    <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-[8px] text-slate">
                       {h.blockedPhone ?? "—"}
                       {h.blockedDisplayName && (
                         <span className="text-slate-light"> ({h.blockedDisplayName})</span>
                       )}
                     </td>
-                    <td className="border border-slate-light/60 px-4 py-3 font-body text-xs text-slate-light whitespace-nowrap">
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-[8px] text-slate-light whitespace-nowrap">
                       {new Date(h.blockedAt).toLocaleString("tr-TR")}
                     </td>
-                    <td className="border border-slate-light/60 px-4 py-3 font-body text-xs whitespace-nowrap">
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-[8px] whitespace-nowrap">
                       {h.unblockedAt ? (
                         <span className="text-slate-light">
                           {new Date(h.unblockedAt).toLocaleString("tr-TR")}
@@ -471,7 +471,7 @@ export default function AdminBlokePage() {
                         <span className="font-semibold text-coral">Hâlâ aktif</span>
                       )}
                     </td>
-                    <td className="border border-slate-light/60 px-4 py-3 font-body text-sm font-semibold text-slate text-center">
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-[8px] font-semibold text-slate text-center">
                       {h.cumulativeCount}
                     </td>
                   </tr>
