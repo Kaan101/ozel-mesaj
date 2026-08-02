@@ -47,6 +47,32 @@ interface DisplayMessage {
 
 type ViewState = "loading" | "unlock" | "unlocking" | "reveal-gate" | "messages" | "error";
 
+// Kullanici istegi: mesajlar arasinda tarih ayiricisi - hafta icindeyse
+// gun adi (orn. "Salı"), bugunse "Bugün", daha eskiyse tam tarih
+// (orn. "8 Haziran 2026").
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function formatDateDivider(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((startOfToday.getTime() - startOfDate.getTime()) / 86_400_000);
+
+  if (diffDays === 0) return "Bugün";
+  if (diffDays > 0 && diffDays < 7) {
+    const dayName = date.toLocaleDateString("tr-TR", { weekday: "long" });
+    return dayName.charAt(0).toUpperCase() + dayName.slice(1);
+  }
+  return date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+}
+
 // Thread access token'i, ayni tarayici sekmesi acikken hatirlamak icin
 // sessionStorage'da saklariz - boylece kullanici "Mesajlarim"dan ayni
 // konusmaya tekrar girdiginde parolayi/cevabi yeniden sormayiz. Token
@@ -617,10 +643,26 @@ export default function MesajGosterPage() {
 
           {actionMessage && <p className="font-body text-sm text-meadow-hover">{actionMessage}</p>}
 
-          {messages.map((msg) => {
+          {messages.map((msg, index) => {
+            // Kullanici istegi: mesajlar arasinda tarih ayiricisi -
+            // her mesajdan once, bir onceki mesajla AYNI GUN degilse
+            // (ya da bu ILK mesajsa) gosterilir.
+            const prevMsg = messages[index - 1];
+            const showDateDivider =
+              !prevMsg || !isSameDay(new Date(msg.createdAt), new Date(prevMsg.createdAt));
+            const dateDivider = showDateDivider ? (
+              <div className="flex items-center justify-center py-2">
+                <span className="rounded-full bg-white px-3 py-1 font-body text-xs text-slate-light shadow-soft">
+                  {formatDateDivider(msg.createdAt)}
+                </span>
+              </div>
+            ) : null;
+
             if (msg.isSystemMessage) {
               return (
-                <Card key={msg.id} className="bg-sky-light/50 border-2 border-sky/30">
+                <div key={msg.id}>
+                  {dateDivider}
+                  <Card className="bg-sky-light/50 border-2 border-sky/30">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="rounded-full bg-sky px-2 py-0.5 font-body text-[10px] font-bold text-white">
                       YouHaveMi
@@ -630,7 +672,8 @@ export default function MesajGosterPage() {
                   <p className="mt-2 font-body text-xs text-slate-light">
                     {new Date(msg.createdAt).toLocaleString("tr-TR")}
                   </p>
-                </Card>
+                  </Card>
+                </div>
               );
             }
 
@@ -725,6 +768,7 @@ export default function MesajGosterPage() {
             // edilince silme secenegi cikmamali).
             return (
               <div key={msg.id}>
+                {dateDivider}
                 {isFromCounterpart ? (
                   messageCard
                 ) : (
