@@ -18,3 +18,13 @@ ALTER TABLE "block_logs" ADD COLUMN IF NOT EXISTS "blocked_user_id" UUID;
 ALTER TABLE "block_logs" ADD COLUMN IF NOT EXISTS "type" "BlockType";
 ALTER TABLE "block_logs" ADD COLUMN IF NOT EXISTS "blocked_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE "block_logs" ADD COLUMN IF NOT EXISTS "unblocked_at" TIMESTAMP(3);
+
+DO $$ BEGIN
+  ALTER TABLE "block_logs" ADD CONSTRAINT "block_logs_blocker_user_id_fkey"
+    FOREIGN KEY ("blocker_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; WHEN duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "block_logs" ADD CONSTRAINT "block_logs_blocked_user_id_fkey"
+    FOREIGN KEY ("blocked_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; WHEN duplicate_table THEN NULL; END $$;
