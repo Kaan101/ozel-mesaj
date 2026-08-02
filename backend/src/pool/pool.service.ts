@@ -84,14 +84,21 @@ export class PoolService {
           category: true,
           createdAt: true,
           ownerUserId: true,
+          // Kullanici istegi: tepkiler HAVUZ LISTESINDE de (detaya
+          // girmeden) gorunsun.
+          reactions: { select: { emoji: true, userId: true } },
         },
       }),
       this.prisma.poolEntry.count({ where }),
     ]);
 
     const mappedItems = items.map((item) => {
-      const { ownerUserId, ...publicFields } = item;
-      return { ...publicFields, isOwner: requestingUserId === ownerUserId };
+      const { ownerUserId, reactions, ...publicFields } = item;
+      return {
+        ...publicFields,
+        isOwner: requestingUserId === ownerUserId,
+        reactions: summarizeReactions(reactions, requestingUserId),
+      };
     });
 
     return { items: mappedItems, page, pageSize, total };

@@ -70,7 +70,7 @@ describe("PoolService", () => {
   describe("listEntries", () => {
     it("sadece public sorulari, kategori filtresiyle ve sayfalamayla doner", async () => {
       prisma.poolEntry.findMany.mockResolvedValue([
-        { id: "entry-1", title: "Test", ownerUserId: "owner-1" },
+        { id: "entry-1", title: "Test", ownerUserId: "owner-1", reactions: [] },
       ]);
       prisma.poolEntry.count.mockResolvedValue(1);
 
@@ -82,7 +82,14 @@ describe("PoolService", () => {
         })
       );
       expect(result).toEqual({
-        items: [{ id: "entry-1", title: "Test", isOwner: false }],
+        items: [
+          {
+            id: "entry-1",
+            title: "Test",
+            isOwner: false,
+            reactions: { counts: {}, myReaction: null },
+          },
+        ],
         page: 1,
         pageSize: 10,
         total: 1,

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/lib/language-context";
 import { PoolIllustration } from "@/components/ui/PoolIllustration";
+import { ReactionBar } from "@/components/ui/ReactionBar";
 
 interface PoolEntry {
   id: string;
@@ -15,6 +16,9 @@ interface PoolEntry {
   category: string | null;
   createdAt: string;
   isOwner: boolean;
+  // Kullanici istegi: tepkiler HAVUZ LISTESINDE de (detaya girmeden)
+  // gorunsun.
+  reactions: { counts: Record<string, number>; myReaction: string | null };
 }
 
 const DISMISSED_KEY = "dismissed_pool_entries";
@@ -99,6 +103,35 @@ export default function HavuzPage() {
     saveDismissed(updated);
   }
 
+  // Kullanici istegi: tepkiler HAVUZ LISTESINDEN de verilebilsin -
+  // detay sayfasindaki mantikla ayni (bir kisi bir soruya SADECE bir
+  // tepki verebilir - ayni emoji'ye tekrar tiklamak kaldirir).
+  async function handleReact(entryId: string, emoji: string) {
+    try {
+      const result = await apiFetch<{ removed: boolean }>(`/pool/entries/${entryId}/react`, {
+        method: "POST",
+        body: JSON.stringify({ emoji }),
+      });
+      setEntries((prev) =>
+        prev.map((entry) => {
+          if (entry.id !== entryId) return entry;
+          const counts = { ...entry.reactions.counts };
+          if (entry.reactions.myReaction) {
+            counts[entry.reactions.myReaction] = Math.max(
+              0,
+              (counts[entry.reactions.myReaction] ?? 1) - 1
+            );
+          }
+          const myReaction = result.removed ? null : emoji;
+          if (myReaction) counts[myReaction] = (counts[myReaction] ?? 0) + 1;
+          return { ...entry, reactions: { counts, myReaction } };
+        })
+      );
+    } catch {
+      // Sessizce gec - kullanici tekrar deneyebilir.
+    }
+  }
+
   const isEmpty = myEntries.length === 0 && otherEntries.length === 0;
 
   return (
@@ -152,6 +185,7 @@ export default function HavuzPage() {
                       onRemove={() => handleDeleteMine(entry.id)}
                       isProcessing={deletingId === entry.id}
                       removeLabel="Soruyu Sil"
+                      onReact={(emoji) => handleReact(entry.id, emoji)}
                     />
                   ))}
                 </div>
@@ -174,6 +208,7 @@ export default function HavuzPage() {
                       onRemove={() => handleHideOther(entry.id)}
                       isProcessing={false}
                       removeLabel="Görünümden Kaldır"
+                      onReact={(emoji) => handleReact(entry.id, emoji)}
                     />
                   ))}
                 </div>
@@ -195,12 +230,14 @@ function EntryCard({
   onRemove,
   isProcessing,
   removeLabel,
+  onReact,
 }: {
   entry: PoolEntry;
   language: string;
   onRemove: () => void;
   isProcessing: boolean;
   removeLabel: string;
+  onReact: (emoji: string) => void;
 }) {
   return (
     <div className="relative group">
@@ -219,6 +256,12 @@ function EntryCard({
                 language === "en" ? "en-US" : "tr-TR"
               )}
             </span>
+          </div>
+          {/* Kullanici istegi: tepkiler HAVUZ LISTESINDE de (detaya
+              girmeden) gorunsun ve verilebilsin - tiklama, karti acan
+              Link'e YAYILMASIN diye durduruluyor. */}
+          <div onClick={(e) => e.preventDefault()}>
+            <ReactionBar reactions={entry.reactions} onReact={onReact} />
           </div>
         </Card>
       </Link>
