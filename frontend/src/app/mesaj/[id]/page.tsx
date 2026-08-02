@@ -551,7 +551,7 @@ export default function MesajGosterPage() {
         : "Sana Bir Mesaj Var");
 
     return (
-      <main className="min-h-screen bg-mint px-4 py-12">
+      <main className="min-h-screen bg-mint px-4 pt-8 pb-12">
         <div className="mx-auto max-w-md space-y-4">
           <div className="flex items-center justify-between">
             <div>

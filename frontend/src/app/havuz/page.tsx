@@ -135,7 +135,7 @@ export default function HavuzPage() {
   const isEmpty = myEntries.length === 0 && otherEntries.length === 0;
 
   return (
-    <main className="min-h-screen bg-mint px-4 py-12">
+    <main className="min-h-screen bg-mint px-4 pt-8 pb-12">
       <div className="mx-auto max-w-2xl space-y-6">
         {/* Kullanici istegi: ana sayfadaki gibi sicak, illustrasyonlu bir
             his - Havuz'un "kesif" temasini yansitan gorsel. */}
