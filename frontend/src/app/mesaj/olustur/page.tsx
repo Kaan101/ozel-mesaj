@@ -270,6 +270,7 @@ export default function MesajOlusturPage() {
                   checked={destroyAfterRead}
                   onChange={setDestroyAfterRead}
                   label={t("mesajOlustur.destroyAfterRead")}
+                  labelClassName="text-slate-light"
                 />
               </div>
 

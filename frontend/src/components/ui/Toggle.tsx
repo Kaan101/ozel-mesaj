@@ -6,11 +6,22 @@ interface ToggleProps {
   label?: string;
   id?: string;
   disabled?: boolean;
+  // Kullanici istegi: bazi label'lar (orn. "Okununca Sil") gri renkte
+  // gosterilsin diye - varsayilan renk korunur, sadece istege bagli
+  // ustune yazilabilir.
+  labelClassName?: string;
 }
 
 // Gorev 9.3: Temel toggle komponenti. Acikken cayir yesili, kapaliyken
 // notr gri - bahar/sosyal tema.
-export function Toggle({ checked, onChange, label, id, disabled = false }: ToggleProps) {
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  id,
+  disabled = false,
+  labelClassName,
+}: ToggleProps) {
   return (
     <label
       htmlFor={id}
@@ -32,7 +43,9 @@ export function Toggle({ checked, onChange, label, id, disabled = false }: Toggl
             ${checked ? "translate-x-5" : "translate-x-0"}`}
         />
       </button>
-      {label && <span className="font-body text-sm text-slate">{label}</span>}
+      {label && (
+        <span className={`font-body text-sm ${labelClassName ?? "text-slate"}`}>{label}</span>
+      )}
     </label>
   );
 }

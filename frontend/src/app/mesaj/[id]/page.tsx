@@ -780,6 +780,7 @@ export default function MesajGosterPage() {
                   checked={replyDestroyAfterRead}
                   onChange={setReplyDestroyAfterRead}
                   label={t("mesajOlustur.destroyAfterRead")}
+                  labelClassName="text-slate-light"
                 />
                 {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
                     (izin verirse) mesajla birlikte gonderebilme.
