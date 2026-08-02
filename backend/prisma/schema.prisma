@@ -92,6 +92,9 @@ model User {
   poolEntryReactions PoolEntryReaction[]
   blockedUsers     Block[]         @relation("Blocker")
   blockedByUsers   Block[]         @relation("Blocked")
+  // Kullanici istegi: kalici blok gecmisi (BlockLog) icin ters iliskiler.
+  blockLogsAsBlocker BlockLog[] @relation("BlockLogBlocker")
+  blockLogsAsBlocked BlockLog[] @relation("BlockLogBlocked")
   reports          Report[]
   threadUnlocks    ThreadUnlock[]
   contacts         Contact[]
@@ -385,7 +388,10 @@ model BlockLog {
   id String @id @default(uuid()) @db.Uuid
 
   blockerUserId String @map("blocker_user_id") @db.Uuid
+  blocker       User   @relation("BlockLogBlocker", fields: [blockerUserId], references: [id])
+
   blockedUserId String @map("blocked_user_id") @db.Uuid
+  blocked       User   @relation("BlockLogBlocked", fields: [blockedUserId], references: [id])
 
   type BlockType @map("type")
 

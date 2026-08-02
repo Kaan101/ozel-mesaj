@@ -139,6 +139,12 @@ export class UsersService {
       // foreign key kisitlamasi (RESTRICT) yuzunden silme islemi
       // HATA VERIRDI.
       await tx.contact.deleteMany({ where: { ownerUserId: userId } });
+      // Kullanici istegi: kalici blok GECMISI (BlockLog) - hesap
+      // silinirken bunlar da temizlenmezse, ayni FK (RESTRICT) hatasi
+      // olusurdu.
+      await tx.blockLog.deleteMany({
+        where: { OR: [{ blockerUserId: userId }, { blockedUserId: userId }] },
+      });
 
       const threads = await tx.messageThread.findMany({
         where: { OR: [{ initiatorUserId: userId }, { recipientUserId: userId }] },
