@@ -782,13 +782,17 @@ export default function MesajGosterPage() {
                   label={t("mesajOlustur.destroyAfterRead")}
                 />
                 {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
-                    (izin verirse) mesajla birlikte gonderebilme. */}
-                <Toggle
-                  id="reply-add-weather-toggle"
-                  checked={replyAddWeather}
-                  onChange={setReplyAddWeather}
-                  label="Hava Durumunu Ekle"
-                />
+                    (izin verirse) mesajla birlikte gonderebilme.
+                    Kullanici istegi: "Okununca Sil" secenegiyle arasina
+                    belirgin bir bosluk birakildi, metin dile bagli. */}
+                <div className="pt-4">
+                  <Toggle
+                    id="reply-add-weather-toggle"
+                    checked={replyAddWeather}
+                    onChange={setReplyAddWeather}
+                    label={t("mesajOlustur.addWeather")}
+                  />
+                </div>
               </>
             )}
 
