@@ -64,7 +64,14 @@ describe("ThreadService", () => {
         },
         { provide: SmsService, useValue: { send: jest.fn() } },
         { provide: EmailService, useValue: { send: jest.fn() } },
-        { provide: SafetyService, useValue: { isBlocked: jest.fn().mockResolvedValue(false) } },
+        {
+          provide: SafetyService,
+          useValue: {
+            isBlocked: jest.fn().mockResolvedValue(false),
+            logBlockEvent: jest.fn().mockResolvedValue(undefined),
+            logBlockRemoved: jest.fn().mockResolvedValue(undefined),
+          },
+        },
         { provide: SettingsService, useValue: { getNumber: jest.fn().mockResolvedValue(5) } },
         { provide: AuditLogService, useValue: { log: jest.fn() } },
         { provide: JwtService, useValue: { signAsync: jest.fn(), verifyAsync: jest.fn() } },

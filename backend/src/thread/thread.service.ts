@@ -174,6 +174,9 @@ export class ThreadService implements OnModuleInit {
         })
         .catch(() => {});
 
+      // Kullanici istegi: blok gecmisi kalici olarak tutulur.
+      await this.safety.logBlockEvent(recipient.id, initiatorUserId, "toxic_pending");
+
       // Kullanici istegi: her bloke islemi loglanir (konulma/kaldirilma
       // tarihleriyle) - /admin/gunlukler ekraninda "block_created" ile
       // filtrelenebilir.
@@ -945,6 +948,9 @@ export class ThreadService implements OnModuleInit {
             })
             .catch(() => {});
 
+          // Kullanici istegi: blok gecmisi kalici olarak tutulur.
+          await this.safety.logBlockEvent(counterpartId, senderUserId, "toxic_pending");
+
           // Kullanici istegi: her bloke islemi loglanir.
           await this.auditLog.log({
             eventType: "block_created",
@@ -976,6 +982,10 @@ export class ThreadService implements OnModuleInit {
                   blockedUserId: counterpartId,
                 },
               },
+            })
+            .then(() => {
+              // Kullanici istegi: blok gecmisi kalici olarak tutulur.
+              return this.safety.logBlockRemoved(senderUserId, counterpartId);
             })
             .then(() => {
               // Kullanici istegi: blok kaldirilinca karsi tarafa
@@ -1273,6 +1283,10 @@ export class ThreadService implements OnModuleInit {
               },
             });
           })
+          .then(() => {
+            // Kullanici istegi: blok gecmisi kalici olarak tutulur.
+            return this.safety.logBlockRemoved(counterpartId, message.senderUserId!);
+          })
           .catch(() => {});
 
         // Kullanici istegi: "Sorun yok" (onayla) secilince, blok
@@ -1372,6 +1386,9 @@ export class ThreadService implements OnModuleInit {
             type: "toxic_confirmed",
           },
         });
+
+        // Kullanici istegi: blok gecmisi kalici olarak tutulur.
+        await this.safety.logBlockEvent(counterpartId, message.senderUserId, "toxic_confirmed");
       }
     }
 
