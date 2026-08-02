@@ -125,6 +125,7 @@ type TranslationKey =
   | "mesajOlustur.messagePlaceholder"
   | "mesajOlustur.addQuestionLabel"
   | "mesajOlustur.destroyAfterRead"
+  | "mesajOlustur.addWeather"
   | "common.options"
   | "havuzOlustur.matchModeLabel"
   | "havuzOlustur.matchModeReview"
@@ -250,6 +251,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.messagePlaceholder": "Seninle tanışmak isterim, bir kahve içelim mi?",
     "mesajOlustur.addQuestionLabel": "Bir soru-cevap ile korumak ister misin?",
     "mesajOlustur.destroyAfterRead": "Okunduktan sonra silinsin",
+    "mesajOlustur.addWeather": "Hava Durumunu Ekle",
     "common.options": "Seçenekler",
     "havuzOlustur.matchModeLabel": "Eşleşme Şekli",
     "havuzOlustur.matchModeReview": "Tüm Yanıtları Göster",
@@ -376,6 +378,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.messagePlaceholder": "I'd love to get to know you, want to grab a coffee?",
     "mesajOlustur.addQuestionLabel": "Question",
     "mesajOlustur.destroyAfterRead": "Delete after read",
+    "mesajOlustur.addWeather": "Add Weather",
     "common.options": "Options",
     "havuzOlustur.matchModeLabel": "Match Mode",
     "havuzOlustur.matchModeReview": "Show All Answers",

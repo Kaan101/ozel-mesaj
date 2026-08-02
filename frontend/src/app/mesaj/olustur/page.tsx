@@ -7,16 +7,15 @@ import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput } from "@/components/ui/PhoneInput";
+import { ContactPicker } from "@/components/ui/ContactPicker";
 import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { useAutoRedirect } from "@/lib/use-auto-redirect";
 import { fetchWeatherSummary } from "@/lib/weather";
-import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
 import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
-import { AvatarId } from "@/components/ui/Avatar";
-import { AvatarConfig } from "@/lib/dicebear-avatar";
 
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
 // mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
@@ -40,7 +39,9 @@ export default function MesajOlusturPage() {
   const [addQuestion, setAddQuestion] = useState(false);
   const [questionText, setQuestionText] = useState("");
   const [lockSecret, setLockSecret] = useState("");
-  const [isAnonymous, setIsAnonymous] = useState(true);
+  // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
+  // /ayarlar'daki "profil ismimi her zaman goster" tercihinden
+  // TURETILIYOR (bkz. alwaysShowName). Ayri bir isAnonymous state'i yok.
   // Kullanici istegi: gonderen isterse mesaj okunduktan sonra
   // uygulamadan silinsin - hukuki ispat icin sifreli arsivde
   // (MessageAudit) yine de kalir.
@@ -58,17 +59,8 @@ export default function MesajOlusturPage() {
   // acilip kapatilabilsin - varsayilan olarak acik kabul ediyoruz,
   // backend'den gercek deger gelene kadar (flicker'i onlemek icin).
   const [emailOptionEnabled, setEmailOptionEnabled] = useState(true);
-  // Kullanici istegi: /ayarlar'da "profil ismimi her zaman goster"
-  // secilmisse, buradaki anonimlik secenegi hic gosterilmez - mesaj
-  // her zaman adiyla gonderilir.
-  const [alwaysShowName, setAlwaysShowName] = useState(false);
-  // Kullanici istegi: yanit kismindaki onizlemede kendi avatarim/
-  // nickname'im gorunsun (anonim degilse).
-  const [myAvatarId, setMyAvatarId] = useState<AvatarId | null>(null);
-  const [myAvatarConfig, setMyAvatarConfig] = useState<Partial<AvatarConfig> | null>(null);
-  const [myDisplayName, setMyDisplayName] = useState<string | null>(null);
   // Kullanici istegi: mesaj gonderirken tum secenekler (soru, okunduktan
-  // sonra sil, anonimlik, e-posta) acilir-kapanir bir bolumde - kapaliyken
+  // sonra sil, e-posta) acilir-kapanir bir bolumde - kapaliyken
   // hicbir secenek gorunmez.
   const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
   // Kullanici istegi: mesaj yazarken anlik hava durumunu mesajla
@@ -83,22 +75,11 @@ export default function MesajOlusturPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    apiFetch<{
-      alwaysShowName: boolean;
-      alwaysAddWeather: boolean;
-      avatarId: AvatarId | null;
-      avatarConfig: Partial<AvatarConfig> | null;
-      displayName: string | null;
-    }>("/me")
+    apiFetch<{ alwaysAddWeather: boolean }>("/me")
       .then((data) => {
-        setAlwaysShowName(data.alwaysShowName);
-        if (data.alwaysShowName) setIsAnonymous(false);
         // Kullanici istegi: /ayarlar'da acikken, hava durumu her
         // mesajda otomatik eklensin.
         if (data.alwaysAddWeather) setAddWeather(true);
-        setMyAvatarId(data.avatarId);
-        setMyAvatarConfig(data.avatarConfig);
-        setMyDisplayName(data.displayName);
       })
       .catch(() => {});
   }, [isAuthenticated]);
@@ -120,8 +101,12 @@ export default function MesajOlusturPage() {
         const message = (err.body as any)?.message;
         return Array.isArray(message) ? message[0] : message ?? "Girdiğin bilgiyi kontrol et.";
       }
+      // Kullanici istegi: bir kisi bloke oldugunda (ya da baska bir
+      // guardrail/blok nedeniyle) mesaj gonderilemezse, backend'in
+      // GERCEK (spesifik) hata mesaji gosterilir - sabit bir mesaj
+      // yerine "Mesaj göndermeniz engellendi" gibi net bir bilgi verir.
       if (err.status === 403) {
-        return "Bu numaraya mesaj gönderemezsin.";
+        return err.message || "Mesaj göndermeniz engellendi.";
       }
     }
     return "Mesaj gönderilemedi. Lütfen tekrar dene.";
@@ -145,7 +130,8 @@ export default function MesajOlusturPage() {
           lockType: addQuestion ? "question" : "none",
           lockSecret: addQuestion ? lockSecret : undefined,
           questionText: addQuestion ? questionText : undefined,
-          isAnonymous,
+          // Kullanici istegi: anonimlik artik mesaj bazinda secilmiyor -
+          // backend, /ayarlar'daki tercihimden otomatik turetir.
           destroyAfterRead,
           weatherSummary: weatherSummary ?? undefined,
         }),
@@ -220,24 +206,24 @@ export default function MesajOlusturPage() {
         </div>
 
         <Card lifted className="space-y-5">
+          {/* Kullanici istegi (bug duzeltmesi): PhoneInput artik
+              "Rehberden Sec" ile gelen degisiklikleri KENDI ICINDE
+              (ref uzerinden, guvenilir sekilde) senkronize ediyor -
+              parent'in "key" ile yeniden mount etmesine gerek yok. */}
           <PhoneInput
             label={t("mesajOlustur.phoneLabel")}
             value={recipientPhone}
             onChange={setRecipientPhone}
           />
+          {/* Kullanici istegi: mesaj gonderirken rehberden secim yapma
+              fonksiyonu - numarayi elle yazmak yerine kayitli bir
+              kisiyi secebilme. */}
+          <ContactPicker onSelect={setRecipientPhone} />
 
-          {/* Kullanici istegi: avatar+nickname, yazi alaninin USTUNDE,
-              sol kosede, sanki zaten gonderilmis bir mesajmis gibi
-              varsayilan olarak gorunur - anonimse hic gorunmez. */}
-          {!isAnonymous && (
-            <div className="flex items-center gap-1.5">
-              <AvatarDisplay avatarId={myAvatarId} avatarConfig={myAvatarConfig} size={24} />
-              <span className="font-body text-xs font-semibold text-slate-light">
-                {myDisplayName || "İsimsiz"}
-              </span>
-            </div>
-          )}
-          <Input
+          {/* Kullanici istegi: avatar/nickname onizlemesi ve secenegi
+              mesaj formundan tamamen kaldirildi - sadece /ayarlar'daki
+              tercihe gore calisir, burada gosterilmez. */}
+          <Textarea
             label={t("mesajOlustur.messageLabel")}
             placeholder={t("mesajOlustur.messagePlaceholder")}
             value={body}
@@ -304,26 +290,22 @@ export default function MesajOlusturPage() {
                 </div>
               )}
 
-              {/* Gorev 11.3: Anonim/Acik kimlik toggle - kullanici istegi:
-                  /ayarlar'da "her zaman goster" secilmisse bu secenek
-                  hic gosterilmez. */}
-              {!alwaysShowName && (
-                <Toggle
-                  id="anon-toggle-create"
-                  checked={isAnonymous}
-                  onChange={setIsAnonymous}
-                  label={isAnonymous ? t("mesajOlustur.anonYes") : t("mesajOlustur.anonNo")}
-                />
-              )}
+              {/* Kullanici istegi: anonimlik artik mesaj bazinda
+                  secilmiyor - /ayarlar'daki tercihten turetiliyor,
+                  burada secenek gosterilmez. */}
 
               {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
-                  (izin verirse) mesajla birlikte gonderebilme. */}
-              <Toggle
-                id="add-weather-toggle"
-                checked={addWeather}
-                onChange={setAddWeather}
-                label="Hava Durumunu Ekle"
-              />
+                  (izin verirse) mesajla birlikte gonderebilme. Kullanici
+                  istegi: "Okununca Sil" secenegiyle arasina belirgin bir
+                  bosluk birakildi. */}
+              <div className="pt-4">
+                <Toggle
+                  id="add-weather-toggle"
+                  checked={addWeather}
+                  onChange={setAddWeather}
+                  label={t("mesajOlustur.addWeather")}
+                />
+              </div>
 
               {/* Kullanici istegi: opsiyonel ek bildirim kanali - alici hala
                   telefon/OTP ile giris yapiyor, bu sadece ek bir bildirim
