@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -51,6 +51,8 @@ export default function AdminBlokePage() {
   const [users, setUsers] = useState<ReportedUser[]>([]);
   const [blocks, setBlocks] = useState<BlockRecord[]>([]);
   const [blockHistory, setBlockHistory] = useState<BlockHistoryRecord[]>([]);
+  // Kullanici istegi: Blok Gecmisi tablosunda telefon/isim ile arama.
+  const [blockHistoryQuery, setBlockHistoryQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -71,6 +73,25 @@ export default function AdminBlokePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked]);
+
+  // Kullanici istegi: telefon/isim ile arama - bloklayan VEYA
+  // bloklanan taraftan biri eslesirse satir gosterilir.
+  const filteredBlockHistory = useMemo(() => {
+    const query = blockHistoryQuery.trim().toLocaleLowerCase("tr-TR");
+    if (!query) return blockHistory;
+    return blockHistory.filter((h) => {
+      const haystack = [
+        h.blockerDisplayName,
+        h.blockerPhone,
+        h.blockedDisplayName,
+        h.blockedPhone,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("tr-TR");
+      return haystack.includes(query);
+    });
+  }, [blockHistory, blockHistoryQuery]);
 
   async function fetchUsers() {
     setIsLoading(true);
@@ -414,8 +435,17 @@ export default function AdminBlokePage() {
             en yeni en ustte - kim/sistem bilgisi, ne zaman bloktan
             ciktigi ve kumulatif sayacla. */}
         <h2 className="font-display text-lg font-bold text-slate">Blok Geçmişi</h2>
-        {blockHistory.length === 0 ? (
-          <p className="font-body text-sm text-slate-light">Hiç blok geçmişi yok.</p>
+        {/* Kullanici istegi: telefon/isim ile arama. */}
+        <Input
+          label="Ara (telefon veya isim)"
+          value={blockHistoryQuery}
+          onChange={(e) => setBlockHistoryQuery(e.target.value)}
+          placeholder="örn. +90532... ya da isim"
+        />
+        {filteredBlockHistory.length === 0 ? (
+          <p className="font-body text-sm text-slate-light">
+            {blockHistoryQuery ? "Sonuç bulunamadı." : "Hiç blok geçmişi yok."}
+          </p>
         ) : (
           <Card className="overflow-x-auto p-0">
             <table className="w-full border-collapse border border-slate-light/60 text-left">
@@ -439,7 +469,7 @@ export default function AdminBlokePage() {
                 </tr>
               </thead>
               <tbody>
-                {blockHistory.map((h) => (
+                {filteredBlockHistory.map((h) => (
                   <tr key={h.id}>
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-[10px] text-slate">
                       {h.blockerDisplayName === "Sistem" ? (
