@@ -3,6 +3,7 @@ import { Interval } from "@nestjs/schedule";
 import { PrismaService } from "../common/prisma.service";
 import { SettingsService } from "../settings/settings.service";
 import { NotificationService } from "../notifications/notification.service";
+import { SafetyService } from "../safety/safety.service";
 
 // Gorev 5.6: destroy_after_read=true olan mesajlar, okunduktan
 // (read_at set edildikten) belirli bir sure sonra veritabanindan
@@ -18,7 +19,8 @@ export class MessageCleanupService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
-    private readonly notifications: NotificationService
+    private readonly notifications: NotificationService,
+    private readonly safety: SafetyService
   ) {}
 
   // Her 10 saniyede bir calisir ve suresi gelen mesajlari siler.
@@ -93,6 +95,8 @@ export class MessageCleanupService {
 
     for (const block of expiredBlocks) {
       await this.prisma.block.delete({ where: { id: block.id } }).catch(() => {});
+      // Kullanici istegi: blok gecmisi kalici olarak tutulur.
+      await this.safety.logBlockRemoved(block.blockerUserId, block.blockedUserId).catch(() => {});
       this.notifications
         .notifyUser(
           block.blockedUserId,

@@ -58,6 +58,14 @@ export class SafetyController {
     return this.safetyService.listAllBlocksForAdmin();
   }
 
+  // Kullanici istegi: TUM bloklama GECMISI (aktif + kaldirilmis),
+  // en yeni en ustte, kim/sistem bilgisi ve kumulatif sayacla.
+  @UseGuards(AdminGuard)
+  @Get("block-history")
+  async listBlockHistory() {
+    return this.safetyService.listBlockHistory();
+  }
+
   // Kullanici istegi: admin, gerekirse bir blogu dogrudan kaldirabilsin.
   @UseGuards(AdminGuard)
   @Delete("all-blocks/:id")

@@ -25,6 +25,21 @@ interface BlockRecord {
   createdAt: string;
 }
 
+// Kullanici istegi: TUM bloklama gecmisi (aktif + kaldirilmis), en
+// yeni en ustte - kim/sistem bilgisi, ne zaman bloktan ciktigi ve
+// kumulatif sayacla.
+interface BlockHistoryRecord {
+  id: string;
+  type: string;
+  blockerDisplayName: string | null;
+  blockerPhone: string | null;
+  blockedDisplayName: string | null;
+  blockedPhone: string | null;
+  blockedAt: string;
+  unblockedAt: string | null;
+  cumulativeCount: number;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
 // Kullanici istegi: bildirilen (Bildir) kullanicilari telefon
@@ -35,6 +50,7 @@ export default function AdminBlokePage() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [users, setUsers] = useState<ReportedUser[]>([]);
   const [blocks, setBlocks] = useState<BlockRecord[]>([]);
+  const [blockHistory, setBlockHistory] = useState<BlockHistoryRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -51,6 +67,7 @@ export default function AdminBlokePage() {
     if (isUnlocked) {
       fetchUsers();
       fetchBlocks();
+      fetchBlockHistory();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked]);
@@ -84,6 +101,19 @@ export default function AdminBlokePage() {
       if (res.ok) setBlocks(await res.json());
     } catch {
       // Sessizce gec - ana liste (sikayetler) daha kritik.
+    }
+  }
+
+  // Kullanici istegi: TUM bloklama gecmisini (aktif + kaldirilmis)
+  // cekme - en yeni en ustte, kumulatif sayacla.
+  async function fetchBlockHistory() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/safety/block-history`, {
+        headers: { "x-admin-secret": adminKey },
+      });
+      if (res.ok) setBlockHistory(await res.json());
+    } catch {
+      // Sessizce gec.
     }
   }
 
@@ -372,6 +402,77 @@ export default function AdminBlokePage() {
                       >
                         Bloğu Kaldır
                       </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
+
+        {/* Kullanici istegi: TUM bloklama GECMISI (aktif + kaldirilmis),
+            en yeni en ustte - kim/sistem bilgisi, ne zaman bloktan
+            ciktigi ve kumulatif sayacla. */}
+        <h2 className="font-display text-lg font-bold text-slate">Blok Geçmişi</h2>
+        {blockHistory.length === 0 ? (
+          <p className="font-body text-sm text-slate-light">Hiç blok geçmişi yok.</p>
+        ) : (
+          <Card className="overflow-x-auto p-0">
+            <table className="w-full border-collapse border border-slate-light/60 text-left">
+              <thead>
+                <tr className="bg-mint">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Bloklayan
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Bloklanan
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Bloklanma
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Bloktan Çıkış
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Kümülatif Sayı
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {blockHistory.map((h) => (
+                  <tr key={h.id}>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">
+                      {h.blockerDisplayName === "Sistem" ? (
+                        <span className="font-semibold text-coral">🤖 Sistem</span>
+                      ) : (
+                        <>
+                          {h.blockerPhone ?? "—"}
+                          {h.blockerDisplayName && (
+                            <span className="text-slate-light"> ({h.blockerDisplayName})</span>
+                          )}
+                        </>
+                      )}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">
+                      {h.blockedPhone ?? "—"}
+                      {h.blockedDisplayName && (
+                        <span className="text-slate-light"> ({h.blockedDisplayName})</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-xs text-slate-light whitespace-nowrap">
+                      {new Date(h.blockedAt).toLocaleString("tr-TR")}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-xs whitespace-nowrap">
+                      {h.unblockedAt ? (
+                        <span className="text-slate-light">
+                          {new Date(h.unblockedAt).toLocaleString("tr-TR")}
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-coral">Hâlâ aktif</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-sm font-semibold text-slate text-center">
+                      {h.cumulativeCount}
                     </td>
                   </tr>
                 ))}

@@ -375,6 +375,26 @@ model Block {
   @@map("blocks")
 }
 
+// Kullanici istegi: bloklama GECMISI kalici olarak tutulur - "Block"
+// tablosundaki kayit KALKINCA (kisi/sistem blogu SILINCE) bilgi
+// KAYBOLMASIN diye. Her blok OLUSTUGUNDA burada da bir satir acilir
+// ("unblockedAt" bos), blok KALKINCA (herhangi bir nedenle - onay,
+// sure dolmasi, elle kaldirma) o SATIR guncellenir ("unblockedAt"
+// doldurulur) - SATIR SILINMEZ.
+model BlockLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  blockerUserId String @map("blocker_user_id") @db.Uuid
+  blockedUserId String @map("blocked_user_id") @db.Uuid
+
+  type BlockType @map("type")
+
+  blockedAt   DateTime  @default(now()) @map("blocked_at")
+  unblockedAt DateTime? @map("unblocked_at")
+
+  @@map("block_logs")
+}
+
 // --------------------------------------------------------
 // GÖREV 7.3 — reports tablosu (şikayet / moderasyon kuyruğu)
 // --------------------------------------------------------

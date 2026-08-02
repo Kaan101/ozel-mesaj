@@ -61,6 +61,9 @@ export class SafetyService {
       threadId,
       metadata: { blockedUserId: counterpartUserId },
     });
+
+    // Kullanici istegi: blok gecmisi kalici olarak tutulur.
+    await this.logBlockEvent(requestingUserId, counterpartUserId, "manual");
   }
 
   // Gorev 7.2: Bir kullanicinin baska bir numarayi engellemesi.
@@ -97,6 +100,89 @@ export class SafetyService {
   // TIPINI (manual/toxic_pending/toxic_confirmed) ve suresini de
   // donerek, cagiran taraf DOGRU hata mesajini (orn. "sistem tarafindan
   // bloklandiniz" vs "bu kisi sizi engelledi") olusturabilsin.
+  // ============================================================
+  // Kullanici istegi: bloklama GECMISI kalici olarak tutulur - Block
+  // satiri silinse bile BlockLog'daki kayit KALIR (unblockedAt
+  // doldurulur, satir SILINMEZ).
+  // ============================================================
+
+  // Bir blok OLUSTUGUNDA (ya da tipi degistiginde, orn. pending'den
+  // confirmed'a) cagrilir - acik (unblockedAt=null) bir kayit varsa
+  // tipini gunceller, yoksa yeni bir kayit acar.
+  async logBlockEvent(blockerUserId: string, blockedUserId: string, type: string): Promise<void> {
+    const open = await this.prisma.blockLog.findFirst({
+      where: { blockerUserId, blockedUserId, unblockedAt: null },
+      orderBy: { blockedAt: "desc" },
+    });
+    if (open) {
+      await this.prisma.blockLog.update({ where: { id: open.id }, data: { type: type as any } });
+    } else {
+      await this.prisma.blockLog.create({
+        data: { blockerUserId, blockedUserId, type: type as any },
+      });
+    }
+  }
+
+  // Bir blok HERHANGI BIR NEDENLE (onay, sure dolmasi, elle kaldirma)
+  // KALKINCA cagrilir - acik kaydi "kapatir" (unblockedAt doldurulur).
+  async logBlockRemoved(blockerUserId: string, blockedUserId: string): Promise<void> {
+    const open = await this.prisma.blockLog.findFirst({
+      where: { blockerUserId, blockedUserId, unblockedAt: null },
+      orderBy: { blockedAt: "desc" },
+    });
+    if (open) {
+      await this.prisma.blockLog.update({
+        where: { id: open.id },
+        data: { unblockedAt: new Date() },
+      });
+    }
+  }
+
+  // Kullanici istegi: TUM bloklama gecmisini (aktif + gecmis), en
+  // yeni EN USTTE olacak sekilde, kim/sistem bilgisiyle ve HER
+  // KAYITTA bloklanan kisinin O ANA KADAR kac kez bloklandigini
+  // (kumulatif sayac) gostererek listeler.
+  async listBlockHistory() {
+    const logs = await this.prisma.blockLog.findMany({
+      orderBy: { blockedAt: "desc" },
+      include: {
+        blocker: { select: { phoneNumberEncrypted: true, displayName: true } },
+        blocked: { select: { phoneNumberEncrypted: true, displayName: true } },
+      },
+    });
+
+    // Kumulatif sayaci hesaplamak icin ESKIDEN YENIYE dogru isliyoruz.
+    const chronological = [...logs].reverse();
+    const cumulativeCountByBlockedUser = new Map<string, number>();
+    const cumulativeAtLogId = new Map<string, number>();
+    for (const log of chronological) {
+      const next = (cumulativeCountByBlockedUser.get(log.blockedUserId) ?? 0) + 1;
+      cumulativeCountByBlockedUser.set(log.blockedUserId, next);
+      cumulativeAtLogId.set(log.id, next);
+    }
+
+    return logs.map((log) => {
+      const isSystemBlock = log.type === "toxic_pending" || log.type === "toxic_confirmed";
+      return {
+        id: log.id,
+        type: log.type,
+        blockerDisplayName: isSystemBlock ? "Sistem" : log.blocker.displayName,
+        blockerPhone: isSystemBlock
+          ? null
+          : log.blocker.phoneNumberEncrypted
+            ? decryptReversible(log.blocker.phoneNumberEncrypted)
+            : null,
+        blockedDisplayName: log.blocked.displayName,
+        blockedPhone: log.blocked.phoneNumberEncrypted
+          ? decryptReversible(log.blocked.phoneNumberEncrypted)
+          : null,
+        blockedAt: log.blockedAt,
+        unblockedAt: log.unblockedAt,
+        cumulativeCount: cumulativeAtLogId.get(log.id) ?? 1,
+      };
+    });
+  }
+
   async isBlocked(blockerUserId: string, blockedUserId: string) {
     return this.prisma.block.findUnique({
       where: {
@@ -186,6 +272,9 @@ export class SafetyService {
         },
       })
       .catch(() => {}); // Blok kaydi yoksa sessizce gec.
+
+    // Kullanici istegi: blok gecmisi kalici olarak tutulur.
+    await this.logBlockRemoved(requestingUserId, counterpartUserId);
 
     // Kullanici istegi: blok kaldirilinca karsi tarafa bildirim
     // gonderilir - "PUSH_NOTIFICATIONS_ENABLED" parametresine gore
