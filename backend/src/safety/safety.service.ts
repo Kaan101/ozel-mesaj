@@ -237,13 +237,26 @@ export class SafetyService {
   // Kullanici istegi: admin, bir blogu dogrudan (taraflardan biri
   // mesaj atmayi beklemeden) kaldirabilsin.
   async removeBlockAsAdmin(blockId: string): Promise<void> {
+    // Kullanici istegi: silmeden ONCE blok kaydini oku (blocker/blocked
+    // ID'lerini almak icin) - blok gecmisi kaydinin kapatilmasi
+    // (unblockedAt) icin gerekli.
+    const block = await this.prisma.block.findUnique({ where: { id: blockId } });
     await this.prisma.block.delete({ where: { id: blockId } }).catch(() => {});
+    if (block) {
+      await this.logBlockRemoved(block.blockerUserId, block.blockedUserId);
+    }
   }
 
   // Kullanici istegi: test surecinde birikmis TUM blok kayitlarini
   // tek seferde temizleme - temiz bir baslangic noktasi icin.
   async clearAllBlocks(): Promise<number> {
+    // Kullanici istegi: silmeden ONCE TUM bloklari oku - her biri icin
+    // blok gecmisi kaydini kapatmak (unblockedAt) gerekiyor.
+    const allBlocks = await this.prisma.block.findMany();
     const result = await this.prisma.block.deleteMany({});
+    for (const block of allBlocks) {
+      await this.logBlockRemoved(block.blockerUserId, block.blockedUserId);
+    }
     return result.count;
   }
 
