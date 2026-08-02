@@ -176,7 +176,7 @@ export default function HavuzPage() {
                 <h2 className="font-display text-sm font-bold text-slate-light uppercase tracking-wide">
                   Benim Sorularım
                 </h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2">
                   {myEntries.map((entry) => (
                     <EntryCard
                       key={entry.id}
@@ -199,7 +199,7 @@ export default function HavuzPage() {
                     Diğer Sorular
                   </h2>
                 )}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2">
                   {otherEntries.map((entry) => (
                     <EntryCard
                       key={entry.id}
@@ -242,25 +242,33 @@ function EntryCard({
   return (
     <div className="relative group">
       <Link href={`/havuz/${entry.id}`}>
-        <Card className="h-full pr-8 hover:shadow-soft-lifted transition-shadow cursor-pointer">
-          <h2 className="font-display text-lg font-bold text-slate">{entry.title}</h2>
-          <p className="font-body text-sm text-slate-light mt-1">{entry.questionText}</p>
-          <div className="mt-3 flex items-center justify-between">
-            {entry.category && (
-              <span className="rounded-full bg-meadow-light px-3 py-1 font-body text-xs text-meadow-hover">
-                {entry.category}
-              </span>
-            )}
-            <span className="font-body text-xs text-slate-light">
+        {/* Kullanici istegi: kart yerine daha "tabular" (satir tabanli,
+            yatay hizali) ve daha kucuk fontlu bir gorunum. */}
+        <Card className="!p-3 pr-8 hover:shadow-soft-lifted transition-shadow cursor-pointer">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-display text-sm font-bold text-slate truncate">
+              {entry.title}
+            </h2>
+            <span className="shrink-0 font-body text-[11px] text-slate-light">
               {new Date(entry.createdAt).toLocaleDateString(
                 language === "en" ? "en-US" : "tr-TR"
               )}
             </span>
           </div>
+          <div className="mt-0.5 flex items-center gap-2">
+            <p className="font-body text-xs text-slate-light truncate flex-1">
+              {entry.questionText}
+            </p>
+            {entry.category && (
+              <span className="shrink-0 rounded-full bg-meadow-light px-2 py-0.5 font-body text-[11px] text-meadow-hover">
+                {entry.category}
+              </span>
+            )}
+          </div>
           {/* Kullanici istegi: tepkiler HAVUZ LISTESINDE de (detaya
               girmeden) gorunsun ve verilebilsin - tiklama, karti acan
               Link'e YAYILMASIN diye durduruluyor. */}
-          <div onClick={(e) => e.preventDefault()}>
+          <div onClick={(e) => e.preventDefault()} className="mt-1">
             <ReactionBar reactions={entry.reactions} onReact={onReact} />
           </div>
         </Card>
