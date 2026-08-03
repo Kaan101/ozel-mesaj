@@ -77,6 +77,8 @@ type TranslationKey =
   | "nav.myMessages"
   | "nav.login"
   | "nav.logout"
+  | "nav.settings"
+  | "nav.contacts"
   | "landing.hero.title.part1"
   | "landing.hero.title.highlight"
   | "landing.hero.title.part2"
@@ -202,6 +204,8 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "nav.myMessages": "Mesajlarım",
     "nav.login": "Giriş Yap",
     "nav.logout": "Çıkış Yap",
+    "nav.settings": "Ayarlar",
+    "nav.contacts": "Rehber",
     "landing.hero.title.part1": "Ona söylemek istediğin şeyi,",
     "landing.hero.title.highlight": "doğru şekilde",
     "landing.hero.title.part2": "ulaştır.",
@@ -329,6 +333,8 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "nav.myMessages": "Messages",
     "nav.login": "Log In",
     "nav.logout": "Log Out",
+    "nav.settings": "Settings",
+    "nav.contacts": "Contacts",
     "landing.hero.title.part1": "Say what you want to say to them,",
     "landing.hero.title.highlight": "the right way",
     "landing.hero.title.part2": ".",
