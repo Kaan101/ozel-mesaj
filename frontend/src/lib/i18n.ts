@@ -574,7 +574,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "common.deleting": "Deleting...",
     "common.deleteFailed": "Couldn't delete. Please try again.",
     "common.cancel": "Cancel",
-    "faceImages.button": "🖼️ Send Image",
+    "faceImages.button": "🖼️ Send Mi",
     "faceImages.empty": "No images added yet.",
     "faceImages.sentLabel": "[Image]",
     "faceImages.needPhone": "Enter the recipient's phone number first.",

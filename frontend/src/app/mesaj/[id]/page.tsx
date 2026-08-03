@@ -839,12 +839,13 @@ export default function MesajGosterPage() {
               onChange={(e) => setReplyBody(e.target.value)}
               placeholder="Merhaba, ben de..."
             />
-            {/* Kullanici istegi: mesaj yazarken listbox'ta hazir
-                mesaj onerileri gostersin. */}
-            <MessageSuggestions onSelect={setReplyBody} />
-            {/* Kullanici istegi: sabit bir resim setinden secilip
-                DOGRUDAN (metin yazmadan) mesaj olarak gonderilebilsin. */}
-            <FaceImagePicker onSelect={handleSendReplyImage} disabled={isReplying} />
+            {/* Kullanici istegi: mesaj onerileri ve resim gonderme
+                butonlari AYNI satirda, aralarinda bosluk birakilarak
+                gosterilir. */}
+            <div className="flex items-center gap-4">
+              <MessageSuggestions onSelect={setReplyBody} />
+              <FaceImagePicker onSelect={handleSendReplyImage} disabled={isReplying} />
+            </div>
 
             {/* Kullanici istegi: tum secenekler acilir-kapanir bir
                 bolumde - kapaliyken hicbir secenek gorunmez. */}
