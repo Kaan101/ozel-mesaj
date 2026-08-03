@@ -74,7 +74,14 @@ export function SiteHeader() {
 
   return (
     <header className="mx-auto max-w-5xl px-4 py-6 flex items-center justify-between">
-      <Link href="/" className="font-display text-xl font-bold text-slate hover:text-sky">
+      {/* Kullanici istegi: logo, BAGLAMA gore farkli yere gider -
+          Panel sayfasindaysak ana sayfaya (landing page), BASKA HER
+          YERDEYSEK (Mesajlarim/Havuz/Ayarlar vb.) Panel'e doner.
+          Giris yapilmamissa (guvenlik icin) HER ZAMAN ana sayfaya gider. */}
+      <Link
+        href={isAuthenticated && pathname !== "/panel" ? "/panel" : "/"}
+        className="font-display text-xl font-bold text-slate hover:text-sky"
+      >
         YouHaveMi
       </Link>
       <nav className="flex items-center gap-4">
