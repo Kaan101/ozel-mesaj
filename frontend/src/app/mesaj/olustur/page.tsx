@@ -260,12 +260,13 @@ export default function MesajOlusturPage() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
           />
-          {/* Kullanici istegi: mesaj yazarken listbox'ta hazir
-              mesaj onerileri gostersin. */}
-          <MessageSuggestions onSelect={setBody} />
-          {/* Kullanici istegi: sabit bir resim setinden secilip
-              DOGRUDAN (metin yazmadan) mesaj olarak gonderilebilsin. */}
-          <FaceImagePicker onSelect={handleSendImage} disabled={isSubmitting} />
+          {/* Kullanici istegi: mesaj onerileri ve resim gonderme
+              butonlari AYNI satirda, aralarinda bosluk birakilarak
+              gosterilir. */}
+          <div className="flex items-center gap-4">
+            <MessageSuggestions onSelect={setBody} />
+            <FaceImagePicker onSelect={handleSendImage} disabled={isSubmitting} />
+          </div>
 
           {/* Kullanici istegi: tum secenekler acilir-kapanir bir
               bolumde - kapaliyken hicbir secenek gorunmez. */}
