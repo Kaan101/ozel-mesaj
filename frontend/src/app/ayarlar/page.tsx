@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/language-context";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -37,6 +38,8 @@ interface BlockedThread {
 export default function AyarlarPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { t, language } = useLanguage();
+  const dateLocale = language === "en" ? "en-US" : "tr-TR";
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [displayName, setDisplayName] = useState("");
@@ -101,13 +104,13 @@ export default function AyarlarPage() {
 
   // Kullanici istegi: konusmaya girmeden, dogrudan blogu kaldirabilme.
   async function handleRemoveBlock(threadId: string) {
-    if (!confirm("Bu bloğu kaldırmak istediğine emin misin?")) return;
+    if (!confirm(t("settings.confirmRemoveBlock"))) return;
     setRemovingBlockId(threadId);
     try {
       await apiFetch(`/safety/threads/${threadId}/block`, { method: "DELETE" });
       setBlockedThreads((prev) => prev.filter((t) => t.threadId !== threadId));
     } catch {
-      alert("Blok kaldırılamadı. Lütfen tekrar dene.");
+      alert(t("settings.blockRemoveFailed"));
     } finally {
       setRemovingBlockId(null);
     }
@@ -121,9 +124,9 @@ export default function AyarlarPage() {
         method: "PATCH",
         body: JSON.stringify({ displayName, showAvatar, blockAllMessages, alwaysAddWeather }),
       });
-      setSaveMessage("Kaydedildi.");
+      setSaveMessage(t("common.saved"));
     } catch {
-      setSaveMessage("Kaydedilemedi. Lütfen tekrar dene.");
+      setSaveMessage(t("common.saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -137,9 +140,9 @@ export default function AyarlarPage() {
         method: "PATCH",
         body: JSON.stringify({ avatarConfig }),
       });
-      setAvatarSaveMessage("Avatar kaydedildi.");
+      setAvatarSaveMessage(t("settings.avatarSaved"));
     } catch {
-      setAvatarSaveMessage("Kaydedilemedi. Lütfen tekrar dene.");
+      setAvatarSaveMessage(t("common.saveFailed"));
     } finally {
       setIsSavingAvatar(false);
     }
@@ -148,20 +151,16 @@ export default function AyarlarPage() {
   // Kullanici istegi: /ayarlar'dan tek tikla, kendi gonderdigi tum
   // mesajlari silebilme.
   async function handleDeleteAllMessages() {
-    if (
-      !confirm(
-        "Gönderdiğin TÜM mesajlar kalıcı olarak silinecek (karşı tarafın ekranından da kaybolur). Emin misin?"
-      )
-    ) {
+    if (!confirm(t("settings.confirmDeleteAllMessages"))) {
       return;
     }
     setIsDeletingMessages(true);
     setDeleteMessagesResult(null);
     try {
       const result = await apiFetch<{ count: number }>("/me/messages", { method: "DELETE" });
-      setDeleteMessagesResult(`${result.count} mesaj silindi.`);
+      setDeleteMessagesResult(`${result.count} ${t("settings.messagesDeletedSuffix")}`);
     } catch {
-      setDeleteMessagesResult("Silinemedi. Lütfen tekrar dene.");
+      setDeleteMessagesResult(t("common.deleteFailed"));
     } finally {
       setIsDeletingMessages(false);
     }
@@ -185,7 +184,7 @@ export default function AyarlarPage() {
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
-        <h1 className="font-display text-2xl font-bold text-slate">Ayarlar</h1>
+        <h1 className="font-display text-2xl font-bold text-slate">{t("settings.title")}</h1>
 
         {/* Kullanici istegi: zengin ozellestirilebilir avatar
             duzenleme ekrani (DiceBear tabanli) - acilir-kapanir. */}
@@ -195,7 +194,9 @@ export default function AyarlarPage() {
             onClick={() => setIsAvatarExpanded((v) => !v)}
             className="flex w-full items-center justify-between"
           >
-            <h2 className="font-display text-lg font-bold text-slate">Avatarım</h2>
+            <h2 className="font-display text-lg font-bold text-slate">
+              {t("settings.avatarTitle")}
+            </h2>
             <span
               className={`font-body text-slate-light transition-transform ${
                 isAvatarExpanded ? "rotate-180" : ""
@@ -211,7 +212,7 @@ export default function AyarlarPage() {
                 <p className="font-body text-sm text-meadow-hover">{avatarSaveMessage}</p>
               )}
               <Button onClick={handleSaveAvatar} disabled={isSavingAvatar} className="w-full">
-                {isSavingAvatar ? "Kaydediliyor..." : "Avatarı Kaydet"}
+                {isSavingAvatar ? t("common.saving") : t("settings.saveAvatar")}
               </Button>
             </>
           )}
@@ -227,7 +228,9 @@ export default function AyarlarPage() {
             onClick={() => setIsBlockedExpanded((v) => !v)}
             className="flex w-full items-center justify-between"
           >
-            <h2 className="font-display text-lg font-bold text-slate">Bloklanan Mesajlar</h2>
+            <h2 className="font-display text-lg font-bold text-slate">
+              {t("settings.blockedMessagesTitle")}
+            </h2>
             <span
               className={`font-body text-slate-light transition-transform ${
                 isBlockedExpanded ? "rotate-180" : ""
@@ -240,27 +243,26 @@ export default function AyarlarPage() {
             <div className="space-y-2">
               {blockedThreads.length === 0 ? (
                 <p className="font-body text-sm text-slate-light">
-                  Bloke ettiğin kimseden gelen mesaj yok.
+                  {t("settings.noBlockedMessages")}
                 </p>
               ) : (
                 <>
                   <p className="font-body text-xs text-slate-light">
-                    Bir konuşmayı açıp yanıt verirsen, o kişiyi bloke etmiş olman otomatik
-                    olarak kalkar.
+                    {t("settings.blockAutoLift")}
                   </p>
-                  {blockedThreads.map((t) => (
-                    <div key={t.threadId} className="relative">
+                  {blockedThreads.map((thread) => (
+                    <div key={thread.threadId} className="relative">
                       <Link
-                        href={`/mesaj/${t.threadId}`}
+                        href={`/mesaj/${thread.threadId}`}
                         className="block rounded-2xl border-2 border-slate-light/30 bg-white px-4 py-3 pr-28 hover:bg-mint"
                       >
                         <p className="font-body text-sm text-slate line-clamp-1">
-                          {t.wasNeverRevealed
-                            ? "Bu mesajı görmeden bloke ettin"
-                            : (t.firstMessageBody ?? "Parola korumalı mesaj")}
+                          {thread.wasNeverRevealed
+                            ? t("settings.blockedWithoutSeeing")
+                            : (thread.firstMessageBody ?? t("settings.passwordProtectedMessage"))}
                         </p>
                         <p className="mt-1 font-body text-xs text-slate-light">
-                          {new Date(t.createdAt).toLocaleDateString("tr-TR")}
+                          {new Date(thread.createdAt).toLocaleDateString(dateLocale)}
                         </p>
                       </Link>
                       {/* Kullanici istegi: konusmaya girmeden, dogrudan
@@ -270,12 +272,12 @@ export default function AyarlarPage() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          handleRemoveBlock(t.threadId);
+                          handleRemoveBlock(thread.threadId);
                         }}
-                        disabled={removingBlockId === t.threadId}
+                        disabled={removingBlockId === thread.threadId}
                         className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light disabled:opacity-50"
                       >
-                        Kaldır
+                        {t("common.remove")}
                       </button>
                     </div>
                   ))}
@@ -286,12 +288,14 @@ export default function AyarlarPage() {
         </Card>
 
         <Card lifted className="space-y-4">
-          <h2 className="font-display text-lg font-bold text-slate">Profil</h2>
+          <h2 className="font-display text-lg font-bold text-slate">
+            {t("settings.profileTitle")}
+          </h2>
           <Input
-            label="Görünen İsim (opsiyonel)"
+            label={t("settings.displayNameLabel")}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Boş bırakırsan anonim kalabilirsin"
+            placeholder={t("settings.displayNamePlaceholder")}
           />
           {/* Kullanici istegi: avatar ve nickname gorunurlugu AYRI AYRI
               kontrol edilir - mesaj bazinda secim yok, sadece bu ayar
@@ -302,7 +306,7 @@ export default function AyarlarPage() {
             id="show-avatar-toggle"
             checked={showAvatar}
             onChange={setShowAvatar}
-            label="Avatar görünsün"
+            label={t("settings.showAvatarLabel")}
           />
           {/* Kullanici istegi: acikken, her mesaj/yanit gonderiminde
               (izin verirse) hava durumu otomatik eklenir. */}
@@ -310,11 +314,7 @@ export default function AyarlarPage() {
             id="always-add-weather-toggle"
             checked={alwaysAddWeather}
             onChange={setAlwaysAddWeather}
-            label={
-              alwaysAddWeather
-                ? "Hava Durumu: Her mesaja otomatik eklensin"
-                : "Hava Durumu: Her mesajda ayrı ayrı seçmek istiyorum"
-            }
+            label={alwaysAddWeather ? t("settings.weatherAuto") : t("settings.weatherManual")}
           />
           {/* Kullanici istegi: genel blok - acikken hic kimse (yeni
               ya da mevcut konusma fark etmeksizin) mesaj gonderemez. */}
@@ -322,39 +322,38 @@ export default function AyarlarPage() {
             id="block-all-messages-toggle"
             checked={blockAllMessages}
             onChange={setBlockAllMessages}
-            label={
-              blockAllMessages
-                ? "Kimse bana mesaj gönderemesin (açık)"
-                : "Kimse bana mesaj gönderemesin (kapalı)"
-            }
+            label={blockAllMessages ? t("settings.blockAllOn") : t("settings.blockAllOff")}
           />
           {saveMessage && (
             <p className="font-body text-sm text-meadow-hover">{saveMessage}</p>
           )}
           <Button onClick={handleSaveProfile} disabled={isSaving}>
-            {isSaving ? "Kaydediliyor..." : "Kaydet"}
+            {isSaving ? t("common.saving") : t("common.save")}
           </Button>
         </Card>
 
         <Card>
-          <h2 className="font-display text-lg font-bold text-slate">Hesap Bilgisi</h2>
+          <h2 className="font-display text-lg font-bold text-slate">
+            {t("settings.accountInfoTitle")}
+          </h2>
           <p className="font-body text-sm text-slate-light mt-2">
-            Hesap durumu: <span className="font-semibold">{profile.status}</span>
+            {t("settings.accountStatus")}: <span className="font-semibold">{profile.status}</span>
           </p>
           <p className="font-body text-sm text-slate-light">
-            Katılma tarihi: {new Date(profile.createdAt).toLocaleDateString("tr-TR")}
+            {t("settings.joinDate")}: {new Date(profile.createdAt).toLocaleDateString(dateLocale)}
           </p>
         </Card>
 
         {/* Gorev 13.5: KVKK - veri silme talebi (onay adimli) */}
         <Card className="border-2 border-coral-light">
-          <h2 className="font-display text-lg font-bold text-coral">Tehlikeli Bölge</h2>
+          <h2 className="font-display text-lg font-bold text-coral">
+            {t("settings.dangerZoneTitle")}
+          </h2>
 
           {/* Kullanici istegi: hesabi silmeden, sadece gonderdigi tum
               mesajlari silebilme secenegi. */}
           <p className="font-body text-sm text-slate-light mt-2">
-            Gönderdiğin tüm mesajlar (karşı tarafın ekranından da) kalıcı olarak silinir.
-            Konuşmaların ve hesabın kalır.
+            {t("settings.deleteMessagesDesc")}
           </p>
           <Button
             variant="ghost"
@@ -362,7 +361,7 @@ export default function AyarlarPage() {
             onClick={handleDeleteAllMessages}
             disabled={isDeletingMessages}
           >
-            {isDeletingMessages ? "Siliniyor..." : "Tüm Mesajlarımı Sil"}
+            {isDeletingMessages ? t("common.deleting") : t("settings.deleteAllMessages")}
           </Button>
           {deleteMessagesResult && (
             <p className="font-body text-xs text-slate-light mt-1">{deleteMessagesResult}</p>
@@ -371,8 +370,7 @@ export default function AyarlarPage() {
           <hr className="my-4 border-coral-light" />
 
           <p className="font-body text-sm text-slate-light mt-2">
-            Hesabını sildiğinde tüm mesajların, konuşmaların ve sorularının kalıcı olarak
-            silinir. Bu işlem geri alınamaz.
+            {t("settings.deleteAccountDesc")}
           </p>
 
           {deleteStep === "idle" && (
@@ -381,35 +379,35 @@ export default function AyarlarPage() {
               className="mt-3 text-coral"
               onClick={() => setDeleteStep("confirm")}
             >
-              Hesabımı Sil
+              {t("settings.deleteAccount")}
             </Button>
           )}
 
           {deleteStep === "confirm" && (
             <div className="mt-3 space-y-3">
               <p className="font-body text-sm font-semibold text-coral">
-                Emin misin? Bu işlem geri alınamaz.
+                {t("settings.deleteAccountConfirm")}
               </p>
               <div className="flex gap-2">
                 <Button
                   className="flex-1 bg-coral hover:bg-coral"
                   onClick={handleDeleteAccount}
                 >
-                  Evet, Kalıcı Olarak Sil
+                  {t("settings.confirmDelete")}
                 </Button>
                 <Button
                   variant="secondary"
                   className="flex-1"
                   onClick={() => setDeleteStep("idle")}
                 >
-                  Vazgeç
+                  {t("common.cancel")}
                 </Button>
               </div>
             </div>
           )}
 
           {deleteStep === "deleting" && (
-            <p className="font-body text-sm text-slate-light mt-3">Siliniyor...</p>
+            <p className="font-body text-sm text-slate-light mt-3">{t("common.deleting")}</p>
           )}
         </Card>
       </div>
