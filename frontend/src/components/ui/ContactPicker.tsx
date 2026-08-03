@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { useLanguage } from "@/lib/language-context";
 import { AvatarDisplay } from "./AvatarDisplay";
 
 interface Contact {
@@ -16,6 +17,7 @@ interface Contact {
 // Kullanici istegi: mesaj gonderirken numarayi elle yazmak yerine
 // rehberden bir kisi secilebilsin - not gorunur, filtrelenebilir.
 export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) => void }) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +57,7 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
         onClick={handleOpen}
         className="font-body text-xs text-sky hover:text-sky/80"
       >
-        📇 Rehberden Seç
+        {t("contactPicker.button")}
       </button>
 
       {isOpen && (
@@ -66,18 +68,16 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="İsim, numara veya nota göre ara..."
+              placeholder={t("contactPicker.searchPlaceholder")}
               autoFocus
               className="w-full rounded-full border border-sky-light bg-mint/40 px-3 py-1.5 font-body text-sm text-slate placeholder:text-slate-light/70 focus:outline-none focus:ring-2 focus:ring-sky/30"
             />
           </div>
           {isLoading ? (
-            <p className="px-4 py-3 font-body text-sm text-slate-light">Yükleniyor...</p>
+            <p className="px-4 py-3 font-body text-sm text-slate-light">{t("common.loading")}</p>
           ) : filtered.length === 0 ? (
             <p className="px-4 py-3 font-body text-sm text-slate-light">
-              {contacts.length === 0
-                ? "Rehberin boş. Mesaj gönderdiğin numaralar otomatik eklenir."
-                : "Sonuç bulunamadı."}
+              {contacts.length === 0 ? t("contactPicker.empty") : t("common.noResults")}
             </p>
           ) : (
             <ul role="listbox" aria-label="Rehber" className="max-h-64 overflow-y-auto py-1.5">

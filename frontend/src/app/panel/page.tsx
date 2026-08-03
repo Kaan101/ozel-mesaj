@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/language-context";
 
 interface Profile {
   displayName: string | null;
@@ -43,6 +44,8 @@ interface RecommendedEntry {
 // kalinarak uygulandi.
 export default function PanelPage() {
   const { isAuthenticated } = useAuth();
+  const { t, language } = useLanguage();
+  const dateLocale = language === "en" ? "en-US" : "tr-TR";
   const [profile, setProfile] = useState<Profile | null>(null);
   const [topContacts, setTopContacts] = useState<TopContact[]>([]);
   const [recommended, setRecommended] = useState<RecommendedEntry[]>([]);
@@ -61,18 +64,19 @@ export default function PanelPage() {
         <section className="flex flex-wrap items-end justify-between gap-4 pt-9 pb-1.5">
           <div>
             <h1 className="font-display text-[32px] font-bold text-slate leading-tight">
-              Merhaba{profile?.displayName ? `, ${profile.displayName}` : ""}! 👋
+              {t("panel.greeting")}
+              {profile?.displayName ? `, ${profile.displayName}` : ""}! 👋
             </h1>
             <p className="mt-1.5 font-body text-[15.5px] text-slate-light">
-              Kaçırdığın bir şey yok — sohbetlerin ve sana özel öneriler aşağıda.
+              {t("panel.subtitle")}
             </p>
           </div>
           <div className="flex gap-3">
             <Link href="/mesaj/olustur">
-              <Button variant="primary">Mesaj Gönder</Button>
+              <Button variant="primary">{t("panel.sendMessage")}</Button>
             </Link>
             <Link href="/havuz">
-              <Button variant="secondary">Havuza Göz At</Button>
+              <Button variant="secondary">{t("panel.goToPool")}</Button>
             </Link>
           </div>
         </section>
@@ -81,20 +85,18 @@ export default function PanelPage() {
         <section className="mt-10">
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="font-display text-xl font-semibold text-slate">
-              En çok iletişim kurdukların
+              {t("panel.topContactsTitle")}
             </h2>
             <Link
               href="/mesajlarim"
               className="font-body text-[13.5px] font-semibold text-sky hover:text-sky-hover"
             >
-              Tüm mesajlar →
+              {t("panel.allMessages")}
             </Link>
           </div>
           {topContacts.length === 0 ? (
             <Card>
-              <p className="font-body text-sm text-slate-light">
-                Henüz bir konuşman yok — ilk mesajını göndererek başla!
-              </p>
+              <p className="font-body text-sm text-slate-light">{t("panel.noContacts")}</p>
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -111,7 +113,7 @@ export default function PanelPage() {
                         </p>
                         <p className="font-body text-xs text-slate-light">
                           {contact.lastMessageAt
-                            ? `Son mesaj: ${new Date(contact.lastMessageAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long" })}`
+                            ? `${t("panel.lastMessage")}: ${new Date(contact.lastMessageAt).toLocaleDateString(dateLocale, { day: "numeric", month: "long" })}`
                             : ""}
                         </p>
                       </div>
@@ -120,10 +122,10 @@ export default function PanelPage() {
                       &quot;{contact.lastMessagePreview}&quot;
                     </p>
                     <span className="self-start rounded-full bg-sky-light px-2.5 py-1 font-body text-[11.5px] font-semibold text-sky-hover">
-                      {contact.originType === "direct" ? "Direct" : "Havuz"}
+                      {contact.originType === "direct" ? t("panel.direct") : t("panel.pool")}
                     </span>
                     <p className="mt-0.5 font-body text-[11.5px] font-semibold text-meadow-hover">
-                      {contact.messageCount} mesaj alışverişi
+                      {contact.messageCount} {t("panel.messageExchange")}
                     </p>
                   </Card>
                 </Link>
@@ -136,17 +138,15 @@ export default function PanelPage() {
         <section className="mt-10">
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="font-display text-xl font-semibold text-slate">
-              İlgini çekebilecekler
+              {t("panel.recommendedTitle")}
             </h2>
             <span className="font-body text-[13.5px] text-slate-light">
-              Sık yanıtladığın kategorilere göre
+              {t("panel.basedOnCategories")}
             </span>
           </div>
           {recommended.length === 0 ? (
             <Card>
-              <p className="font-body text-sm text-slate-light">
-                Havuzda birkaç soruya yanıt verdikçe, burada sana özel öneriler belirecek.
-              </p>
+              <p className="font-body text-sm text-slate-light">{t("panel.noRecommendations")}</p>
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -169,7 +169,7 @@ export default function PanelPage() {
                         </span>
                       )}
                       <span className="font-body text-xs text-slate-light">
-                        {new Date(entry.createdAt).toLocaleDateString("tr-TR")}
+                        {new Date(entry.createdAt).toLocaleDateString(dateLocale)}
                       </span>
                     </div>
                   </Card>

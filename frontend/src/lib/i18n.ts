@@ -129,6 +129,27 @@ type TranslationKey =
   | "mesajOlustur.destroyAfterRead"
   | "mesajOlustur.addWeather"
   | "common.options"
+  | "common.loading"
+  | "common.search"
+  | "common.noResults"
+  | "contactPicker.button"
+  | "contactPicker.searchPlaceholder"
+  | "contactPicker.empty"
+  | "messageSuggestions.button"
+  | "panel.greeting"
+  | "panel.subtitle"
+  | "panel.goToPool"
+  | "panel.sendMessage"
+  | "panel.topContactsTitle"
+  | "panel.allMessages"
+  | "panel.noContacts"
+  | "panel.lastMessage"
+  | "panel.direct"
+  | "panel.pool"
+  | "panel.messageExchange"
+  | "panel.recommendedTitle"
+  | "panel.basedOnCategories"
+  | "panel.noRecommendations"
   | "havuzOlustur.matchModeLabel"
   | "havuzOlustur.matchModeReview"
   | "havuzOlustur.matchModeExact"
@@ -257,6 +278,27 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.destroyAfterRead": "Okunduktan sonra silinsin",
     "mesajOlustur.addWeather": "Hava Durumunu Ekle",
     "common.options": "Seçenekler",
+    "common.loading": "Yükleniyor...",
+    "common.search": "Ara...",
+    "common.noResults": "Sonuç bulunamadı.",
+    "contactPicker.button": "📇 Rehberden Seç",
+    "contactPicker.searchPlaceholder": "İsim, numara veya nota göre ara...",
+    "contactPicker.empty": "Rehberin boş. Mesaj gönderdiğin numaralar otomatik eklenir.",
+    "messageSuggestions.button": "💡 Mesaj Önerileri",
+    "panel.greeting": "Merhaba",
+    "panel.subtitle": "Kaçırdığın bir şey yok — sohbetlerin ve sana özel öneriler aşağıda.",
+    "panel.goToPool": "Havuza Göz At",
+    "panel.sendMessage": "Mesaj Gönder",
+    "panel.topContactsTitle": "En çok iletişim kurdukların",
+    "panel.allMessages": "Tüm mesajlar →",
+    "panel.noContacts": "Henüz bir konuşman yok — ilk mesajını göndererek başla!",
+    "panel.lastMessage": "Son mesaj",
+    "panel.direct": "Direct",
+    "panel.pool": "Havuz",
+    "panel.messageExchange": "mesaj alışverişi",
+    "panel.recommendedTitle": "İlgini çekebilecekler",
+    "panel.basedOnCategories": "Sık yanıtladığın kategorilere göre",
+    "panel.noRecommendations": "Havuzda birkaç soruya yanıt verdikçe, burada sana özel öneriler belirecek.",
     "havuzOlustur.matchModeLabel": "Eşleşme Şekli",
     "havuzOlustur.matchModeReview": "Tüm Yanıtları Göster",
     "havuzOlustur.matchModeExact": "Kesin Eşleşsin",
@@ -386,6 +428,27 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "mesajOlustur.destroyAfterRead": "Delete after read",
     "mesajOlustur.addWeather": "Add Weather",
     "common.options": "Options",
+    "common.loading": "Loading...",
+    "common.search": "Search...",
+    "common.noResults": "No results found.",
+    "contactPicker.button": "📇 Choose from Contacts",
+    "contactPicker.searchPlaceholder": "Search by name, number, or note...",
+    "contactPicker.empty": "Your contacts list is empty. Numbers you message get added automatically.",
+    "messageSuggestions.button": "💡 Message Suggestions",
+    "panel.greeting": "Hello",
+    "panel.subtitle": "You haven't missed a thing — your chats and personal picks are below.",
+    "panel.goToPool": "Browse the Pool",
+    "panel.sendMessage": "Send Message",
+    "panel.topContactsTitle": "Your most active chats",
+    "panel.allMessages": "All messages →",
+    "panel.noContacts": "No conversations yet — send your first message to get started!",
+    "panel.lastMessage": "Last message",
+    "panel.direct": "Direct",
+    "panel.pool": "Pool",
+    "panel.messageExchange": "messages exchanged",
+    "panel.recommendedTitle": "You might be interested in",
+    "panel.basedOnCategories": "Based on categories you often reply to",
+    "panel.noRecommendations": "As you answer more Pool questions, personal picks will appear here.",
     "havuzOlustur.matchModeLabel": "Match Mode",
     "havuzOlustur.matchModeReview": "Show All Answers",
     "havuzOlustur.matchModeExact": "Exact Match",
