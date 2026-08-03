@@ -46,6 +46,15 @@ export class ThreadController {
     return this.threadService.listMyThreads(userId);
   }
 
+  // Kullanici istegi: Ana sayfada "En cok iletisim kurdukların" bolumu -
+  // DIKKAT: bu route da ":id" route'undan ONCE tanimlanmali.
+  @UseGuards(JwtAuthGuard)
+  @Get("top-contacts")
+  async listTopContacts(@Req() request: Request) {
+    const userId = (request as any).user.sub;
+    return this.threadService.listTopContacts(userId, 3);
+  }
+
   // Kullanici geri bildirimi: "mesaj silme" - gercekte veri silinmez,
   // sadece istegi yapan kullanicinin KENDI listesinden gizlenir.
   @UseGuards(JwtAuthGuard)

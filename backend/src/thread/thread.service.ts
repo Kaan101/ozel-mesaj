@@ -1514,4 +1514,96 @@ export class ThreadService implements OnModuleInit {
       data: { isUnderReview: false },
     });
   }
+
+  // Kullanici istegi: Ana sayfada "En cok iletisim kurdukların" bolumu -
+  // en cok mesaj alisverisi olan (mesaj sayisina gore siralanmis) ilk N
+  // konusmayi, karsi tarafin (gizlilik kurallarina uygun sekilde
+  // maskelenmis/gosterilebilir) bilgisiyle doner.
+  async listTopContacts(userId: string, limit = 3) {
+    const threads = await this.prisma.messageThread.findMany({
+      where: {
+        OR: [{ initiatorUserId: userId }, { recipientUserId: userId }],
+      },
+      select: {
+        id: true,
+        originType: true,
+        initiatorUserId: true,
+        recipientUserId: true,
+        recipientPhoneDisplay: true,
+        recipient: { select: { displayName: true } },
+        initiator: { select: { displayName: true } },
+      },
+    });
+
+    if (threads.length === 0) return [];
+    const threadIds = threads.map((t) => t.id);
+
+    const [messageCounts, lastMessages] = await Promise.all([
+      this.prisma.message.groupBy({
+        by: ["threadId"],
+        where: { threadId: { in: threadIds }, deletedAt: null, moderationStatus: "approved" },
+        _count: { id: true },
+      }),
+      this.prisma.message.findMany({
+        where: { threadId: { in: threadIds }, deletedAt: null, moderationStatus: "approved" },
+        orderBy: { createdAt: "desc" },
+        distinct: ["threadId"],
+        select: { threadId: true, body: true, createdAt: true },
+      }),
+    ]);
+
+    const countByThreadId = new Map(messageCounts.map((m) => [m.threadId, m._count.id]));
+    const lastMessageByThreadId = new Map(lastMessages.map((m) => [m.threadId, m]));
+
+    const ranked = threads
+      .map((t) => ({
+        thread: t,
+        count: countByThreadId.get(t.id) ?? 0,
+        lastMessage: lastMessageByThreadId.get(t.id) ?? null,
+      }))
+      .filter((x) => x.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+
+    return ranked.map(({ thread, count, lastMessage }) => {
+      const isInitiator = thread.initiatorUserId === userId;
+      // Kullanici istegi: gizlilik kurallarina (Bolum 8/10) uygun -
+      // SADECE initiator, KENDI YAZDIGI numarayi (maskelenmis) gorur.
+      // Alici tarafinda karsi tarafin gercek numarasi hicbir zaman
+      // gosterilmez - onun yerine (anonim degilse) goruntulenen ismi
+      // kullanilir.
+      let displayLabel: string;
+      if (isInitiator && thread.recipientPhoneDisplay) {
+        displayLabel = maskPhoneForDisplay(thread.recipientPhoneDisplay);
+      } else {
+        const counterpartName = isInitiator
+          ? thread.recipient?.displayName
+          : thread.initiator?.displayName;
+        displayLabel = counterpartName ?? "Anonim Kullanıcı";
+      }
+
+      return {
+        threadId: thread.id,
+        displayLabel,
+        originType: thread.originType,
+        messageCount: count,
+        lastMessagePreview: lastMessage?.body ?? "",
+        lastMessageAt: lastMessage?.createdAt ?? null,
+      };
+    });
+  }
+}
+
+// Kullanici istegi: telefon numarasini "+90 532 XXX 7376" formatinda
+// maskeler - sadece ana sayfadaki "En cok iletisim kurdukların"
+// onizlemesinde, SADECE initiator'in KENDI yazdigi numara icin
+// kullanilir (bkz. listTopContacts).
+function maskPhoneForDisplay(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10) return phone;
+  const last10 = digits.slice(-10);
+  const countryCode = digits.slice(0, digits.length - 10) || "90";
+  const area = last10.slice(0, 3);
+  const last4 = last10.slice(-4);
+  return `+${countryCode} ${area} XXX ${last4}`;
 }

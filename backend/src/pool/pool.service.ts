@@ -511,4 +511,52 @@ export class PoolService {
       data: { status: "rejected" },
     });
   }
+
+  // Kullanici istegi: Ana sayfada "İlgini çekebilecekler" bolumu -
+  // kullanicinin DAHA ONCE yanit verdigi sorularin kategorilerine
+  // gore, o kategorilerden YENI (kendi sorusu olmayan, daha once hic
+  // denemedigi) sorular onerir.
+  async listRecommended(userId: string, limit = 4) {
+    // 1. Kullanicinin daha once yanit verdigi (PoolAttempt) sorularin
+    // kategorilerini bul.
+    const myAttempts = await this.prisma.poolAttempt.findMany({
+      where: { attempterUserId: userId },
+      select: { poolEntry: { select: { category: true } }, poolEntryId: true },
+    });
+
+    const categories = [
+      ...new Set(myAttempts.map((a) => a.poolEntry.category).filter((c): c is string => !!c)),
+    ];
+    if (categories.length === 0) return [];
+
+    const attemptedEntryIds = myAttempts.map((a) => a.poolEntryId);
+
+    // 2. Bu kategorilerden, kullanicinin SAHIBI OLMADIGI, daha once
+    // DENEMEDIGI, public ve gizlenmemis sorulari getir.
+    const entries = await this.prisma.poolEntry.findMany({
+      where: {
+        category: { in: categories },
+        visibility: "public",
+        hiddenByOwner: false,
+        ownerUserId: { not: userId },
+        id: { notIn: attemptedEntryIds },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        questionText: true,
+        category: true,
+        createdAt: true,
+      },
+    });
+
+    return entries.map((entry) => ({
+      ...entry,
+      // Kullanici istegi: hangi kategoriye gore onerildigini belirten
+      // kisa not (orn. "Kitap ile eşleşti").
+      matchNote: `${entry.category} ile eşleşti`,
+    }));
+  }
 }

@@ -48,6 +48,15 @@ export class PoolController {
     return this.poolService.listMyPoolEntries(ownerUserId);
   }
 
+  // Kullanici istegi: Ana sayfada "İlgini çekebilecekler" bolumu -
+  // DIKKAT: bu route da ":id" route'undan ONCE tanimlanmali.
+  @UseGuards(JwtAuthGuard)
+  @Get("entries/recommended")
+  async listRecommended(@Req() request: Request) {
+    const userId = (request as any).user.sub;
+    return this.poolService.listRecommended(userId, 4);
+  }
+
   // Gorev 6.2: Herkese acik listeleme - auth gerektirmez (Bolum 4, 9).
   @Get("entries")
   async listEntries(
