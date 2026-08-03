@@ -24,4 +24,10 @@ export class SendMessageDto {
   @IsString()
   @MaxLength(60)
   weatherSummary?: string;
+
+  // Kullanici istegi: sabit bir "yuz/resim" setinden secilip
+  // gonderilen mesajlar - secilen resmin dosya adi (orn. "happy.png").
+  @IsOptional()
+  @IsString()
+  imageKey?: string;
 }

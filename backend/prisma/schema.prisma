@@ -204,6 +204,14 @@ model Message {
 
   body String
 
+  // Kullanici istegi: sabit bir "yuz/resim" setinden secilip
+  // GONDERILEN mesajlar - bu durumda "body" kisa bir yer tutucu
+  // metin ("📷 Resim") icerir, GERCEK icerik bu alanda (secilen
+  // resmin dosya adi, orn. "happy.png") saklanir. Resimler
+  // frontend'in public/images/face/ klasorunde durur (backend'e
+  // yuklenmez, sabit bir setttir).
+  imageKey String? @map("image_key")
+
   // Kullanici istegi: sikayet sonuclandirildiginde, admin'in girdigi
   // aciklama, sikayeti yapan kisiye "YouHaveMi"den gelen bir sistem
   // mesaji olarak ilgili thread'de gorunur. Bu tur mesajlarda

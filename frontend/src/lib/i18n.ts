@@ -189,6 +189,10 @@ type TranslationKey =
   | "common.deleting"
   | "common.deleteFailed"
   | "common.cancel"
+  | "faceImages.button"
+  | "faceImages.empty"
+  | "faceImages.sentLabel"
+  | "faceImages.needPhone"
   | "havuzOlustur.matchModeLabel"
   | "havuzOlustur.matchModeReview"
   | "havuzOlustur.matchModeExact"
@@ -377,6 +381,10 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "common.deleting": "Siliniyor...",
     "common.deleteFailed": "Silinemedi. Lütfen tekrar dene.",
     "common.cancel": "Vazgeç",
+    "faceImages.button": "🖼️ Resim Gönder",
+    "faceImages.empty": "Henüz resim eklenmemiş.",
+    "faceImages.sentLabel": "[Resim]",
+    "faceImages.needPhone": "Önce alıcının telefon numarasını gir.",
     "havuzOlustur.matchModeLabel": "Eşleşme Şekli",
     "havuzOlustur.matchModeReview": "Tüm Yanıtları Göster",
     "havuzOlustur.matchModeExact": "Kesin Eşleşsin",
@@ -566,6 +574,10 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "common.deleting": "Deleting...",
     "common.deleteFailed": "Couldn't delete. Please try again.",
     "common.cancel": "Cancel",
+    "faceImages.button": "🖼️ Send Image",
+    "faceImages.empty": "No images added yet.",
+    "faceImages.sentLabel": "[Image]",
+    "faceImages.needPhone": "Enter the recipient's phone number first.",
     "havuzOlustur.matchModeLabel": "Match Mode",
     "havuzOlustur.matchModeReview": "Show All Answers",
     "havuzOlustur.matchModeExact": "Exact Match",

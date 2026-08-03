@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { AvatarDisplay } from "@/components/ui/AvatarDisplay";
 import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
+import { FaceImagePicker } from "@/components/ui/FaceImagePicker";
 import { Toggle } from "@/components/ui/Toggle";
 import { SwipeToDelete } from "@/components/ui/SwipeToDelete";
 import { ReactionBar } from "@/components/ui/ReactionBar";
@@ -43,6 +44,9 @@ interface DisplayMessage {
   // Kullanici istegi: guardrail'e takilip "pending" durumundaki
   // kendi mesajimi kirmizi cerceveyle gorebilmek icin.
   moderationStatus?: string;
+  // Kullanici istegi: sabit resim setinden gonderilen mesajlarin
+  // gorseli - varsa metin yerine bu resim gosterilir.
+  imageKey?: string | null;
 }
 
 type ViewState = "loading" | "unlock" | "unlocking" | "reveal-gate" | "messages" | "error";
@@ -368,6 +372,39 @@ export default function MesajGosterPage() {
       // guardrail/blok nedeniyle) mesaj gonderilemezse, backend'in
       // GERCEK (spesifik) hata mesaji gosterilir - genel bir mesaj
       // yerine "Mesaj göndermeniz engellendi" gibi net bir bilgi verir.
+      setReplyError(
+        err instanceof ApiError && err.message
+          ? err.message
+          : "Mesaj göndermeniz engellendi. Lütfen tekrar dene."
+      );
+    } finally {
+      setIsReplying(false);
+    }
+  }
+
+  // Kullanici istegi: sabit resim setinden secilen bir resim, METIN
+  // YAZILMADAN, DOGRUDAN mesaj olarak gonderilir.
+  async function handleSendReplyImage(imageKey: string) {
+    setReplyError(null);
+    setIsReplying(true);
+    try {
+      const sent = await apiFetch<{ id: string }>(`/threads/${threadId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          body: t("faceImages.sentLabel"),
+          destroyAfterRead: replyDestroyAfterRead,
+          imageKey,
+        }),
+        headers: threadToken ? { "X-Thread-Access-Token": threadToken } : undefined,
+      });
+      setMyMessageIds((prev) => new Set(prev).add(sent.id));
+      if (threadToken) {
+        await refreshMessages(threadToken);
+      } else {
+        const msgs = await apiFetch<DisplayMessage[]>(`/threads/${threadId}/messages`);
+        setMessages(msgs);
+      }
+    } catch (err) {
       setReplyError(
         err instanceof ApiError && err.message
           ? err.message
@@ -719,7 +756,18 @@ export default function MesajGosterPage() {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-body text-slate">{msg.body}</p>
+                    {/* Kullanici istegi: sabit resim setinden gonderilen
+                        mesajlarda, metin yerine gercek resim gosterilir. */}
+                    {msg.imageKey ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/images/face/${msg.imageKey}`}
+                        alt={t("faceImages.sentLabel")}
+                        className="max-h-48 max-w-[200px] rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <p className="font-body text-slate">{msg.body}</p>
+                    )}
                     <p className="mt-2 font-body text-xs text-slate-light">
                       {new Date(msg.createdAt).toLocaleString("tr-TR")}
                       {/* Kullanici istegi: bu mesaj gonderilirken hava
@@ -794,6 +842,9 @@ export default function MesajGosterPage() {
             {/* Kullanici istegi: mesaj yazarken listbox'ta hazir
                 mesaj onerileri gostersin. */}
             <MessageSuggestions onSelect={setReplyBody} />
+            {/* Kullanici istegi: sabit bir resim setinden secilip
+                DOGRUDAN (metin yazmadan) mesaj olarak gonderilebilsin. */}
+            <FaceImagePicker onSelect={handleSendReplyImage} disabled={isReplying} />
 
             {/* Kullanici istegi: tum secenekler acilir-kapanir bir
                 bolumde - kapaliyken hicbir secenek gorunmez. */}

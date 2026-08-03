@@ -116,7 +116,8 @@ export class ThreadController {
       dto.body,
       dto.isAnonymous,
       dto.destroyAfterRead ?? false,
-      dto.weatherSummary
+      dto.weatherSummary,
+      dto.imageKey
     );
   }
 

@@ -1,0 +1,3 @@
+# Bu klasore koydugun her PNG/JPG dosyasi, mesaj gonderirken
+# secilebilecek bir "yuz/resim" olarak otomatik listelenir.
+# Bu dosyayi silme, klasor bos kalirsa git tarafindan takip edilmez.
