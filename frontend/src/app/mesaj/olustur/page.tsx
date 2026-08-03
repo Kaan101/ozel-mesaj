@@ -332,9 +332,10 @@ export default function MesajOlusturPage() {
 
               {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
                   (izin verirse) mesajla birlikte gonderebilme. Kullanici
-                  istegi: "Okununca Sil" secenegiyle arasina belirgin bir
-                  bosluk birakildi. */}
-              <div className="pt-4">
+                  istegi: "Okununca Sil" secenegiyle arasindaki bosluk
+                  MUMKUN OLDUGUNCA azaltildi (negatif margin ile ust
+                  kapsayicinin varsayilan bosluguna karsi). */}
+              <div className="-mt-3">
                 <Toggle
                   id="add-weather-toggle"
                   checked={addWeather}

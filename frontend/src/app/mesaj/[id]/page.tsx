@@ -880,9 +880,11 @@ export default function MesajGosterPage() {
                 />
                 {/* Kullanici istegi: mesaj yazarken anlik hava durumunu
                     (izin verirse) mesajla birlikte gonderebilme.
-                    Kullanici istegi: "Okununca Sil" secenegiyle arasina
-                    belirgin bir bosluk birakildi, metin dile bagli. */}
-                <div className="pt-4">
+                    Kullanici istegi: "Okununca Sil" secenegiyle
+                    arasindaki bosluk MUMKUN OLDUGUNCA azaltildi
+                    (negatif margin ile ust kapsayicinin varsayilan
+                    bosluguna karsi). */}
+                <div className="-mt-1.5">
                   <Toggle
                     id="reply-add-weather-toggle"
                     checked={replyAddWeather}
