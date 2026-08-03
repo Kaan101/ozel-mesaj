@@ -16,6 +16,7 @@ import { ConnectionIllustration } from "@/components/ui/ConnectionIllustration";
 import { useAutoRedirect } from "@/lib/use-auto-redirect";
 import { fetchWeatherSummary } from "@/lib/weather";
 import { MessageSuggestions } from "@/components/ui/MessageSuggestions";
+import { FaceImagePicker } from "@/components/ui/FaceImagePicker";
 
 // Gorev 11.1 + 11.2 + 11.3 + 11.4: Mesaj olusturma formu (alici no,
 // mesaj metni, opsiyonel soru, kimlik tercihi) ve gonderim sonrasi
@@ -144,6 +145,36 @@ export default function MesajOlusturPage() {
     }
   }
 
+  // Kullanici istegi: sabit resim setinden secilen bir resim, METIN
+  // YAZILMADAN, DOGRUDAN mesaj olarak gonderilir (kilit "none" - bu
+  // akista bilinen kisiye gonderim gibi ele alinir).
+  async function handleSendImage(imageKey: string) {
+    if (!recipientPhone) {
+      setError(t("faceImages.needPhone"));
+      return;
+    }
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const data = await apiFetch<{ threadId: string }>("/threads", {
+        method: "POST",
+        body: JSON.stringify({
+          recipientPhone,
+          recipientNotificationEmail: addEmail && recipientEmail ? recipientEmail : undefined,
+          body: t("faceImages.sentLabel"),
+          lockType: "none",
+          destroyAfterRead,
+          imageKey,
+        }),
+      });
+      setSentThreadId(data.threadId);
+    } catch (err) {
+      setError(describeError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   if (authLoading || !isAuthenticated) {
     return <main className="min-h-screen bg-mint" />;
   }
@@ -232,6 +263,9 @@ export default function MesajOlusturPage() {
           {/* Kullanici istegi: mesaj yazarken listbox'ta hazir
               mesaj onerileri gostersin. */}
           <MessageSuggestions onSelect={setBody} />
+          {/* Kullanici istegi: sabit bir resim setinden secilip
+              DOGRUDAN (metin yazmadan) mesaj olarak gonderilebilsin. */}
+          <FaceImagePicker onSelect={handleSendImage} disabled={isSubmitting} />
 
           {/* Kullanici istegi: tum secenekler acilir-kapanir bir
               bolumde - kapaliyken hicbir secenek gorunmez. */}

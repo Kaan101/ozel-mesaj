@@ -138,6 +138,7 @@ export class ThreadService implements OnModuleInit {
               isAnonymous,
               destroyAfterRead: dto.destroyAfterRead ?? false,
               weatherSummary: dto.weatherSummary ?? null,
+              imageKey: dto.imageKey ?? null,
               moderationStatus: isToxic ? "pending" : "approved",
               toxicityScore,
             },
@@ -806,6 +807,9 @@ export class ThreadService implements OnModuleInit {
     return messages.map((message) => ({
       id: message.id,
       body: message.body,
+      // Kullanici istegi: sabit resim setinden gonderilen mesajlarin
+      // gorseli - varsa frontend metin yerine resmi gosterir.
+      imageKey: message.imageKey,
       isAnonymous: message.isAnonymous,
       isSystemMessage: message.isSystemMessage,
       // Kullanici istegi: guardrail'e takilip "pending" durumunda
@@ -853,7 +857,8 @@ export class ThreadService implements OnModuleInit {
     body: string,
     isAnonymousInput: boolean | undefined,
     destroyAfterRead: boolean = false,
-    weatherSummary?: string
+    weatherSummary?: string,
+    imageKey?: string
   ) {
     // Kullanici istegi: bloke edilmis (askiya alinmis) bir kullanici
     // mevcut bir konusmada da mesaj GONDEREMEZ.
@@ -1060,6 +1065,7 @@ export class ThreadService implements OnModuleInit {
         isAnonymous,
         destroyAfterRead,
         weatherSummary: weatherSummary ?? null,
+        imageKey: imageKey ?? null,
         moderationStatus: isToxic ? "pending" : "approved",
         toxicityScore,
       },
