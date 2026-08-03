@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { useLanguage } from "@/lib/language-context";
 
 // Kullanici istegi: mesaj yazarken hazir oneriler sunan bir liste
 // kutusu - tiklaninca yazi alanina otomatik doldurulur. Liste artik
@@ -15,6 +16,7 @@ interface Suggestion {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
 export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => void }) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -44,7 +46,7 @@ export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => v
         onClick={() => setIsOpen((v) => !v)}
         className="flex items-center gap-1 font-body text-xs text-sky hover:text-sky/80"
       >
-        💡 Mesaj Önerileri
+        {t("messageSuggestions.button")}
       </button>
 
       {isOpen && (
@@ -56,16 +58,16 @@ export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => v
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ara..."
+              placeholder={t("common.search")}
               autoFocus
               className="w-full rounded-full border border-sky-light bg-mint/40 px-3 py-1.5 font-body text-sm text-slate placeholder:text-slate-light/70 focus:outline-none focus:ring-2 focus:ring-sky/30"
             />
           </div>
           <ul role="listbox" aria-label="Mesaj önerileri" className="max-h-56 overflow-y-auto py-1.5">
             {isLoading ? (
-              <li className="px-4 py-3 font-body text-sm text-slate-light">Yükleniyor...</li>
+              <li className="px-4 py-3 font-body text-sm text-slate-light">{t("common.loading")}</li>
             ) : filtered.length === 0 ? (
-              <li className="px-4 py-3 font-body text-sm text-slate-light">Sonuç bulunamadı.</li>
+              <li className="px-4 py-3 font-body text-sm text-slate-light">{t("common.noResults")}</li>
             ) : (
               filtered.map((suggestion) => (
                 <li key={suggestion.id} role="option" aria-selected="false">
