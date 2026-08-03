@@ -150,6 +150,45 @@ type TranslationKey =
   | "panel.recommendedTitle"
   | "panel.basedOnCategories"
   | "panel.noRecommendations"
+  | "settings.title"
+  | "settings.avatarTitle"
+  | "settings.saveAvatar"
+  | "settings.avatarSaved"
+  | "settings.blockedMessagesTitle"
+  | "settings.noBlockedMessages"
+  | "settings.blockAutoLift"
+  | "settings.blockedWithoutSeeing"
+  | "settings.passwordProtectedMessage"
+  | "settings.profileTitle"
+  | "settings.displayNameLabel"
+  | "settings.displayNamePlaceholder"
+  | "settings.showAvatarLabel"
+  | "settings.weatherAuto"
+  | "settings.weatherManual"
+  | "settings.blockAllOn"
+  | "settings.blockAllOff"
+  | "settings.accountInfoTitle"
+  | "settings.accountStatus"
+  | "settings.joinDate"
+  | "settings.dangerZoneTitle"
+  | "settings.deleteMessagesDesc"
+  | "settings.deleteAllMessages"
+  | "settings.deleteAccountDesc"
+  | "settings.deleteAccount"
+  | "settings.deleteAccountConfirm"
+  | "settings.confirmDelete"
+  | "settings.confirmRemoveBlock"
+  | "settings.blockRemoveFailed"
+  | "settings.confirmDeleteAllMessages"
+  | "settings.messagesDeletedSuffix"
+  | "common.remove"
+  | "common.saved"
+  | "common.saving"
+  | "common.save"
+  | "common.saveFailed"
+  | "common.deleting"
+  | "common.deleteFailed"
+  | "common.cancel"
   | "havuzOlustur.matchModeLabel"
   | "havuzOlustur.matchModeReview"
   | "havuzOlustur.matchModeExact"
@@ -299,6 +338,45 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "panel.recommendedTitle": "İlgini çekebilecekler",
     "panel.basedOnCategories": "Sık yanıtladığın kategorilere göre",
     "panel.noRecommendations": "Havuzda birkaç soruya yanıt verdikçe, burada sana özel öneriler belirecek.",
+    "settings.title": "Ayarlar",
+    "settings.avatarTitle": "Avatarım",
+    "settings.saveAvatar": "Avatarı Kaydet",
+    "settings.avatarSaved": "Avatar kaydedildi.",
+    "settings.blockedMessagesTitle": "Bloklanan Mesajlar",
+    "settings.noBlockedMessages": "Bloke ettiğin kimseden gelen mesaj yok.",
+    "settings.blockAutoLift": "Bir konuşmayı açıp yanıt verirsen, o kişiyi bloke etmiş olman otomatik olarak kalkar.",
+    "settings.blockedWithoutSeeing": "Bu mesajı görmeden bloke ettin",
+    "settings.passwordProtectedMessage": "Parola korumalı mesaj",
+    "settings.profileTitle": "Profil",
+    "settings.displayNameLabel": "Görünen İsim (opsiyonel)",
+    "settings.displayNamePlaceholder": "Boş bırakırsan anonim kalabilirsin",
+    "settings.showAvatarLabel": "Avatar görünsün",
+    "settings.weatherAuto": "Hava Durumu: Her mesaja otomatik eklensin",
+    "settings.weatherManual": "Hava Durumu: Her mesajda ayrı ayrı seçmek istiyorum",
+    "settings.blockAllOn": "Kimse bana mesaj gönderemesin (açık)",
+    "settings.blockAllOff": "Kimse bana mesaj gönderemesin (kapalı)",
+    "settings.accountInfoTitle": "Hesap Bilgisi",
+    "settings.accountStatus": "Hesap durumu",
+    "settings.joinDate": "Katılma tarihi",
+    "settings.dangerZoneTitle": "Tehlikeli Bölge",
+    "settings.deleteMessagesDesc": "Gönderdiğin tüm mesajlar (karşı tarafın ekranından da) kalıcı olarak silinir. Konuşmaların ve hesabın kalır.",
+    "settings.deleteAllMessages": "Tüm Mesajlarımı Sil",
+    "settings.deleteAccountDesc": "Hesabını sildiğinde tüm mesajların, konuşmaların ve sorularının kalıcı olarak silinir. Bu işlem geri alınamaz.",
+    "settings.deleteAccount": "Hesabımı Sil",
+    "settings.deleteAccountConfirm": "Emin misin? Bu işlem geri alınamaz.",
+    "settings.confirmDelete": "Evet, Kalıcı Olarak Sil",
+    "settings.confirmRemoveBlock": "Bu bloğu kaldırmak istediğine emin misin?",
+    "settings.blockRemoveFailed": "Blok kaldırılamadı. Lütfen tekrar dene.",
+    "settings.confirmDeleteAllMessages": "Gönderdiğin TÜM mesajlar kalıcı olarak silinecek (karşı tarafın ekranından da kaybolur). Emin misin?",
+    "settings.messagesDeletedSuffix": "mesaj silindi.",
+    "common.remove": "Kaldır",
+    "common.saved": "Kaydedildi.",
+    "common.saving": "Kaydediliyor...",
+    "common.save": "Kaydet",
+    "common.saveFailed": "Kaydedilemedi. Lütfen tekrar dene.",
+    "common.deleting": "Siliniyor...",
+    "common.deleteFailed": "Silinemedi. Lütfen tekrar dene.",
+    "common.cancel": "Vazgeç",
     "havuzOlustur.matchModeLabel": "Eşleşme Şekli",
     "havuzOlustur.matchModeReview": "Tüm Yanıtları Göster",
     "havuzOlustur.matchModeExact": "Kesin Eşleşsin",
@@ -449,6 +527,45 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<Record<TranslationKey, s
     "panel.recommendedTitle": "You might be interested in",
     "panel.basedOnCategories": "Based on categories you often reply to",
     "panel.noRecommendations": "As you answer more Pool questions, personal picks will appear here.",
+    "settings.title": "Settings",
+    "settings.avatarTitle": "My Avatar",
+    "settings.saveAvatar": "Save Avatar",
+    "settings.avatarSaved": "Avatar saved.",
+    "settings.blockedMessagesTitle": "Blocked Messages",
+    "settings.noBlockedMessages": "No messages from anyone you've blocked.",
+    "settings.blockAutoLift": "If you open a conversation and reply, blocking that person is automatically lifted.",
+    "settings.blockedWithoutSeeing": "You blocked this without seeing the message",
+    "settings.passwordProtectedMessage": "Password-protected message",
+    "settings.profileTitle": "Profile",
+    "settings.displayNameLabel": "Display Name (optional)",
+    "settings.displayNamePlaceholder": "Leave blank to stay anonymous",
+    "settings.showAvatarLabel": "Show my avatar",
+    "settings.weatherAuto": "Weather: Add automatically to every message",
+    "settings.weatherManual": "Weather: I want to choose per message",
+    "settings.blockAllOn": "No one can message me (on)",
+    "settings.blockAllOff": "No one can message me (off)",
+    "settings.accountInfoTitle": "Account Info",
+    "settings.accountStatus": "Account status",
+    "settings.joinDate": "Joined on",
+    "settings.dangerZoneTitle": "Danger Zone",
+    "settings.deleteMessagesDesc": "All the messages you've sent (including from the recipient's screen) will be permanently deleted. Your conversations and account remain.",
+    "settings.deleteAllMessages": "Delete All My Messages",
+    "settings.deleteAccountDesc": "Deleting your account permanently removes all your messages, conversations, and questions. This action cannot be undone.",
+    "settings.deleteAccount": "Delete My Account",
+    "settings.deleteAccountConfirm": "Are you sure? This action cannot be undone.",
+    "settings.confirmDelete": "Yes, Delete Permanently",
+    "settings.confirmRemoveBlock": "Are you sure you want to remove this block?",
+    "settings.blockRemoveFailed": "Couldn't remove the block. Please try again.",
+    "settings.confirmDeleteAllMessages": "ALL messages you've sent will be permanently deleted (they'll disappear from the recipient's screen too). Are you sure?",
+    "settings.messagesDeletedSuffix": "message(s) deleted.",
+    "common.remove": "Remove",
+    "common.saved": "Saved.",
+    "common.saving": "Saving...",
+    "common.save": "Save",
+    "common.saveFailed": "Couldn't save. Please try again.",
+    "common.deleting": "Deleting...",
+    "common.deleteFailed": "Couldn't delete. Please try again.",
+    "common.cancel": "Cancel",
     "havuzOlustur.matchModeLabel": "Match Mode",
     "havuzOlustur.matchModeReview": "Show All Answers",
     "havuzOlustur.matchModeExact": "Exact Match",
