@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/lib/language-context";
 
 // Kullanici istegi: public/images/face/ klasorune konulan sabit bir
@@ -17,8 +17,34 @@ export function FaceImagePicker({
   const [isOpen, setIsOpen] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // Kullanici istegi: ekranin alt kismindaysa, popup asagiya tasip
+  // gorunmez olmasin diye YUKARI dogru acilsin.
+  const [openUpward, setOpenUpward] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  async function handleOpen() {
+  // Kullanici istegi: popup acikken, uygulamanin BASKA BIR YERINE
+  // tiklaninca (butonun/popup'in DISINDA) otomatik kapansin.
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  async function handleToggle() {
+    // Kullanici istegi: popup, ekranin alt kismindaysa (asagida
+    // yeterli yer yoksa) YUKARI dogru acilir.
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const estimatedPopupHeight = 180;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < estimatedPopupHeight);
+    }
     setIsOpen((v) => !v);
     if (!isOpen && images.length === 0) {
       setIsLoading(true);
@@ -35,10 +61,11 @@ export function FaceImagePicker({
   }
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={handleOpen}
+        onClick={handleToggle}
         disabled={disabled}
         className="font-body text-xs text-sky hover:text-sky/80 disabled:opacity-50"
       >
@@ -46,13 +73,17 @@ export function FaceImagePicker({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-10 mt-1 w-72 overflow-hidden rounded-2xl border-2 border-sky-light bg-white p-3 shadow-soft-lifted">
+        <div
+          className={`absolute left-0 z-10 w-72 overflow-hidden rounded-2xl border-2 border-sky-light bg-white p-3 shadow-soft-lifted ${
+            openUpward ? "bottom-full mb-1" : "top-full mt-1"
+          }`}
+        >
           {isLoading ? (
             <p className="font-body text-sm text-slate-light">{t("common.loading")}</p>
           ) : images.length === 0 ? (
             <p className="font-body text-sm text-slate-light">{t("faceImages.empty")}</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex max-h-56 flex-wrap gap-2 overflow-y-auto">
               {images.map((imageKey) => (
                 <button
                   key={imageKey}
