@@ -36,6 +36,25 @@ export function FaceImagePicker({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  // Kullanici istegi: butonun kendisinde, face dizinindeki ILK resim
+  // kucuk bir ikon olarak gorunsun - bu yuzden liste popup ACILMADAN
+  // (component yuklenir yuklenmez) erkenden cekilir.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/face-images");
+        const data: { images: string[] } = await res.json();
+        if (!cancelled) setImages(data.images);
+      } catch {
+        // Sessizce gec.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function handleToggle() {
     // Kullanici istegi: popup, ekranin alt kismindaysa (asagida
     // yeterli yer yoksa) YUKARI dogru acilir.
@@ -67,8 +86,20 @@ export function FaceImagePicker({
         type="button"
         onClick={handleToggle}
         disabled={disabled}
-        className="font-body text-xs text-sky hover:text-sky/80 disabled:opacity-50"
+        className="flex items-center gap-1.5 font-body text-xs text-sky hover:text-sky/80 disabled:opacity-50"
       >
+        {/* Kullanici istegi: sabit emoji yerine, face dizinindeki ILK
+            resim kucuk bir ikon olarak gosterilir. */}
+        {images.length > 0 ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/images/face/${images[0]}`}
+            alt=""
+            className="h-4 w-4 shrink-0 rounded object-cover"
+          />
+        ) : (
+          <span aria-hidden="true">🖼️</span>
+        )}
         {t("faceImages.button")}
       </button>
 
