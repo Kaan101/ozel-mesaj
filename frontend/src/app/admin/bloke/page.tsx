@@ -433,12 +433,12 @@ export default function AdminBlokePage() {
                         Iletisim, sikayet->Sikayet Edildi) tekrar
                         secim yapilmasina gerek yok. */}
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-xs text-slate">
-                      {b.reasonDescription ? (
-                        <span title={`Kod: ${b.reasonCode}`}>
-                          <span className="rounded-full bg-sky-light px-1.5 py-0.5 font-semibold text-sky-hover">
-                            {b.reasonCode}
-                          </span>{" "}
-                          {b.reasonDescription}
+                      {b.reasonCode ? (
+                        <span
+                          title={b.reasonDescription ?? undefined}
+                          className="rounded-full bg-sky-light px-2 py-0.5 font-semibold text-sky-hover"
+                        >
+                          {b.reasonCode}
                         </span>
                       ) : (
                         <span className="text-slate-light">—</span>
@@ -534,12 +534,12 @@ export default function AdminBlokePage() {
                       )}
                     </td>
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-[10px] text-slate">
-                      {h.reasonDescription ? (
-                        <span title={`Kod: ${h.reasonCode}`}>
-                          <span className="rounded-full bg-sky-light px-1.5 py-0.5 font-semibold text-sky-hover">
-                            {h.reasonCode}
-                          </span>{" "}
-                          {h.reasonDescription}
+                      {h.reasonCode ? (
+                        <span
+                          title={h.reasonDescription ?? undefined}
+                          className="rounded-full bg-sky-light px-2 py-0.5 font-semibold text-sky-hover"
+                        >
+                          {h.reasonCode}
                         </span>
                       ) : (
                         <span className="text-slate-light">—</span>
