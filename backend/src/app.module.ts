@@ -8,6 +8,7 @@ import { RedisService } from "./common/redis.service";
 import { ThreadModule } from "./thread/thread.module";
 import { ContactsModule } from "./contacts/contacts.module";
 import { MessageSuggestionsModule } from "./message-suggestions/message-suggestions.module";
+import { SystemCodesModule } from "./system-codes/system-codes.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { PoolModule } from "./pool/pool.module";
 import { SafetyModule } from "./safety/safety.module";
@@ -26,6 +27,7 @@ import { AuditRequestInterceptor } from "./audit/audit-request.interceptor";
     ThreadModule,
     ContactsModule,
     MessageSuggestionsModule,
+    SystemCodesModule,
     JobsModule,
     PoolModule,
     SafetyModule,

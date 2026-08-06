@@ -151,6 +151,16 @@ export default function AdminHubPage() {
               </p>
             </Card>
           </Link>
+
+          <Link href="/admin/kodlar">
+            <Card lifted className="h-full hover:shadow-soft-lifted transition-shadow">
+              <div className="text-3xl mb-2">🏷️</div>
+              <h2 className="font-display text-base font-bold text-slate">Kod Tanımları</h2>
+              <p className="mt-1 font-body text-xs text-slate-light">
+                Blok nedeni gibi sistem genelindeki kod listelerini yönet.
+              </p>
+            </Card>
+          </Link>
         </div>
       </div>
     </main>

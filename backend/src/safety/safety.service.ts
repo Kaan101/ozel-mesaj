@@ -201,13 +201,19 @@ export class SafetyService {
   // kayitlarini (kim kimi bloklamis, telefon numaralariyla) gorme -
   // gerekirse admin olarak dogrudan kaldirabilme.
   async listAllBlocksForAdmin() {
-    const blocks = await this.prisma.block.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        blocker: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
-        blocked: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
-      },
-    });
+    const [blocks, reasonCodes] = await Promise.all([
+      this.prisma.block.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          blocker: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
+          blocked: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
+        },
+      }),
+      // Kullanici istegi: blok nedeni KOD olarak tutuluyor - aciklamasi
+      // icin "block_reason" kategorisindeki tum kodlar cekilir.
+      this.prisma.systemCode.findMany({ where: { category: "block_reason" } }),
+    ]);
+    const reasonDescriptionByCode = new Map(reasonCodes.map((r) => [r.code, r.description]));
 
     return blocks.map((b) => {
       // Kullanici istegi: sistem tarafindan (toksik icerik nedeniyle)
@@ -230,12 +236,27 @@ export class SafetyService {
           : null,
         blockedDisplayName: b.blocked.displayName,
         createdAt: b.createdAt,
+        // Kullanici istegi: blok nedeni - kod + aciklamasi birlikte.
+        reasonCode: b.reasonCode,
+        reasonDescription: b.reasonCode
+          ? (reasonDescriptionByCode.get(b.reasonCode) ?? b.reasonCode)
+          : null,
       };
     });
   }
 
   // Kullanici istegi: admin, bir blogu dogrudan (taraflardan biri
   // mesaj atmayi beklemeden) kaldirabilsin.
+  // Kullanici istegi: admin, bir bloga neden KODU atayabilir/degistirebilir
+  // (Sistem Ayarlari > Kod Tanimlari ekranindan yonetilen sabit kod
+  // listesinden).
+  async setBlockReason(blockId: string, reasonCode: string | null): Promise<void> {
+    await this.prisma.block.update({
+      where: { id: blockId },
+      data: { reasonCode: reasonCode || null },
+    });
+  }
+
   async removeBlockAsAdmin(blockId: string): Promise<void> {
     // Kullanici istegi: silmeden ONCE blok kaydini oku (blocker/blocked
     // ID'lerini almak icin) - blok gecmisi kaydinin kapatilmasi
