@@ -38,7 +38,7 @@ interface BlockedThread {
 export default function AyarlarPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
-  const { t, language } = useLanguage();
+  const { t, language, setLanguage, multiLanguageEnabled } = useLanguage();
   const dateLocale = language === "en" ? "en-US" : "tr-TR";
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -185,6 +185,40 @@ export default function AyarlarPage() {
     <main className="min-h-screen bg-mint px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
         <h1 className="font-display text-2xl font-bold text-slate">{t("settings.title")}</h1>
+
+        {/* Kullanici istegi: TR/EN dil secenegi ust menuden buraya
+            (Ayarlar) tasindi - coklu dil kapaliysa hic gosterilmez. */}
+        {multiLanguageEnabled && (
+          <Card lifted className="space-y-2">
+            <h2 className="font-display text-lg font-bold text-slate">
+              {language === "tr" ? "Dil" : "Language"}
+            </h2>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setLanguage("tr")}
+                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors ${
+                  language === "tr"
+                    ? "bg-sky text-white"
+                    : "border-2 border-sky-light text-slate hover:bg-mint"
+                }`}
+              >
+                Türkçe
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`flex-1 rounded-full px-4 py-2 font-body text-sm font-semibold transition-colors ${
+                  language === "en"
+                    ? "bg-sky text-white"
+                    : "border-2 border-sky-light text-slate hover:bg-mint"
+                }`}
+              >
+                English
+              </button>
+            </div>
+          </Card>
+        )}
 
         {/* Kullanici istegi: zengin ozellestirilebilir avatar
             duzenleme ekrani (DiceBear tabanli) - acilir-kapanir. */}

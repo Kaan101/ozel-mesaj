@@ -22,7 +22,7 @@ import { AccountMenu } from "./AccountMenu";
 // belirleniyor (bkz. lib/language-context.tsx).
 export function SiteHeader() {
   const pathname = usePathname();
-  const { t, language, setLanguage, multiLanguageEnabled } = useLanguage();
+  const { t } = useLanguage();
   const { isAuthenticated } = useAuth();
   const [hasUnread, setHasUnread] = useState(false);
 
@@ -97,31 +97,6 @@ export function SiteHeader() {
           )}
           {t("nav.myMessages")}
         </Link>
-        {/* Kullanici istegi: ust menuye manuel TR/EN dil secenegi
-            eklendi - coklu dil kapaliysa (sistem parametresi) hic
-            gosterilmez, cunku o durumda dil zaten sabit Ingilizce. */}
-        {multiLanguageEnabled && (
-          <div className="flex items-center gap-1 rounded-full border-2 border-sky-light p-0.5">
-            <button
-              type="button"
-              onClick={() => setLanguage("tr")}
-              className={`rounded-full px-2 py-0.5 font-body text-xs font-semibold transition-colors ${
-                language === "tr" ? "bg-sky text-white" : "text-slate-light hover:text-slate"
-              }`}
-            >
-              TR
-            </button>
-            <button
-              type="button"
-              onClick={() => setLanguage("en")}
-              className={`rounded-full px-2 py-0.5 font-body text-xs font-semibold transition-colors ${
-                language === "en" ? "bg-sky text-white" : "text-slate-light hover:text-slate"
-              }`}
-            >
-              EN
-            </button>
-          </div>
-        )}
         {/* Kullanici istegi: hesap menusu - temsili avatar resmiyle
             acilir, altinda Ayarlar ve Cikis/Giris Yap secenekleri var. */}
         <AccountMenu />
