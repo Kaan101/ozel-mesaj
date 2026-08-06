@@ -24,6 +24,10 @@ export default function AdminMesajOnerileriPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // Kullanici istegi: oneriler artik DILE (tr/en) gore ayriliyor -
+  // admin, hangi dilin listesini gorup duzenleyecegini secer.
+  const [language, setLanguage] = useState<"tr" | "en">("tr");
+
   // Toplu ekleme - bir alanda birden fazla satir.
   const [bulkText, setBulkText] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -39,13 +43,13 @@ export default function AdminMesajOnerileriPage() {
   useEffect(() => {
     if (isUnlocked) fetchSuggestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUnlocked]);
+  }, [isUnlocked, language]);
 
   async function fetchSuggestions() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/message-suggestions`);
+      const res = await fetch(`${API_BASE_URL}/message-suggestions?language=${language}`);
       if (!res.ok) throw new Error();
       const data: Suggestion[] = await res.json();
       setSuggestions(data);
@@ -68,7 +72,7 @@ export default function AdminMesajOnerileriPage() {
       const res = await fetch(`${API_BASE_URL}/message-suggestions/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
-        body: JSON.stringify({ texts }),
+        body: JSON.stringify({ texts, language }),
       });
       if (!res.ok) throw new Error();
       setBulkText("");
@@ -146,6 +150,28 @@ export default function AdminMesajOnerileriPage() {
           Kullanıcıların mesaj yazarken görebileceği hazır öneri listesi. Buradan
           ekleyebilir, düzenleyebilir ve silebilirsin.
         </p>
+
+        {/* Kullanici istegi: oneriler artik DILE gore ayrilabiliyor. */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setLanguage("tr")}
+            className={`rounded-full px-4 py-1.5 font-body text-sm font-semibold ${
+              language === "tr" ? "bg-sky text-white" : "border-2 border-sky-light text-slate"
+            }`}
+          >
+            🇹🇷 Türkçe
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage("en")}
+            className={`rounded-full px-4 py-1.5 font-body text-sm font-semibold ${
+              language === "en" ? "bg-sky text-white" : "border-2 border-sky-light text-slate"
+            }`}
+          >
+            🇬🇧 English
+          </button>
+        </div>
 
         {isLoading && <p className="font-body text-sm text-slate-light">Yükleniyor...</p>}
         {error && <p className="font-body text-sm text-coral">{error}</p>}
