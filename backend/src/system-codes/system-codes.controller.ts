@@ -22,8 +22,8 @@ export class SystemCodesController {
 
   @UseGuards(AdminGuard)
   @Patch(":id")
-  async update(@Param("id") id: string, @Body() dto: { description: string }) {
-    return this.service.update(id, dto.description);
+  async update(@Param("id") id: string, @Body() dto: { code: string; description: string }) {
+    return this.service.update(id, dto.code, dto.description);
   }
 
   @UseGuards(AdminGuard)

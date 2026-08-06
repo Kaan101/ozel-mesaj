@@ -46,6 +46,10 @@ interface BlockHistoryRecord {
   blockedAt: string;
   unblockedAt: string | null;
   cumulativeCount: number;
+  // Kullanici istegi: blok gecmisine de neden kodu eklendi (mevcut
+  // kayitlar icin tahmini olarak doldurulmustur).
+  reasonCode: string | null;
+  reasonDescription: string | null;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
@@ -526,6 +530,9 @@ export default function AdminBlokePage() {
                     Bloktan Çıkış
                   </th>
                   <th className="border border-slate-light/60 px-4 py-3 font-display text-[10px] font-bold text-slate">
+                    Blok Nedeni
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-[10px] font-bold text-slate">
                     Kümülatif Sayı
                   </th>
                 </tr>
@@ -561,6 +568,18 @@ export default function AdminBlokePage() {
                         </span>
                       ) : (
                         <span className="font-semibold text-coral">Hâlâ aktif</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-[10px] text-slate">
+                      {h.reasonDescription ? (
+                        <span title={`Kod: ${h.reasonCode}`}>
+                          <span className="rounded-full bg-sky-light px-1.5 py-0.5 font-semibold text-sky-hover">
+                            {h.reasonCode}
+                          </span>{" "}
+                          {h.reasonDescription}
+                        </span>
+                      ) : (
+                        <span className="text-slate-light">—</span>
                       )}
                     </td>
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-[10px] font-semibold text-slate text-center">

@@ -411,6 +411,10 @@ model BlockLog {
   blockedAt   DateTime  @default(now()) @map("blocked_at")
   unblockedAt DateTime? @map("unblocked_at")
 
+  // Kullanici istegi: blok gecmisinde de neden KODU gorunsun -
+  // mevcut kayitlar icin tahmini olarak (type'a gore) doldurulur.
+  reasonCode String? @map("reason_code")
+
   @@map("block_logs")
 }
 
