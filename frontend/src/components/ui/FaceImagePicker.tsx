@@ -3,19 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/lib/language-context";
 
-// Kullanici istegi: public/images/face|pool|type/ klasorlerine
-// konulan sabit resim setlerinden secim yapip DOGRUDAN (metin
-// yazmadan) mesaj olarak gonderebilme. Resimler 1cm x 1cm boyutunda
-// kucuk bir panoda, 3 SEKME (Face/Pool/Type) halinde gorunur.
-const CATEGORIES = ["face", "pool", "type"] as const;
-type Category = (typeof CATEGORIES)[number];
-
-const CATEGORY_LABELS: Record<Category, string> = {
-  face: "Face",
-  pool: "Pool",
-  type: "Type",
-};
-
+// Kullanici istegi: public/images/face/ klasorune konulan sabit bir
+// resim setinden secim yapip DOGRUDAN (metin yazmadan) mesaj olarak
+// gonderebilme. Resimler 1cm x 1cm boyutunda kucuk bir panoda gorunur.
+// (Kullanici istegi: pool/type sekmeleri KALDIRILDI - tek liste,
+// ilk (tek) haline geri donuldu.)
 export function FaceImagePicker({
   onSelect,
   disabled = false,
@@ -25,12 +17,7 @@ export function FaceImagePicker({
 }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [imagesByCategory, setImagesByCategory] = useState<Record<Category, string[]>>({
-    face: [],
-    pool: [],
-    type: [],
-  });
-  const [activeTab, setActiveTab] = useState<Category>("face");
+  const [images, setImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   // Kullanici istegi: ekranin alt kismindaysa, popup asagiya tasip
   // gorunmez olmasin diye YUKARI dogru acilsin.
@@ -51,19 +38,17 @@ export function FaceImagePicker({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  // Kullanici istegi: butonun kendisinde, "face" kategorisindeki ILK
-  // resim kucuk bir ikon olarak gorunsun - bu yuzden TUM kategoriler
-  // erkenden (component yuklenir yuklenmez) tek seferde cekilir.
+  // Kullanici istegi: butonun kendisinde, face dizinindeki ILK resim
+  // kucuk bir ikon olarak gorunsun - bu yuzden liste popup ACILMADAN
+  // (component yuklenir yuklenmez) erkenden cekilir.
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
     (async () => {
       try {
-        const res = await fetch("/api/face-images?all=1");
-        const data: { face: string[]; pool: string[]; type: string[] } = await res.json();
-        if (!cancelled) {
-          setImagesByCategory({ face: data.face, pool: data.pool, type: data.type });
-        }
+        const res = await fetch("/api/face-images");
+        const data: { images: string[] } = await res.json();
+        if (!cancelled) setImages(data.images);
       } catch {
         // Sessizce gec.
       } finally {
@@ -80,15 +65,12 @@ export function FaceImagePicker({
     // yeterli yer yoksa) YUKARI dogru acilir.
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const estimatedPopupHeight = 220;
+      const estimatedPopupHeight = 180;
       const spaceBelow = window.innerHeight - rect.bottom;
       setOpenUpward(spaceBelow < estimatedPopupHeight);
     }
     setIsOpen((v) => !v);
   }
-
-  const faceIcon = imagesByCategory.face[0];
-  const activeImages = imagesByCategory[activeTab];
 
   return (
     <div ref={containerRef} className="relative">
@@ -101,10 +83,10 @@ export function FaceImagePicker({
       >
         {/* Kullanici istegi: sabit emoji yerine, face dizinindeki ILK
             resim kucuk bir ikon olarak gosterilir. */}
-        {faceIcon ? (
+        {images.length > 0 ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/images/face/${faceIcon}`}
+            src={`/images/face/${images[0]}`}
             alt=""
             className="h-4 w-4 shrink-0 rounded object-cover"
           />
@@ -116,61 +98,38 @@ export function FaceImagePicker({
 
       {isOpen && (
         <div
-          className={`absolute left-0 z-10 w-72 overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted ${
+          className={`absolute left-0 z-10 w-72 overflow-hidden rounded-2xl border-2 border-sky-light bg-white p-3 shadow-soft-lifted ${
             openUpward ? "bottom-full mb-1" : "top-full mt-1"
           }`}
         >
-          {/* Kullanici istegi: 3 sekme - Face / Pool / Type. */}
-          <div className="flex border-b border-sky-light/50">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setActiveTab(cat)}
-                className={`flex-1 px-2 py-2 font-body text-xs font-semibold transition-colors ${
-                  activeTab === cat
-                    ? "border-b-2 border-sky text-sky"
-                    : "text-slate-light hover:text-slate"
-                }`}
-              >
-                {CATEGORY_LABELS[cat]}
-              </button>
-            ))}
-          </div>
-
-          <div className="p-3">
-            {isLoading ? (
-              <p className="font-body text-sm text-slate-light">{t("common.loading")}</p>
-            ) : activeImages.length === 0 ? (
-              <p className="font-body text-sm text-slate-light">{t("faceImages.empty")}</p>
-            ) : (
-              <div className="flex max-h-56 flex-wrap gap-2 overflow-y-auto">
-                {activeImages.map((imageKey) => (
-                  <button
-                    key={imageKey}
-                    type="button"
-                    onClick={() => {
-                      // Kullanici istegi: hangi kategoriden secildigi
-                      // de saklanir (orn. "pool/happy.png") - mesaj
-                      // goruntulenirken dogru klasorden okunabilsin.
-                      onSelect(`${activeTab}/${imageKey}`);
-                      setIsOpen(false);
-                    }}
-                    title={imageKey}
-                    className="overflow-hidden rounded-lg border-2 border-transparent hover:border-sky transition-colors"
-                    style={{ width: "1cm", height: "1cm" }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`/images/${activeTab}/${imageKey}`}
-                      alt={imageKey}
-                      className="h-full w-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {isLoading ? (
+            <p className="font-body text-sm text-slate-light">{t("common.loading")}</p>
+          ) : images.length === 0 ? (
+            <p className="font-body text-sm text-slate-light">{t("faceImages.empty")}</p>
+          ) : (
+            <div className="flex max-h-56 flex-wrap gap-2 overflow-y-auto">
+              {images.map((imageKey) => (
+                <button
+                  key={imageKey}
+                  type="button"
+                  onClick={() => {
+                    onSelect(imageKey);
+                    setIsOpen(false);
+                  }}
+                  title={imageKey}
+                  className="overflow-hidden rounded-lg border-2 border-transparent hover:border-sky transition-colors"
+                  style={{ width: "1cm", height: "1cm" }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/images/face/${imageKey}`}
+                    alt={imageKey}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

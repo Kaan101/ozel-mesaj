@@ -757,11 +757,22 @@ export default function MesajGosterPage() {
                   )}
                   <div className="min-w-0 flex-1">
                     {/* Kullanici istegi: sabit resim setinden gonderilen
-                        mesajlarda, metin yerine gercek resim gosterilir. */}
+                        mesajlarda, metin yerine gercek resim gosterilir.
+                        Kullanici istegi: pool/type kategorileri geri
+                        alindi - imageKey artik sadece dosya adi
+                        (orn. "happy.png"), face/ klasorunden okunur.
+                        GERIYE UYUMLULUK: kategori sekmeleri denemesi
+                        sirasinda kaydedilmis eski mesajlarda imageKey
+                        zaten "kategori/dosya.png" formatinda olabilir -
+                        bu durumda oldugu gibi kullanilir. */}
                     {msg.imageKey ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`/images/face/${msg.imageKey}`}
+                        src={
+                          msg.imageKey.includes("/")
+                            ? `/images/${msg.imageKey}`
+                            : `/images/face/${msg.imageKey}`
+                        }
                         alt={t("faceImages.sentLabel")}
                         className="max-h-48 max-w-[200px] rounded-2xl object-cover"
                       />

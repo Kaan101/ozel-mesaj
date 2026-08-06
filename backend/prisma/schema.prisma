@@ -381,6 +381,11 @@ model Block {
   // ihlal). Duzenli bir arka plan gorevi bu tarihi gecen bloklari siler.
   expiresAt DateTime? @map("expires_at")
 
+  // Kullanici istegi: blok nedeni artik serbest metin degil, KOD
+  // olarak tutuluyor - admin, "Sistem Ayarları > Kod Tanımları"
+  // ekranindan yonetilen sabit bir kod listesinden secer/degistirir.
+  reasonCode String? @map("reason_code")
+
   // Ayni kisi ayni numarayi birden fazla kez engelleyemez.
   @@unique([blockerUserId, blockedUserId])
   @@map("blocks")
@@ -494,6 +499,25 @@ model MessageSuggestion {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("message_suggestions")
+}
+
+// Kullanici istegi: sistem genelinde kullanilan (blok nedeni gibi)
+// KOD tanimlari icin GENEL AMACLI bir tablo - "Sistem Ayarlari > Kod
+// Tanimlari" ekranindan yonetilir. "category" ayni ekranda birden
+// fazla kod listesini (orn. "block_reason", ileride baska turler)
+// ayirt etmeye yarar.
+model SystemCode {
+  id          String @id @default(uuid()) @db.Uuid
+  category    String
+  code        String
+  description String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Ayni kategori icinde ayni kod tekrar edemez.
+  @@unique([category, code])
+  @@map("system_codes")
 }
 
 model ToxicWord {

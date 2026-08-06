@@ -74,6 +74,17 @@ export class SafetyController {
     return { message: "Blok kaldırıldı." };
   }
 
+  // Kullanici istegi: admin, bir bloga neden KODU atayabilir/degistirebilir.
+  @UseGuards(AdminGuard)
+  @Patch("all-blocks/:id/reason")
+  async setBlockReason(
+    @Param("id") blockId: string,
+    @Body() dto: { reasonCode: string | null }
+  ) {
+    await this.safetyService.setBlockReason(blockId, dto.reasonCode);
+    return { message: "Blok nedeni güncellendi." };
+  }
+
   // Kullanici istegi: test surecinde birikmis TUM blok kayitlarini
   // tek seferde temizleyebilme.
   @UseGuards(AdminGuard)
