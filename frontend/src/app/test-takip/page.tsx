@@ -1,0 +1,281 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+
+interface TestCaseRecord {
+  id: string;
+  no: number;
+  section: string;
+  scenario: string;
+  expectedResult: string;
+  status: string;
+  note: string | null;
+  lastUpdatedBy: string | null;
+  lastUpdatedAt: string | null;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
+const STATUS_OPTIONS = ["Test Edilmedi", "Başarılı", "Başarısız", "Kısmen Başarılı"];
+const TESTER_STORAGE_KEY = "test_takip_tester_name";
+
+// Kullanici istegi: ADMIN ALTINDA DEGIL, ayri, ekip tarafindan
+// paylasilan bir test takip ekrani. "Testi Yapan" alanina girilen
+// isim tarayicida hatirlanir - her guncelleme o isimle imzalanir.
+// Baska biri kendi adini girip devam ederse, YENI guncellemeler
+// ONUN adiyla kaydedilir (eski kayitlar degismez).
+export default function TestTakipPage() {
+  const [testerName, setTesterName] = useState("");
+  const [cases, setCases] = useState<TestCaseRecord[]>([]);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [sectionFilter, setSectionFilter] = useState<string>("__all__");
+
+  useEffect(() => {
+    const stored = localStorage.getItem(TESTER_STORAGE_KEY);
+    if (stored) setTesterName(stored);
+    fetchCases();
+  }, []);
+
+  useEffect(() => {
+    if (testerName) localStorage.setItem(TESTER_STORAGE_KEY, testerName);
+  }, [testerName]);
+
+  async function fetchCases() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/test-cases`);
+      if (!res.ok) throw new Error();
+      const data: TestCaseRecord[] = await res.json();
+      setCases(data);
+      const drafts: Record<string, string> = {};
+      for (const c of data) drafts[c.id] = c.note ?? "";
+      setNoteDrafts(drafts);
+    } catch {
+      setError("Test listesi yüklenemedi.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleUpdate(id: string, patch: { status?: string; note?: string }) {
+    if (!testerName.trim()) {
+      setError("Güncelleme yapmadan önce 'Testi Yapan' alanına adını gir.");
+      return;
+    }
+    setSavingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/test-cases/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...patch, updatedBy: testerName.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      const updated: TestCaseRecord = await res.json();
+      setCases((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    } catch {
+      setError("Güncellenemedi. Lütfen tekrar dene.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  // Kullanici istegi: sayilar (kac test var, kac hangi statude)
+  // canli olarak, mevcut listeden hesaplanir.
+  const stats = useMemo(() => {
+    const total = cases.length;
+    const success = cases.filter((c) => c.status === "Başarılı").length;
+    const fail = cases.filter((c) => c.status === "Başarısız").length;
+    const partial = cases.filter((c) => c.status === "Kısmen Başarılı").length;
+    const untested = cases.filter((c) => c.status === "Test Edilmedi").length;
+    return { total, success, fail, partial, untested };
+  }, [cases]);
+
+  const sections = useMemo(() => {
+    const unique = [...new Set(cases.map((c) => c.section))];
+    return unique;
+  }, [cases]);
+
+  const visibleCases = useMemo(() => {
+    if (sectionFilter === "__all__") return cases;
+    return cases.filter((c) => c.section === sectionFilter);
+  }, [cases, sectionFilter]);
+
+  function statusColor(status: string): string {
+    if (status === "Başarılı") return "bg-meadow-light text-meadow-hover";
+    if (status === "Başarısız") return "bg-coral-light text-coral";
+    if (status === "Kısmen Başarılı") return "bg-[#FCF3CF] text-[#8a6d1a]";
+    return "bg-slate-light/20 text-slate-light";
+  }
+
+  return (
+    <main className="min-h-screen bg-mint px-4 py-10">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <h1 className="font-display text-2xl font-bold text-slate">
+          YouHaveMi — Test Takip Ekranı
+        </h1>
+        <p className="font-body text-sm text-slate-light">
+          Bu ekran, ekip içinde paylaşılan canlı bir test kontrol listesidir. Herkes kendi adını
+          girip test sonuçlarını işaretleyebilir.
+        </p>
+
+        {/* Testi yapan isim alani */}
+        <Card lifted className="max-w-sm">
+          <Input
+            label="Testi Yapan (adını gir, her güncelleme bu adla kaydedilir)"
+            value={testerName}
+            onChange={(e) => setTesterName(e.target.value)}
+            placeholder="örn. Ayşe"
+          />
+        </Card>
+
+        {error && <p className="font-body text-sm text-coral">{error}</p>}
+        {isLoading && <p className="font-body text-sm text-slate-light">Yükleniyor...</p>}
+
+        {/* Istatistik ozeti - canli hesaplanir */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <Card className="text-center">
+            <p className="font-display text-2xl font-bold text-slate">{stats.total}</p>
+            <p className="font-body text-xs text-slate-light">Toplam Test</p>
+          </Card>
+          <Card className="text-center">
+            <p className="font-display text-2xl font-bold text-meadow-hover">{stats.success}</p>
+            <p className="font-body text-xs text-slate-light">Başarılı</p>
+          </Card>
+          <Card className="text-center">
+            <p className="font-display text-2xl font-bold text-coral">{stats.fail}</p>
+            <p className="font-body text-xs text-slate-light">Başarısız</p>
+          </Card>
+          <Card className="text-center">
+            <p className="font-display text-2xl font-bold text-[#8a6d1a]">{stats.partial}</p>
+            <p className="font-body text-xs text-slate-light">Kısmen Başarılı</p>
+          </Card>
+          <Card className="text-center">
+            <p className="font-display text-2xl font-bold text-slate-light">{stats.untested}</p>
+            <p className="font-body text-xs text-slate-light">Test Edilmedi</p>
+          </Card>
+        </div>
+
+        {/* Bolum filtresi */}
+        <div className="flex items-center gap-2">
+          <label className="font-body text-sm font-semibold text-slate">Bölüm:</label>
+          <select
+            value={sectionFilter}
+            onChange={(e) => setSectionFilter(e.target.value)}
+            className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+          >
+            <option value="__all__">Tüm Bölümler</option>
+            {sections.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Test tablosu */}
+        <Card className="overflow-x-auto p-0">
+          <table className="w-full border-collapse border border-slate-light/60 text-left">
+            <thead>
+              <tr className="bg-mint">
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate w-10">
+                  No
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate">
+                  Bölüm
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate">
+                  Test Senaryosu
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate">
+                  Beklenen Sonuç
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate w-36">
+                  Durum
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate">
+                  Not
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate w-32">
+                  Güncelleyen
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleCases.map((c) => (
+                <tr key={c.id}>
+                  <td className="border border-slate-light/60 px-3 py-2 font-body text-xs text-slate text-center">
+                    {c.no}
+                  </td>
+                  <td className="border border-slate-light/60 px-3 py-2 font-body text-xs text-slate whitespace-nowrap">
+                    {c.section}
+                  </td>
+                  <td className="border border-slate-light/60 px-3 py-2 font-body text-xs text-slate">
+                    {c.scenario}
+                  </td>
+                  <td className="border border-slate-light/60 px-3 py-2 font-body text-xs text-slate-light">
+                    {c.expectedResult}
+                  </td>
+                  <td className="border border-slate-light/60 px-2 py-2">
+                    <select
+                      value={c.status}
+                      onChange={(e) => handleUpdate(c.id, { status: e.target.value })}
+                      disabled={savingId === c.id}
+                      className={`w-full rounded-full border-2 border-transparent px-2 py-1 font-body text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky/20 disabled:opacity-50 ${statusColor(c.status)}`}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="border border-slate-light/60 px-2 py-2">
+                    <input
+                      value={noteDrafts[c.id] ?? ""}
+                      onChange={(e) =>
+                        setNoteDrafts((prev) => ({ ...prev, [c.id]: e.target.value }))
+                      }
+                      onBlur={() => {
+                        if ((noteDrafts[c.id] ?? "") !== (c.note ?? "")) {
+                          handleUpdate(c.id, { note: noteDrafts[c.id] ?? "" });
+                        }
+                      }}
+                      placeholder="Not ekle..."
+                      className="w-full rounded-2xl border-2 border-sky-light bg-white px-2 py-1 font-body text-xs text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+                    />
+                  </td>
+                  <td className="border border-slate-light/60 px-3 py-2 font-body text-[11px] text-slate-light whitespace-nowrap">
+                    {c.lastUpdatedBy ? (
+                      <>
+                        <span className="font-semibold text-slate">{c.lastUpdatedBy}</span>
+                        {c.lastUpdatedAt && (
+                          <>
+                            <br />
+                            {new Date(c.lastUpdatedAt).toLocaleString("tr-TR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </div>
+    </main>
+  );
+}
