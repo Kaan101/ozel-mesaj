@@ -164,15 +164,36 @@ export default function TestTakipPage() {
           girip test sonuçlarını işaretleyebilir.
         </p>
 
-        {/* Testi yapan isim alani */}
-        <Card lifted className="max-w-sm">
-          <Input
-            label="Testi Yapan (adını gir, her güncelleme bu adla kaydedilir)"
-            value={testerName}
-            onChange={(e) => setTesterName(e.target.value)}
-            placeholder="örn. Ayşe"
-          />
-        </Card>
+        {/* Testi yapan isim alani + test durumlari pasta grafigi -
+            kullanici istegi geregi AYNI SATIRDA. */}
+        <div className="flex flex-wrap items-stretch gap-4">
+          <Card lifted className="max-w-sm flex-1">
+            <Input
+              label="Testi Yapan (adını gir, her güncelleme bu adla kaydedilir)"
+              value={testerName}
+              onChange={(e) => setTesterName(e.target.value)}
+              placeholder="örn. Ayşe"
+            />
+          </Card>
+          <Card lifted className="flex items-center gap-4">
+            <StatusPieChart stats={stats} />
+            <ul className="space-y-1">
+              <li className="flex items-center gap-1.5 font-body text-xs text-slate">
+                <span className="h-2.5 w-2.5 rounded-full bg-meadow" /> Başarılı ({stats.success})
+              </li>
+              <li className="flex items-center gap-1.5 font-body text-xs text-slate">
+                <span className="h-2.5 w-2.5 rounded-full bg-coral" /> Başarısız ({stats.fail})
+              </li>
+              <li className="flex items-center gap-1.5 font-body text-xs text-slate">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#E0B93C]" /> Kısmen ({stats.partial})
+              </li>
+              <li className="flex items-center gap-1.5 font-body text-xs text-slate">
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-light/50" /> Test Edilmedi (
+                {stats.untested})
+              </li>
+            </ul>
+          </Card>
+        </div>
 
         {error && <p className="font-body text-sm text-coral">{error}</p>}
         {isLoading && <p className="font-body text-sm text-slate-light">Yükleniyor...</p>}
@@ -366,5 +387,84 @@ export default function TestTakipPage() {
         </Card>
       </div>
     </main>
+  );
+}
+
+// Kullanici istegi: test durumlarini (Basarili/Basarisiz/Kismen/Test
+// Edilmedi) gosteren bir pasta grafigi - herhangi bir yeni kutuphane
+// eklenmeden, saf SVG ile cizilir.
+function StatusPieChart({
+  stats,
+}: {
+  stats: { total: number; success: number; fail: number; partial: number; untested: number };
+}) {
+  const size = 96;
+  const radius = size / 2;
+  const center = size / 2;
+
+  const segments = [
+    { value: stats.success, color: "#45B78C" }, // meadow
+    { value: stats.fail, color: "#E8604C" }, // coral
+    { value: stats.partial, color: "#E0B93C" },
+    { value: stats.untested, color: "#B8C2CC" }, // slate-light benzeri
+  ];
+
+  if (stats.total === 0) {
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={center} cy={center} r={radius - 2} fill="#EAEFF2" />
+      </svg>
+    );
+  }
+
+  function polarToCartesian(angleDeg: number) {
+    const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+    return {
+      x: center + (radius - 2) * Math.cos(angleRad),
+      y: center + (radius - 2) * Math.sin(angleRad),
+    };
+  }
+
+  let cumulativeAngle = 0;
+  const paths = segments
+    .filter((s) => s.value > 0)
+    .map((s, i) => {
+      const angle = (s.value / stats.total) * 360;
+      const startAngle = cumulativeAngle;
+      const endAngle = cumulativeAngle + angle;
+      cumulativeAngle = endAngle;
+
+      // Tek dilim (%100) ozel durumu - tam daire cizmek icin.
+      if (angle >= 359.999) {
+        return (
+          <circle key={i} cx={center} cy={center} r={radius - 2} fill={s.color} />
+        );
+      }
+
+      const start = polarToCartesian(startAngle);
+      const end = polarToCartesian(endAngle);
+      const largeArcFlag = angle > 180 ? 1 : 0;
+      const d = `M ${center} ${center} L ${start.x} ${start.y} A ${radius - 2} ${radius - 2} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+      return <path key={i} d={d} fill={s.color} />;
+    });
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {paths}
+      {/* Ortasi bosluklu (donut) gorunum icin beyaz ic daire. */}
+      <circle cx={center} cy={center} r={radius * 0.55} fill="white" />
+      <text
+        x={center}
+        y={center}
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="font-display"
+        fontSize="16"
+        fontWeight="700"
+        fill="#22303F"
+      >
+        {stats.total}
+      </text>
+    </svg>
   );
 }
