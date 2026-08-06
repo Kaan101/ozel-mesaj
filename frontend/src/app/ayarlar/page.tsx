@@ -6,6 +6,8 @@ import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
+import { useBackground, BACKGROUND_THEMES, BackgroundTheme } from "@/lib/background-context";
+import { THEME_STYLES } from "../background-layer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -35,10 +37,20 @@ interface BlockedThread {
 
 // Gorev 13.4 + 13.5: Ayarlar sayfasi (profil duzenleme) + KVKK
 // kapsaminda hesap/veri silme talebi (onay adimi ile - Bolum 10).
+// Kullanici istegi: her arka plan temasi icin TR/EN etiketler.
+const BACKGROUND_THEME_LABELS: Record<BackgroundTheme, { tr: string; en: string }> = {
+  none: { tr: "Yok", en: "None" },
+  aurora: { tr: "Aurora", en: "Aurora" },
+  dots: { tr: "Noktalar", en: "Dots" },
+  mesh: { tr: "Mesh", en: "Mesh" },
+  waves: { tr: "Dalgalar", en: "Waves" },
+};
+
 export default function AyarlarPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const { t, language, setLanguage, multiLanguageEnabled } = useLanguage();
+  const { backgroundTheme, setBackgroundTheme } = useBackground();
   const dateLocale = language === "en" ? "en-US" : "tr-TR";
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -219,6 +231,40 @@ export default function AyarlarPage() {
             </div>
           </Card>
         )}
+
+        {/* Kullanici istegi: sade/modern/cool grafiksel arka plan
+            secenekleri - "Yok" secenegi de dahil. */}
+        <Card lifted className="space-y-3">
+          <h2 className="font-display text-lg font-bold text-slate">
+            {language === "tr" ? "Arka Plan" : "Background"}
+          </h2>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+            {BACKGROUND_THEMES.map((themeKey) => (
+              <button
+                key={themeKey}
+                type="button"
+                onClick={() => setBackgroundTheme(themeKey)}
+                className={`overflow-hidden rounded-2xl border-2 transition-colors ${
+                  backgroundTheme === themeKey
+                    ? "border-sky"
+                    : "border-slate-light/30 hover:border-sky-light"
+                }`}
+              >
+                <div
+                  className="h-14 w-full bg-mint"
+                  style={THEME_STYLES[themeKey as BackgroundTheme]}
+                />
+                <p
+                  className={`py-1.5 text-center font-body text-[11px] font-semibold ${
+                    backgroundTheme === themeKey ? "text-sky" : "text-slate-light"
+                  }`}
+                >
+                  {BACKGROUND_THEME_LABELS[themeKey][language === "tr" ? "tr" : "en"]}
+                </p>
+              </button>
+            ))}
+          </div>
+        </Card>
 
         {/* Kullanici istegi: zengin ozellestirilebilir avatar
             duzenleme ekrani (DiceBear tabanli) - acilir-kapanir. */}

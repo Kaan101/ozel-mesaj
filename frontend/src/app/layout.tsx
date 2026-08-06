@@ -7,6 +7,8 @@ import { ReleaseFooter } from "./release-footer";
 import { ContactFooter } from "./contact-footer";
 import { AuthProvider } from "@/lib/auth-context";
 import { LanguageProvider } from "@/lib/language-context";
+import { BackgroundProvider } from "@/lib/background-context";
+import { BackgroundLayer } from "./background-layer";
 import { SiteHeader } from "@/components/SiteHeader";
 
 const baloo = Baloo_2({
@@ -69,14 +71,17 @@ export default function RootLayout({
     <html lang="tr" className={`${baloo.variable} ${inter.variable} ${plexMono.variable}`}>
       <body className="font-body bg-mint text-slate">
         <LanguageProvider>
-          <AuthProvider>
-            <SiteHeader />
-            {children}
-            <ReleaseFooter />
-            <ContactFooter />
-            <RegisterServiceWorker />
-            <NotificationPrompt />
-          </AuthProvider>
+          <BackgroundProvider>
+            <BackgroundLayer />
+            <AuthProvider>
+              <SiteHeader />
+              {children}
+              <ReleaseFooter />
+              <ContactFooter />
+              <RegisterServiceWorker />
+              <NotificationPrompt />
+            </AuthProvider>
+          </BackgroundProvider>
         </LanguageProvider>
       </body>
     </html>
