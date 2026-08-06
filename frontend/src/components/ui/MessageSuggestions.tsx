@@ -14,7 +14,7 @@ interface Suggestion {
 }
 
 export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => void }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -26,15 +26,15 @@ export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => v
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!isOpen || suggestions.length > 0) return;
+    if (!isOpen) return;
     setIsLoading(true);
-    apiFetch<Suggestion[]>("/message-suggestions")
+    apiFetch<Suggestion[]>(`/message-suggestions?language=${language}`)
       .then(setSuggestions)
       .catch(() => {
         // Sessizce gec - kullanici elle yazmaya devam edebilir.
       })
       .finally(() => setIsLoading(false));
-  }, [isOpen, suggestions.length]);
+  }, [isOpen, language]);
 
   // Kullanici istegi: popup acikken, uygulamanin BASKA BIR YERINE
   // tiklaninca (butonun/popup'in DISINDA) otomatik kapansin.
