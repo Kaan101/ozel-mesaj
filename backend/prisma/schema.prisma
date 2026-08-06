@@ -516,7 +516,7 @@ model TestCase {
   no             Int
   section        String
   scenario       String
-  expectedResult String
+  expectedResult String @map("expected_result")
   status         String  @default("Test Edilmedi")
   note           String?
 
