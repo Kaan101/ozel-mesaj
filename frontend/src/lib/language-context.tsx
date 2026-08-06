@@ -18,6 +18,11 @@ interface LanguageContextValue {
   // Coklu dil destegi sistem parametresiyle KAPATILMISSA, bu fonksiyon
   // hicbir sey yapmaz - dil her zaman Ingilizce kalir.
   setLanguageFromCountry: (iso2: string) => void;
+  // Kullanici istegi: ust menuye TR/EN secenegi eklendi - kullanici
+  // istedigi zaman dili MANUEL olarak degistirebilir. Coklu dil
+  // KAPALIYSA bu fonksiyon da hicbir sey yapmaz.
+  setLanguage: (lang: LanguageCode) => void;
+  multiLanguageEnabled: boolean;
   t: (key: Parameters<typeof translate>[1]) => string;
 }
 
@@ -68,12 +73,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, detected);
   }
 
+  // Kullanici istegi: ust menudeki TR/EN dugmesiyle MANUEL dil
+  // degistirme - coklu dil kapaliysa (sistem her zaman Ingilizce
+  // kalmasi gerektigi icin) hicbir sey yapmaz.
+  function setLanguage(lang: LanguageCode) {
+    if (!multiLanguageEnabled) return;
+    setLanguageState(lang);
+    localStorage.setItem(STORAGE_KEY, lang);
+  }
+
   function t(key: Parameters<typeof translate>[1]): string {
     return translate(language, key);
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguageFromCountry, t }}>
+    <LanguageContext.Provider
+      value={{ language, setLanguageFromCountry, setLanguage, multiLanguageEnabled, t }}
+    >
       {children}
     </LanguageContext.Provider>
   );
