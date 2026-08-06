@@ -327,9 +327,13 @@ export default function AyarlarPage() {
           {saveMessage && (
             <p className="font-body text-sm text-meadow-hover">{saveMessage}</p>
           )}
-          <Button onClick={handleSaveProfile} disabled={isSaving}>
-            {isSaving ? t("common.saving") : t("common.save")}
-          </Button>
+          {/* Kullanici istegi: kaydet butonu ustteki secenekle
+              cakismasin diye belirgin bir bosluk birakildi. */}
+          <div className="pt-2">
+            <Button onClick={handleSaveProfile} disabled={isSaving} className="w-full">
+              {isSaving ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
         </Card>
 
         <Card>
