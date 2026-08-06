@@ -28,10 +28,6 @@ interface BlockRecord {
   reasonDescription: string | null;
 }
 
-interface ReasonCodeOption {
-  code: string;
-  description: string;
-}
 
 // Kullanici istegi: TUM bloklama gecmisi (aktif + kaldirilmis), en
 // yeni en ustte - kim/sistem bilgisi, ne zaman bloktan ciktigi ve
@@ -62,10 +58,6 @@ export default function AdminBlokePage() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [users, setUsers] = useState<ReportedUser[]>([]);
   const [blocks, setBlocks] = useState<BlockRecord[]>([]);
-  // Kullanici istegi: blok nedeni secimi icin, "block_reason"
-  // kategorisindeki mevcut kodlar.
-  const [reasonCodes, setReasonCodes] = useState<ReasonCodeOption[]>([]);
-  const [savingReasonId, setSavingReasonId] = useState<string | null>(null);
   const [blockHistory, setBlockHistory] = useState<BlockHistoryRecord[]>([]);
   // Kullanici istegi: Blok Gecmisi tablosunda telefon/isim ile arama.
   const [blockHistoryQuery, setBlockHistoryQuery] = useState("");
@@ -86,7 +78,6 @@ export default function AdminBlokePage() {
       fetchUsers();
       fetchBlocks();
       fetchBlockHistory();
-      fetchReasonCodes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked]);
@@ -139,35 +130,6 @@ export default function AdminBlokePage() {
       if (res.ok) setBlocks(await res.json());
     } catch {
       // Sessizce gec - ana liste (sikayetler) daha kritik.
-    }
-  }
-
-  // Kullanici istegi: blok nedeni secim listesini cekme.
-  async function fetchReasonCodes() {
-    try {
-      const res = await fetch(`${API_BASE_URL}/system-codes?category=block_reason`, {
-        headers: { "x-admin-secret": adminKey },
-      });
-      if (res.ok) setReasonCodes(await res.json());
-    } catch {
-      // Sessizce gec.
-    }
-  }
-
-  // Kullanici istegi: bir bloga neden kodu atama/degistirme.
-  async function handleSetReason(blockId: string, reasonCode: string) {
-    setSavingReasonId(blockId);
-    try {
-      await fetch(`${API_BASE_URL}/safety/all-blocks/${blockId}/reason`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
-        body: JSON.stringify({ reasonCode: reasonCode || null }),
-      });
-      await fetchBlocks();
-    } catch {
-      // Sessizce gec.
-    } finally {
-      setSavingReasonId(null);
     }
   }
 
@@ -464,22 +426,23 @@ export default function AdminBlokePage() {
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-xs text-slate-light whitespace-nowrap">
                       {new Date(b.createdAt).toLocaleString("tr-TR")}
                     </td>
-                    {/* Kullanici istegi: blok nedeni KOD olarak
-                        secilebilir/degistirilebilir. */}
-                    <td className="border border-slate-light/60 px-4 py-3">
-                      <select
-                        value={b.reasonCode ?? ""}
-                        onChange={(e) => handleSetReason(b.blockId, e.target.value)}
-                        disabled={savingReasonId === b.blockId}
-                        className="w-full rounded-full border-2 border-sky-light bg-white px-2 py-1 font-body text-xs text-slate focus:outline-none focus:ring-2 focus:ring-sky/20 disabled:opacity-50"
-                      >
-                        <option value="">— Belirtilmedi —</option>
-                        {reasonCodes.map((r) => (
-                          <option key={r.code} value={r.code}>
-                            {r.code} — {r.description}
-                          </option>
-                        ))}
-                      </select>
+                    {/* Kullanici istegi: blok nedeni artik SALT
+                        OKUNUR gosterilir - blok aksiyonuna gore neden
+                        ZATEN otomatik belirlendigi icin (sistem->
+                        Toksik Icerik, manuel blokla->Istenmeyen
+                        Iletisim, sikayet->Sikayet Edildi) tekrar
+                        secim yapilmasina gerek yok. */}
+                    <td className="border border-slate-light/60 px-4 py-3 font-body text-xs text-slate">
+                      {b.reasonDescription ? (
+                        <span title={`Kod: ${b.reasonCode}`}>
+                          <span className="rounded-full bg-sky-light px-1.5 py-0.5 font-semibold text-sky-hover">
+                            {b.reasonCode}
+                          </span>{" "}
+                          {b.reasonDescription}
+                        </span>
+                      ) : (
+                        <span className="text-slate-light">—</span>
+                      )}
                     </td>
                     <td className="border border-slate-light/60 px-4 py-3">
                       <button

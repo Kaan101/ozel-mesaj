@@ -4,6 +4,7 @@ import { SettingsService } from "../settings/settings.service";
 import { AuditLogService } from "../audit/audit-log.service";
 import { hashPhoneNumber } from "../common/hash.util";
 import { decryptReversible } from "../common/encryption.util";
+import { BLOCK_REASON_CODES } from "../system-codes/block-reason-codes.const";
 import { NotificationService } from "../notifications/notification.service";
 
 @Injectable()
@@ -47,11 +48,15 @@ export class SafetyService {
           blockedUserId: counterpartUserId,
         },
       },
-      update: { type: "manual" },
+      update: { type: "manual", reasonCode: BLOCK_REASON_CODES.UNWANTED_CONTACT },
       create: {
         blockerUserId: requestingUserId,
         blockedUserId: counterpartUserId,
         type: "manual",
+        // Kullanici istegi: "Blokla" eylemi dogrudan bu kisiyle
+        // ARTIK iletisim istemedigi anlamina gelir - blok aksiyonuna
+        // gore neden ZATEN belli, admin tekrar secmek zorunda degil.
+        reasonCode: BLOCK_REASON_CODES.UNWANTED_CONTACT,
       },
     });
 
@@ -63,7 +68,12 @@ export class SafetyService {
     });
 
     // Kullanici istegi: blok gecmisi kalici olarak tutulur.
-    await this.logBlockEvent(requestingUserId, counterpartUserId, "manual");
+    await this.logBlockEvent(
+      requestingUserId,
+      counterpartUserId,
+      "manual",
+      BLOCK_REASON_CODES.UNWANTED_CONTACT
+    );
   }
 
   // Gorev 7.2: Bir kullanicinin baska bir numarayi engellemesi.
@@ -109,11 +119,21 @@ export class SafetyService {
   // Bir blok OLUSTUGUNDA (ya da tipi degistiginde, orn. pending'den
   // confirmed'a) cagrilir - acik (unblockedAt=null) bir kayit varsa
   // tipini gunceller, yoksa yeni bir kayit acar.
-  async logBlockEvent(blockerUserId: string, blockedUserId: string, type: string): Promise<void> {
+  async logBlockEvent(
+    blockerUserId: string,
+    blockedUserId: string,
+    type: string,
+    reasonCode?: string
+  ): Promise<void> {
     // Kullanici istegi: sistem (toksik icerik) bloklari icin, blok
     // gecmisine otomatik olarak "Toksik Icerik" (kod "1") nedeni
     // atanir - kesin bilinen bir neden oldugu icin tahmine gerek yok.
+    // Manuel bloklar icin cagiran taraf reasonCode'u ACIKCA gecirir
+    // (orn. "Istenmeyen Iletisim").
     const isToxicType = type === "toxic_pending" || type === "toxic_confirmed";
+    const resolvedReasonCode = isToxicType
+      ? BLOCK_REASON_CODES.TOXIC_CONTENT
+      : (reasonCode ?? undefined);
     const open = await this.prisma.blockLog.findFirst({
       where: { blockerUserId, blockedUserId, unblockedAt: null },
       orderBy: { blockedAt: "desc" },
@@ -121,7 +141,10 @@ export class SafetyService {
     if (open) {
       await this.prisma.blockLog.update({
         where: { id: open.id },
-        data: { type: type as any, ...(isToxicType ? { reasonCode: "1" } : {}) },
+        data: {
+          type: type as any,
+          ...(resolvedReasonCode ? { reasonCode: resolvedReasonCode } : {}),
+        },
       });
     } else {
       await this.prisma.blockLog.create({
@@ -129,7 +152,7 @@ export class SafetyService {
           blockerUserId,
           blockedUserId,
           type: type as any,
-          reasonCode: isToxicType ? "1" : null,
+          reasonCode: resolvedReasonCode ?? null,
         },
       });
     }
@@ -428,10 +451,44 @@ export class SafetyService {
 
     const thread = await this.prisma.messageThread.findUnique({
       where: { id: threadId },
-      select: { initiatorUserId: true },
+      select: { initiatorUserId: true, recipientUserId: true },
     });
 
     if (thread) {
+      // Kullanici istegi: bir konusma sikayet edildiginde, sikayet
+      // eden kisi KARSI TARAFI otomatik olarak (Sikayet kodu ile)
+      // bloklamis olur - "Blok Nedeni" ZATEN belli, admin ya da
+      // kullanici tekrar sec mek zorunda degil.
+      const counterpartUserId =
+        thread.initiatorUserId === reporterUserId
+          ? thread.recipientUserId
+          : thread.initiatorUserId;
+      if (counterpartUserId && counterpartUserId !== reporterUserId) {
+        await this.prisma.block
+          .upsert({
+            where: {
+              blockerUserId_blockedUserId: {
+                blockerUserId: reporterUserId,
+                blockedUserId: counterpartUserId,
+              },
+            },
+            update: { reasonCode: BLOCK_REASON_CODES.REPORTED },
+            create: {
+              blockerUserId: reporterUserId,
+              blockedUserId: counterpartUserId,
+              type: "manual",
+              reasonCode: BLOCK_REASON_CODES.REPORTED,
+            },
+          })
+          .catch(() => {});
+        await this.logBlockEvent(
+          reporterUserId,
+          counterpartUserId,
+          "manual",
+          BLOCK_REASON_CODES.REPORTED
+        ).catch(() => {});
+      }
+
       const threshold = await this.settings.getNumber("REPORT_SUSPEND_THRESHOLD");
       const reportCount = await this.prisma.report.count({
         where: { thread: { initiatorUserId: thread.initiatorUserId } },
