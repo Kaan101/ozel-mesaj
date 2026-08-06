@@ -34,6 +34,13 @@ export default function TestTakipPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [sectionFilter, setSectionFilter] = useState<string>("__all__");
 
+  // Kullanici istegi: yeni bir test senaryosu elle eklenebilsin.
+  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [newSection, setNewSection] = useState("");
+  const [newScenario, setNewScenario] = useState("");
+  const [newExpectedResult, setNewExpectedResult] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+
   useEffect(() => {
     const stored = localStorage.getItem(TESTER_STORAGE_KEY);
     if (stored) setTesterName(stored);
@@ -82,6 +89,39 @@ export default function TestTakipPage() {
       setError("Güncellenemedi. Lütfen tekrar dene.");
     } finally {
       setSavingId(null);
+    }
+  }
+
+  // Kullanici istegi: yeni bir test senaryosu elle eklenebilsin.
+  async function handleAdd() {
+    if (!newSection.trim() || !newScenario.trim() || !newExpectedResult.trim()) {
+      setError("Yeni test eklemek için Bölüm, Senaryo ve Beklenen Sonuç alanlarını doldur.");
+      return;
+    }
+    setIsAdding(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/test-cases`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: newSection,
+          scenario: newScenario,
+          expectedResult: newExpectedResult,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const created: TestCaseRecord = await res.json();
+      setCases((prev) => [...prev, created]);
+      setNoteDrafts((prev) => ({ ...prev, [created.id]: "" }));
+      setNewSection("");
+      setNewScenario("");
+      setNewExpectedResult("");
+      setIsAddFormOpen(false);
+    } catch {
+      setError("Yeni test eklenemedi. Lütfen tekrar dene.");
+    } finally {
+      setIsAdding(false);
     }
   }
 
@@ -161,22 +201,71 @@ export default function TestTakipPage() {
           </Card>
         </div>
 
-        {/* Bolum filtresi */}
-        <div className="flex items-center gap-2">
-          <label className="font-body text-sm font-semibold text-slate">Bölüm:</label>
-          <select
-            value={sectionFilter}
-            onChange={(e) => setSectionFilter(e.target.value)}
-            className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+        {/* Bolum filtresi + Test Case Ekle butonu */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <label className="font-body text-sm font-semibold text-slate">Bölüm:</label>
+            <select
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+              className="rounded-full border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+            >
+              <option value="__all__">Tüm Bölümler</option>
+              {sections.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* Kullanici istegi: yeni bir test senaryosu elle
+              eklenebilsin. */}
+          <button
+            type="button"
+            onClick={() => setIsAddFormOpen((v) => !v)}
+            className="rounded-full bg-sky px-4 py-2 font-body text-sm font-semibold text-white hover:bg-sky-hover"
           >
-            <option value="__all__">Tüm Bölümler</option>
-            {sections.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+            + Test Case Ekle
+          </button>
         </div>
+
+        {isAddFormOpen && (
+          <Card lifted className="space-y-3">
+            <h2 className="font-display text-base font-bold text-slate">Yeni Test Case Ekle</h2>
+            <Input
+              label="Bölüm (örn. 12. Yeni Özellik)"
+              value={newSection}
+              onChange={(e) => setNewSection(e.target.value)}
+            />
+            <Input
+              label="Test Senaryosu"
+              value={newScenario}
+              onChange={(e) => setNewScenario(e.target.value)}
+            />
+            <Input
+              label="Beklenen Sonuç"
+              value={newExpectedResult}
+              onChange={(e) => setNewExpectedResult(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={isAdding}
+                className="flex-1 rounded-full bg-meadow px-4 py-2 font-body text-sm font-semibold text-white hover:bg-meadow-hover disabled:opacity-50"
+              >
+                {isAdding ? "Ekleniyor..." : "Kaydet"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAddFormOpen(false)}
+                className="rounded-full border-2 border-slate-light/40 px-4 py-2 font-body text-sm font-semibold text-slate-light hover:bg-mint"
+              >
+                Vazgeç
+              </button>
+            </div>
+          </Card>
+        )}
 
         {/* Test tablosu */}
         <Card className="overflow-x-auto p-0">
