@@ -13,6 +13,23 @@ export class TestCasesService implements OnModuleInit {
     return this.prisma.testCase.findMany({ orderBy: { no: "asc" } });
   }
 
+  // Kullanici istegi: yeni bir test senaryosu elle eklenebilsin -
+  // sira numarasi (no) otomatik olarak mevcut en yuksek numaranin
+  // bir fazlasi olarak atanir.
+  async add(data: { section: string; scenario: string; expectedResult: string }) {
+    const last = await this.prisma.testCase.findFirst({ orderBy: { no: "desc" } });
+    const nextNo = (last?.no ?? 0) + 1;
+    return this.prisma.testCase.create({
+      data: {
+        no: nextNo,
+        section: data.section.trim(),
+        scenario: data.scenario.trim(),
+        expectedResult: data.expectedResult.trim(),
+        status: "Test Edilmedi",
+      },
+    });
+  }
+
   // Kullanici istegi: bir test satirinin durumu/notu guncellenince,
   // GUNCELLEYEN KISININ ADI da (o an "Testi Yapan" alanina girilmis
   // olan) kaydedilir.

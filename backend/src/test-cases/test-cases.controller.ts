@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 import { TestCasesService } from "./test-cases.service";
 
 // Kullanici istegi: ADMIN ALTINDA DEGIL, ayri, ekip tarafindan
@@ -11,6 +11,12 @@ export class TestCasesController {
   @Get()
   async list() {
     return this.service.list();
+  }
+
+  // Kullanici istegi: yeni bir test senaryosu elle eklenebilsin.
+  @Post()
+  async add(@Body() dto: { section: string; scenario: string; expectedResult: string }) {
+    return this.service.add(dto);
   }
 
   @Patch(":id")
