@@ -110,15 +110,27 @@ export class SafetyService {
   // confirmed'a) cagrilir - acik (unblockedAt=null) bir kayit varsa
   // tipini gunceller, yoksa yeni bir kayit acar.
   async logBlockEvent(blockerUserId: string, blockedUserId: string, type: string): Promise<void> {
+    // Kullanici istegi: sistem (toksik icerik) bloklari icin, blok
+    // gecmisine otomatik olarak "Toksik Icerik" (kod "1") nedeni
+    // atanir - kesin bilinen bir neden oldugu icin tahmine gerek yok.
+    const isToxicType = type === "toxic_pending" || type === "toxic_confirmed";
     const open = await this.prisma.blockLog.findFirst({
       where: { blockerUserId, blockedUserId, unblockedAt: null },
       orderBy: { blockedAt: "desc" },
     });
     if (open) {
-      await this.prisma.blockLog.update({ where: { id: open.id }, data: { type: type as any } });
+      await this.prisma.blockLog.update({
+        where: { id: open.id },
+        data: { type: type as any, ...(isToxicType ? { reasonCode: "1" } : {}) },
+      });
     } else {
       await this.prisma.blockLog.create({
-        data: { blockerUserId, blockedUserId, type: type as any },
+        data: {
+          blockerUserId,
+          blockedUserId,
+          type: type as any,
+          reasonCode: isToxicType ? "1" : null,
+        },
       });
     }
   }
@@ -143,13 +155,19 @@ export class SafetyService {
   // KAYITTA bloklanan kisinin O ANA KADAR kac kez bloklandigini
   // (kumulatif sayac) gostererek listeler.
   async listBlockHistory() {
-    const logs = await this.prisma.blockLog.findMany({
-      orderBy: { blockedAt: "desc" },
-      include: {
-        blocker: { select: { phoneNumberEncrypted: true, displayName: true } },
-        blocked: { select: { phoneNumberEncrypted: true, displayName: true } },
-      },
-    });
+    const [logs, reasonCodes] = await Promise.all([
+      this.prisma.blockLog.findMany({
+        orderBy: { blockedAt: "desc" },
+        include: {
+          blocker: { select: { phoneNumberEncrypted: true, displayName: true } },
+          blocked: { select: { phoneNumberEncrypted: true, displayName: true } },
+        },
+      }),
+      // Kullanici istegi: blok gecmisine de neden kodu aciklamasi
+      // eklenir.
+      this.prisma.systemCode.findMany({ where: { category: "block_reason" } }),
+    ]);
+    const reasonDescriptionByCode = new Map(reasonCodes.map((r) => [r.code, r.description]));
 
     // Kumulatif sayaci hesaplamak icin ESKIDEN YENIYE dogru isliyoruz.
     const chronological = [...logs].reverse();
@@ -179,6 +197,12 @@ export class SafetyService {
         blockedAt: log.blockedAt,
         unblockedAt: log.unblockedAt,
         cumulativeCount: cumulativeAtLogId.get(log.id) ?? 1,
+        // Kullanici istegi: blok nedeni - kod + aciklamasi birlikte
+        // (mevcut kayitlar icin tahmini olarak doldurulmustur).
+        reasonCode: log.reasonCode,
+        reasonDescription: log.reasonCode
+          ? (reasonDescriptionByCode.get(log.reasonCode) ?? log.reasonCode)
+          : null,
       };
     });
   }

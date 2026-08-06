@@ -16,9 +16,10 @@ interface SystemCodeRecord {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
 // Kullanici istegi: sistem genelinde kullanilan (blok nedeni gibi)
-// KOD tanimlarini yonetme ekrani - "category" secilerek farkli kod
-// listeleri arasinda gecis yapilabilir. Yeni kategoriler kod
-// degisikligi gerekmeden buradan eklenebilir (serbest metin).
+// KOD tanimlarini TABLO olarak yonetme ekrani - eklenebilir ve
+// guncellenebilir, kodlar sayisal da olabilir (serbest metin, sayi
+// kisitlamasi yok - "1", "2" gibi degerler dogrudan yazilabilir).
+// "category" secilerek farkli kod listeleri arasinda gecis yapilir.
 const KNOWN_CATEGORIES = [{ value: "block_reason", label: "Blok Nedenleri" }];
 
 export default function AdminKodlarPage() {
@@ -27,12 +28,12 @@ export default function AdminKodlarPage() {
   const [category, setCategory] = useState(KNOWN_CATEGORIES[0].value);
   const [customCategory, setCustomCategory] = useState("");
   const [codes, setCodes] = useState<SystemCodeRecord[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [codeDrafts, setCodeDrafts] = useState<Record<string, string>>({});
+  const [descriptionDrafts, setDescriptionDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  // Yeni kod ekleme formu.
   const [newCode, setNewCode] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -61,9 +62,14 @@ export default function AdminKodlarPage() {
       if (!res.ok) throw new Error();
       const data: SystemCodeRecord[] = await res.json();
       setCodes(data);
-      const nextDrafts: Record<string, string> = {};
-      for (const c of data) nextDrafts[c.id] = c.description;
-      setDrafts(nextDrafts);
+      const nextCodeDrafts: Record<string, string> = {};
+      const nextDescriptionDrafts: Record<string, string> = {};
+      for (const c of data) {
+        nextCodeDrafts[c.id] = c.code;
+        nextDescriptionDrafts[c.id] = c.description;
+      }
+      setCodeDrafts(nextCodeDrafts);
+      setDescriptionDrafts(nextDescriptionDrafts);
     } catch {
       setError("Kodlar yüklenemedi.");
     } finally {
@@ -94,16 +100,20 @@ export default function AdminKodlarPage() {
 
   async function handleSave(id: string) {
     setSavingId(id);
+    setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/system-codes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
-        body: JSON.stringify({ description: drafts[id] ?? "" }),
+        body: JSON.stringify({
+          code: codeDrafts[id] ?? "",
+          description: descriptionDrafts[id] ?? "",
+        }),
       });
       if (!res.ok) throw new Error();
       await fetchCodes();
     } catch {
-      setError("Kod güncellenemedi.");
+      setError("Kod güncellenemedi (aynı kategori içinde bu kod zaten olabilir).");
     } finally {
       setSavingId(null);
     }
@@ -151,17 +161,17 @@ export default function AdminKodlarPage() {
 
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6">
         <Link href="/admin" className="font-body text-sm text-sky underline underline-offset-2">
           ← Yönetim Paneli
         </Link>
         <h1 className="font-display text-2xl font-bold text-slate">Kod Tanımları</h1>
         <p className="font-body text-sm text-slate-light">
-          Sistem genelinde kullanılan kod listeleri (örn. blok nedenleri). Yeni bir kod
-          kategorisi eklemek istersen, aşağıya serbest bir isim yazabilirsin.
+          Sistem genelinde kullanılan kod listeleri (örn. blok nedenleri). Kodlar sayısal da
+          olabilir (örn. 1, 2, 3). Yeni bir kod kategorisi eklemek istersen, aşağıya serbest bir
+          isim yazabilirsin.
         </p>
 
-        {/* Kategori secimi */}
         <Card lifted className="space-y-3">
           <label className="block font-body text-sm font-semibold text-slate">Kategori</label>
           <select
@@ -198,21 +208,22 @@ export default function AdminKodlarPage() {
         {isLoading && <p className="font-body text-sm text-slate-light">Yükleniyor...</p>}
         {error && <p className="font-body text-sm text-coral">{error}</p>}
 
-        {/* Yeni kod ekleme */}
         <Card lifted className="space-y-3">
           <h2 className="font-display text-lg font-bold text-slate">
             &quot;{activeCategory}&quot; kategorisine yeni kod ekle
           </h2>
-          <Input
-            label="Kod (örn. SPAM)"
-            value={newCode}
-            onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-          />
-          <Input
-            label="Açıklama"
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-          />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+            <Input
+              label="Kod (örn. 1)"
+              value={newCode}
+              onChange={(e) => setNewCode(e.target.value)}
+            />
+            <Input
+              label="Açıklama"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+            />
+          </div>
           <Button
             onClick={handleAdd}
             disabled={isAdding || !newCode.trim() || !newDescription.trim()}
@@ -222,40 +233,70 @@ export default function AdminKodlarPage() {
           </Button>
         </Card>
 
-        {/* Mevcut kodlar */}
         <h2 className="font-display text-lg font-bold text-slate">
           &quot;{activeCategory}&quot; Kodları ({codes.length})
         </h2>
         {codes.length === 0 ? (
           <p className="font-body text-sm text-slate-light">Bu kategoride henüz kod yok.</p>
         ) : (
-          <div className="space-y-2">
-            {codes.map((c) => (
-              <Card key={c.id} lifted className="flex items-center gap-2">
-                <span className="shrink-0 rounded-full bg-sky-light px-3 py-1.5 font-body text-xs font-semibold text-sky-hover">
-                  {c.code}
-                </span>
-                <input
-                  value={drafts[c.id] ?? ""}
-                  onChange={(e) => setDrafts((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                  className="flex-1 rounded-2xl border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
-                />
-                <button
-                  onClick={() => handleSave(c.id)}
-                  disabled={savingId === c.id}
-                  className="rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light disabled:opacity-50 whitespace-nowrap"
-                >
-                  {savingId === c.id ? "..." : "Kaydet"}
-                </button>
-                <button
-                  onClick={() => handleDelete(c.id)}
-                  className="rounded-full border-2 border-coral px-3 py-1.5 font-body text-xs font-semibold text-coral hover:bg-coral-light whitespace-nowrap"
-                >
-                  Sil
-                </button>
-              </Card>
-            ))}
-          </div>
+          <Card className="overflow-x-auto p-0">
+            <table className="w-full border-collapse border border-slate-light/60 text-left">
+              <thead>
+                <tr className="bg-mint">
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate w-32">
+                    Kod
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate">
+                    Açıklama
+                  </th>
+                  <th className="border border-slate-light/60 px-4 py-3 font-display text-xs font-bold text-slate w-40">
+                    İşlem
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {codes.map((c) => (
+                  <tr key={c.id}>
+                    <td className="border border-slate-light/60 px-2 py-2">
+                      <input
+                        value={codeDrafts[c.id] ?? ""}
+                        onChange={(e) =>
+                          setCodeDrafts((prev) => ({ ...prev, [c.id]: e.target.value }))
+                        }
+                        className="w-full rounded-2xl border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm font-semibold text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+                      />
+                    </td>
+                    <td className="border border-slate-light/60 px-2 py-2">
+                      <input
+                        value={descriptionDrafts[c.id] ?? ""}
+                        onChange={(e) =>
+                          setDescriptionDrafts((prev) => ({ ...prev, [c.id]: e.target.value }))
+                        }
+                        className="w-full rounded-2xl border-2 border-sky-light bg-white px-3 py-1.5 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+                      />
+                    </td>
+                    <td className="border border-slate-light/60 px-2 py-2">
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handleSave(c.id)}
+                          disabled={savingId === c.id}
+                          className="rounded-full border-2 border-meadow px-3 py-1.5 font-body text-xs font-semibold text-meadow-hover hover:bg-meadow-light disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {savingId === c.id ? "..." : "Kaydet"}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          className="rounded-full border-2 border-coral px-3 py-1.5 font-body text-xs font-semibold text-coral hover:bg-coral-light whitespace-nowrap"
+                        >
+                          Sil
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
       </div>
     </main>

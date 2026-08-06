@@ -170,8 +170,8 @@ export class ThreadService implements OnModuleInit {
               blockedUserId: initiatorUserId,
             },
           },
-          update: { type: "toxic_pending" },
-          create: { blockerUserId: recipient.id, blockedUserId: initiatorUserId, type: "toxic_pending" },
+          update: { type: "toxic_pending", reasonCode: "1" },
+          create: { blockerUserId: recipient.id, blockedUserId: initiatorUserId, type: "toxic_pending", reasonCode: "1" },
         })
         .catch(() => {});
 
@@ -948,8 +948,8 @@ export class ThreadService implements OnModuleInit {
                   blockedUserId: senderUserId,
                 },
               },
-              update: { type: "toxic_pending" },
-              create: { blockerUserId: counterpartId, blockedUserId: senderUserId, type: "toxic_pending" },
+              update: { type: "toxic_pending", reasonCode: "1" },
+              create: { blockerUserId: counterpartId, blockedUserId: senderUserId, type: "toxic_pending", reasonCode: "1" },
             })
             .catch(() => {});
 
@@ -1384,12 +1384,13 @@ export class ThreadService implements OnModuleInit {
               blockedUserId: message.senderUserId,
             },
           },
-          update: { expiresAt, type: "toxic_confirmed" },
+          update: { expiresAt, type: "toxic_confirmed", reasonCode: "1" },
           create: {
             blockerUserId: counterpartId,
             blockedUserId: message.senderUserId,
             expiresAt,
             type: "toxic_confirmed",
+            reasonCode: "1",
           },
         });
 
