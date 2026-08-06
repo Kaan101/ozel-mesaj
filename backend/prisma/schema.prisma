@@ -508,6 +508,27 @@ model MessageSuggestion {
 // Kullanici istegi: sistem genelinde kullanilan (blok nedeni gibi)
 // KOD tanimlari icin GENEL AMACLI bir tablo - "Sistem Ayarlari > Kod
 // Tanimlari" ekranindan yonetilir. "category" ayni ekranda birden
+// Kullanici istegi: ayri (admin disi) bir test takip ekrani - ekip
+// tarafindan birlikte guncellenebilen bir test senaryolari tablosu.
+// Her guncelleme, o an "Testi Yapan" alanina girilmis isimle imzalanir.
+model TestCase {
+  id             String  @id @default(uuid()) @db.Uuid
+  no             Int
+  section        String
+  scenario       String
+  expectedResult String
+  status         String  @default("Test Edilmedi")
+  note           String?
+
+  // Kullanici istegi: en son kim guncelledi, ne zaman.
+  lastUpdatedBy String?   @map("last_updated_by")
+  lastUpdatedAt DateTime? @map("last_updated_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("test_cases")
+}
+
 // fazla kod listesini (orn. "block_reason", ileride baska turler)
 // ayirt etmeye yarar.
 model SystemCode {
