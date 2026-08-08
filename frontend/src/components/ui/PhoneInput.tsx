@@ -177,7 +177,7 @@ export function PhoneInput({ label, value, onChange, onCountryChange }: PhoneInp
         />
 
         {isDropdownOpen && (
-          <div className="absolute top-full left-0 z-20 mt-1 max-h-64 w-72 overflow-y-auto rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted">
+          <div className="absolute top-full left-0 z-20 mt-1 max-h-64 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted">
             {COUNTRIES.map((c) => (
               <button
                 key={c.iso2}
