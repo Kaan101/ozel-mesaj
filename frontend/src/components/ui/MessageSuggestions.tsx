@@ -22,6 +22,10 @@ export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => v
   // Kullanici istegi: ekranin alt kismindaysa, popup asagiya tasip
   // gorunmez olmasin diye YUKARI dogru acilsin.
   const [openUpward, setOpenUpward] = useState(false);
+  // Kullanici istegi (mobil duzeltmesi): popup, ekranin SAG kenarini
+  // asip sayfanin yatay genislemesine (responsive bozulmasina) neden
+  // olmasin diye, gerekirse SAGA hizali (right-0) acilir.
+  const [alignRight, setAlignRight] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -64,6 +68,13 @@ export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => v
       const estimatedPopupHeight = 320; // max-h-56 (liste) + arama kutusu + kenarlıklar.
       const spaceBelow = window.innerHeight - rect.bottom;
       setOpenUpward(spaceBelow < estimatedPopupHeight);
+
+      // Kullanici istegi: popup genisligi (max 320px), butonun SOL
+      // kenarindan basladiginda ekranin SAGINA tasiyor mu kontrol
+      // edilir - tasiyorsa SAGA hizali acilir.
+      const estimatedPopupWidth = 320;
+      const spaceRight = window.innerWidth - rect.left;
+      setAlignRight(spaceRight < estimatedPopupWidth);
     }
     setIsOpen((v) => !v);
   }
@@ -81,9 +92,9 @@ export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => v
 
       {isOpen && (
         <div
-          className={`absolute left-0 z-10 w-80 overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted ${
+          className={`absolute z-10 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted ${
             openUpward ? "bottom-full mb-1" : "top-full mt-1"
-          }`}
+          } ${alignRight ? "right-0" : "left-0"}`}
         >
           {/* Kullanici istegi: liste buyudukce aranabilir olsun diye
               bir filtreleme kutusu. */}

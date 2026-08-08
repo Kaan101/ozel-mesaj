@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { useLanguage } from "@/lib/language-context";
 import { AvatarDisplay } from "./AvatarDisplay";
@@ -22,8 +22,33 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState("");
+  // Kullanici istegi (mobil duzeltmesi): popup, ekranin SAG kenarini
+  // asip sayfanin yatay genislemesine (responsive bozulmasina) neden
+  // olmasin diye, gerekirse SAGA hizali (right-0) acilir.
+  const [alignRight, setAlignRight] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Kullanici istegi: popup acikken, uygulamanin BASKA BIR YERINE
+  // tiklaninca (butonun/popup'in DISINDA) otomatik kapansin.
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
 
   async function handleOpen() {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const estimatedPopupWidth = 320;
+      const spaceRight = window.innerWidth - rect.left;
+      setAlignRight(spaceRight < estimatedPopupWidth);
+    }
     setIsOpen((v) => !v);
     if (!isOpen && contacts.length === 0) {
       setIsLoading(true);
@@ -51,8 +76,9 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
   }, [contacts, query]);
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={handleOpen}
         className="font-body text-xs text-sky hover:text-sky/80"
@@ -61,7 +87,11 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-10 mt-1 w-80 overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted">
+        <div
+          className={`absolute top-full z-10 mt-1 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted ${
+            alignRight ? "right-0" : "left-0"
+          }`}
+        >
           {/* Kullanici istegi: liste buyudukce aranabilir olsun. */}
           <div className="border-b border-sky-light/50 p-2">
             <input
