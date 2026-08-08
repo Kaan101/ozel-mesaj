@@ -13,6 +13,9 @@ interface PublicProfile {
   avatarId: string | null;
   avatarConfig: Record<string, unknown> | null;
   fields: { id: string; label: string; value: string }[];
+  // Kullanici istegi: hedefin herkese acik isaretledigi havuz
+  // soru-yanit ciftleri.
+  poolAnswers: { id: string; questionTitle: string; questionText: string; answerText: string }[];
 }
 
 // Kullanici istegi: mesajlastigin kisinin avatarina tiklayinca acilan
@@ -97,6 +100,31 @@ export default function ProfilPage() {
                   </Card>
                 ))}
               </div>
+            )}
+
+            {/* Kullanici istegi: hedefin herkese acik isaretledigi
+                havuz soru-yanit ciftleri de gorunur. */}
+            {profile.poolAnswers.length > 0 && (
+              <>
+                <h2 className="font-display text-lg font-bold text-slate">
+                  Havuz Soru &amp; Yanıtları
+                </h2>
+                <div className="space-y-3">
+                  {profile.poolAnswers.map((a) => (
+                    <Card key={a.id} lifted className="space-y-2">
+                      <h3 className="font-display text-sm font-bold text-slate">
+                        {a.questionTitle}
+                      </h3>
+                      <p className="font-body text-xs text-slate-light">{a.questionText}</p>
+                      <div className="rounded-2xl bg-mint/60 px-3 py-2">
+                        <p className="font-body text-sm text-slate whitespace-pre-wrap">
+                          {a.answerText}
+                        </p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </>
             )}
           </>
         )}

@@ -16,6 +16,16 @@ interface ProfileField {
   visibility: "public" | "private";
 }
 
+// Kullanici istegi: havuz sorularina verilen yanitlar da profil
+// sayfasinda gorunebilsin - her biri AYRI AYRI public/private olabilir.
+interface PoolAnswer {
+  id: string;
+  questionTitle: string;
+  questionText: string;
+  answerText: string;
+  visibility: "public" | "private";
+}
+
 // Kullanici istegi: mesajlastigin kisinin avatarina tiklayinca acilan
 // kisisellestirilmis profil sayfasi - burada KENDI bilgi kalemlerini
 // (etiket+deger) ekler/duzenler/silersin, her birini AYRI AYRI
@@ -25,6 +35,8 @@ export default function ProfilimPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [fields, setFields] = useState<ProfileField[]>([]);
+  const [poolAnswers, setPoolAnswers] = useState<PoolAnswer[]>([]);
+  const [savingPoolAnswerId, setSavingPoolAnswerId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, { label: string; value: string }>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +54,10 @@ export default function ProfilimPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (isAuthenticated) fetchFields();
+    if (isAuthenticated) {
+      fetchFields();
+      fetchPoolAnswers();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
@@ -59,6 +74,36 @@ export default function ProfilimPage() {
       setError("Profil bilgileri yüklenemedi.");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  // Kullanici istegi: havuz sorularina verilen yanitlari cekme.
+  async function fetchPoolAnswers() {
+    try {
+      const data = await apiFetch<PoolAnswer[]>("/profile/me/pool-answers");
+      setPoolAnswers(data);
+    } catch {
+      // Sessizce gec - ana profil bilgileri daha kritik.
+    }
+  }
+
+  // Kullanici istegi: bir havuz soru-yanit ciftinin gorunurlugunu
+  // (public/private) degistirme.
+  async function handleTogglePoolAnswerVisibility(answer: PoolAnswer) {
+    setSavingPoolAnswerId(answer.id);
+    try {
+      const newVisibility = answer.visibility === "public" ? "private" : "public";
+      await apiFetch(`/profile/me/pool-answers/${answer.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ visibility: newVisibility }),
+      });
+      setPoolAnswers((prev) =>
+        prev.map((a) => (a.id === answer.id ? { ...a, visibility: newVisibility } : a))
+      );
+    } catch {
+      setError("Görünürlük değiştirilemedi.");
+    } finally {
+      setSavingPoolAnswerId(null);
     }
   }
 
@@ -247,6 +292,46 @@ export default function ProfilimPage() {
                     >
                       Sil
                     </button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Kullanici istegi: havuz sorularina verilen yanitlar da
+            profil sayfasinda gorunebilsin - her biri AYRI AYRI
+            public/private isaretlenebilir. */}
+        {poolAnswers.length > 0 && (
+          <>
+            <h2 className="font-display text-lg font-bold text-slate">
+              Havuz Yanıtların ({poolAnswers.length})
+            </h2>
+            <div className="space-y-3">
+              {poolAnswers.map((a) => (
+                <Card key={a.id} lifted className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-display text-sm font-bold text-slate">
+                      {a.questionTitle}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePoolAnswerVisibility(a)}
+                      disabled={savingPoolAnswerId === a.id}
+                      className={`shrink-0 rounded-full px-2.5 py-1 font-body text-[11px] font-semibold whitespace-nowrap disabled:opacity-50 ${
+                        a.visibility === "public"
+                          ? "bg-meadow-light text-meadow-hover"
+                          : "bg-slate-light/20 text-slate-light"
+                      }`}
+                    >
+                      {a.visibility === "public" ? "🌍 Herkese Açık" : "🔒 Bana Özel"}
+                    </button>
+                  </div>
+                  <p className="font-body text-xs text-slate-light">{a.questionText}</p>
+                  <div className="rounded-2xl bg-mint/60 px-3 py-2">
+                    <p className="font-body text-sm text-slate whitespace-pre-wrap">
+                      {a.answerText}
+                    </p>
                   </div>
                 </Card>
               ))}
