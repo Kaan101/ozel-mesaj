@@ -46,6 +46,27 @@ export class ProfileController {
     return { message: "Profil alanı silindi." };
   }
 
+  // Kullanici istegi: profil duzenleme ekraninda, havuz sorularina
+  // verilen yanitlarin (public/private) yonetimi.
+  @UseGuards(JwtAuthGuard)
+  @Get("me/pool-answers")
+  async getMyPoolAnswers(@Req() request: Request) {
+    const userId = (request as any).user.sub;
+    return this.service.getMyPoolAnswers(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch("me/pool-answers/:attemptId")
+  async updatePoolAnswerVisibility(
+    @Req() request: Request,
+    @Param("attemptId") attemptId: string,
+    @Body() dto: { visibility: string }
+  ) {
+    const userId = (request as any).user.sub;
+    await this.service.updatePoolAnswerVisibility(userId, attemptId, dto.visibility);
+    return { message: "Görünürlük güncellendi." };
+  }
+
   // Baskasinin profilini goruntuleme - SADECE public alanlar,
   // SADECE onunla bir konusma paylasiyorsan.
   @UseGuards(JwtAuthGuard)

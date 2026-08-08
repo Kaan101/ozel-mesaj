@@ -320,6 +320,10 @@ model PoolAttempt {
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  // Kullanici istegi: bu soru-yanit cifti, profil sayfasinda (Havuz
+  // Yanitlarim) herkese acik mi yoksa sadece kendine mi gorunsun.
+  profileVisibility String @default("private") @map("profile_visibility")
+
   // Kullanici istegi: her bir iletisim (yanit) kendi icinde
   // silinebilsin - soruyu silmekten bagimsiz olarak.
   hiddenByOwner Boolean @default(false) @map("hidden_by_owner")

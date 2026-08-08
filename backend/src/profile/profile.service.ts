@@ -67,6 +67,42 @@ export class ProfileService {
     await this.prisma.profileField.delete({ where: { id: fieldId } });
   }
 
+  // Kullanici istegi: profil DUZENLEME ekraninda, kullanicinin havuz
+  // sorularina verdigi TUM yanitlari (soru metniyle birlikte) listeler
+  // - her birinin gorunurlugu (public/private) burada degistirilebilir.
+  async getMyPoolAnswers(userId: string) {
+    const attempts = await this.prisma.poolAttempt.findMany({
+      where: { attempterUserId: userId, hiddenByOwner: false },
+      orderBy: { createdAt: "desc" },
+      include: {
+        poolEntry: { select: { id: true, title: true, questionText: true } },
+      },
+    });
+    return attempts.map((a) => ({
+      id: a.id,
+      questionTitle: a.poolEntry.title,
+      questionText: a.poolEntry.questionText,
+      answerText: a.answerText,
+      visibility: a.profileVisibility,
+      createdAt: a.createdAt,
+    }));
+  }
+
+  async updatePoolAnswerVisibility(
+    userId: string,
+    attemptId: string,
+    visibility: string
+  ): Promise<void> {
+    const attempt = await this.prisma.poolAttempt.findUnique({ where: { id: attemptId } });
+    if (!attempt || attempt.attempterUserId !== userId) {
+      throw new ForbiddenException("Bu yanıtın görünürlüğünü değiştirme yetkin yok.");
+    }
+    await this.prisma.poolAttempt.update({
+      where: { id: attemptId },
+      data: { profileVisibility: visibility === "public" ? "public" : "private" },
+    });
+  }
+
   // Kullanici istegi: baskasinin profilini goruntuleme - SADECE
   // PUBLIC alanlar doner, VE goruntuleyen kisi hedefle en az bir
   // konusma paylasmiyorsa erisim reddedilir.
@@ -99,11 +135,31 @@ export class ProfileService {
       select: { id: true, label: true, value: true },
     });
 
+    // Kullanici istegi: profili goruntuleyen kisi, hedefin PUBLIC
+    // isaretledigi havuz soru-yanit ciftlerini de gorsun.
+    const poolAnswers = await this.prisma.poolAttempt.findMany({
+      where: {
+        attempterUserId: targetUserId,
+        profileVisibility: "public",
+        hiddenByOwner: false,
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        poolEntry: { select: { id: true, title: true, questionText: true } },
+      },
+    });
+
     return {
       displayName: user.showAvatar ? user.displayName : null,
       avatarId: user.showAvatar ? user.avatarId : null,
       avatarConfig: user.showAvatar ? user.avatarConfig : null,
       fields,
+      poolAnswers: poolAnswers.map((a) => ({
+        id: a.id,
+        questionTitle: a.poolEntry.title,
+        questionText: a.poolEntry.questionText,
+        answerText: a.answerText,
+      })),
     };
   }
 }
