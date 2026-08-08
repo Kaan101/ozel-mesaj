@@ -24,6 +24,27 @@ enum UserStatus {
   deleted
 }
 
+// Kullanici istegi: mesajlastigin kisinin avatarina tiklayinca acilan
+// kisisellestirilmis profil sayfasi - kullanici, kendisiyle ilgili
+// bilgi kalemleri (etiket+deger) ekleyebilir, her birini AYRI AYRI
+// public (herkese/mesajlastigi herkese acik) ya da private (sadece
+// kendisi gorur, duzenleme ekraninda) yapabilir.
+model ProfileField {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  label      String
+  value      String
+  visibility String @default("private") // "public" | "private"
+  sortOrder  Int    @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("profile_fields")
+}
+
 model User {
   id              String     @id @default(uuid()) @db.Uuid
   // Telefon numarası ASLA düz metin saklanmaz, sadece hash (Bölüm 10).
@@ -95,6 +116,8 @@ model User {
   // Kullanici istegi: kalici blok gecmisi (BlockLog) icin ters iliskiler.
   blockLogsAsBlocker BlockLog[] @relation("BlockLogBlocker")
   blockLogsAsBlocked BlockLog[] @relation("BlockLogBlocked")
+  // Kullanici istegi: kisisellestirilmis profil sayfasi alanlari.
+  profileFields ProfileField[]
   reports          Report[]
   threadUnlocks    ThreadUnlock[]
   contacts         Contact[]

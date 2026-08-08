@@ -371,6 +371,15 @@ export default function AyarlarPage() {
           <h2 className="font-display text-lg font-bold text-slate">
             {t("settings.profileTitle")}
           </h2>
+          {/* Kullanici istegi: mesajlastigin kisilerin avatarina
+              tiklayinca gorecegi kisisellestirilmis bilgi sayfasi -
+              buradan yonetilir. */}
+          <Link
+            href="/profilim"
+            className="block rounded-2xl border-2 border-sky-light bg-sky-light/20 px-4 py-3 font-body text-sm font-semibold text-sky-hover hover:bg-sky-light/40"
+          >
+            👤 Profilim (mesajlaştığın kişilerin gördüğü bilgi sayfan) →
+          </Link>
           <Input
             label={t("settings.displayNameLabel")}
             value={displayName}
