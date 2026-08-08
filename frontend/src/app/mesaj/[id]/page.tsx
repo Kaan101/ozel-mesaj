@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
@@ -740,11 +741,26 @@ export default function MesajGosterPage() {
                 <div className="flex items-start gap-3">
                   {msg.senderAvatarId && (
                     <div className="shrink-0 text-center">
-                      <AvatarDisplay
-                        avatarId={msg.senderAvatarId}
-                        avatarConfig={msg.senderAvatarConfig}
-                        size={36}
-                      />
+                      {/* Kullanici istegi: mesajlastigin kisinin
+                          avatarina tiklayinca kisisellestirilmis
+                          profil sayfasi acilir - SADECE anonim
+                          OLMAYAN mesajlarda (senderUserId biliniyorsa)
+                          tiklanabilir, aksi halde sadece gorsel kalir. */}
+                      {msg.senderUserId ? (
+                        <Link href={`/profil/${msg.senderUserId}`}>
+                          <AvatarDisplay
+                            avatarId={msg.senderAvatarId}
+                            avatarConfig={msg.senderAvatarConfig}
+                            size={36}
+                          />
+                        </Link>
+                      ) : (
+                        <AvatarDisplay
+                          avatarId={msg.senderAvatarId}
+                          avatarConfig={msg.senderAvatarConfig}
+                          size={36}
+                        />
+                      )}
                       {/* Kullanici istegi: anonim olmayan mesajlarda,
                           gonderenin /ayarlar'da girdigi gorunen ad
                           avatarin altinda gosterilir. */}
