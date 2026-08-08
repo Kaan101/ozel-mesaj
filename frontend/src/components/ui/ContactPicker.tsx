@@ -22,6 +22,10 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState("");
+  // Kullanici istegi: ekranin alt kismindaysa, popup asagiya tasip
+  // gorunmez olmasin diye YUKARI dogru acilsin (Resim Gonder/Mesaj
+  // Onerileri popup'lariyla AYNI davranis).
+  const [openUpward, setOpenUpward] = useState(false);
   // Kullanici istegi (mobil duzeltmesi): popup, ekranin SAG kenarini
   // asip sayfanin yatay genislemesine (responsive bozulmasina) neden
   // olmasin diye, gerekirse SAGA hizali (right-0) acilir.
@@ -45,7 +49,11 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
   async function handleOpen() {
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const estimatedPopupWidth = 320;
+      const estimatedPopupHeight = 320;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < estimatedPopupHeight);
+
+      const estimatedPopupWidth = 288;
       const spaceRight = window.innerWidth - rect.left;
       setAlignRight(spaceRight < estimatedPopupWidth);
     }
@@ -88,9 +96,9 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
 
       {isOpen && (
         <div
-          className={`absolute top-full z-10 mt-1 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted ${
-            alignRight ? "right-0" : "left-0"
-          }`}
+          className={`absolute z-10 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted ${
+            openUpward ? "bottom-full mb-1" : "top-full mt-1"
+          } ${alignRight ? "right-0" : "left-0"}`}
         >
           {/* Kullanici istegi: liste buyudukce aranabilir olsun. */}
           <div className="border-b border-sky-light/50 p-2">

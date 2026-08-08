@@ -72,7 +72,7 @@ export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => v
       // Kullanici istegi: popup genisligi (max 320px), butonun SOL
       // kenarindan basladiginda ekranin SAGINA tasiyor mu kontrol
       // edilir - tasiyorsa SAGA hizali acilir.
-      const estimatedPopupWidth = 320;
+      const estimatedPopupWidth = 288;
       const spaceRight = window.innerWidth - rect.left;
       setAlignRight(spaceRight < estimatedPopupWidth);
     }
@@ -92,7 +92,7 @@ export function MessageSuggestions({ onSelect }: { onSelect: (text: string) => v
 
       {isOpen && (
         <div
-          className={`absolute z-10 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted ${
+          className={`absolute z-10 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-2 border-sky-light bg-white shadow-soft-lifted ${
             openUpward ? "bottom-full mb-1" : "top-full mt-1"
           } ${alignRight ? "right-0" : "left-0"}`}
         >
