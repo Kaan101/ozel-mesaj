@@ -107,7 +107,6 @@ export function ContactPicker({ onSelect }: { onSelect: (phoneNumber: string) =>
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("contactPicker.searchPlaceholder")}
-              autoFocus
               className="w-full rounded-full border border-sky-light bg-mint/40 px-3 py-1.5 font-body text-sm text-slate placeholder:text-slate-light/70 focus:outline-none focus:ring-2 focus:ring-sky/30"
             />
           </div>
