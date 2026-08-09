@@ -67,6 +67,19 @@ export class ProfileController {
     return { message: "Görünürlük güncellendi." };
   }
 
+  // Kullanici istegi: yanit VEREN kisi, bu soru-yanit ciftini KENDI
+  // profil sayfasindan kaldirabilsin.
+  @UseGuards(JwtAuthGuard)
+  @Delete("me/pool-answers/:attemptId")
+  async removePoolAnswerFromProfile(
+    @Req() request: Request,
+    @Param("attemptId") attemptId: string
+  ) {
+    const userId = (request as any).user.sub;
+    await this.service.removePoolAnswerFromProfile(userId, attemptId);
+    return { message: "Profilden kaldırıldı." };
+  }
+
   // Baskasinin profilini goruntuleme - SADECE public alanlar,
   // SADECE onunla bir konusma paylasiyorsan.
   @UseGuards(JwtAuthGuard)
