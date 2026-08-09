@@ -747,7 +747,10 @@ export default function MesajGosterPage() {
                           OLMAYAN mesajlarda (senderUserId biliniyorsa)
                           tiklanabilir, aksi halde sadece gorsel kalir. */}
                       {msg.senderUserId ? (
-                        <Link href={`/profil/${msg.senderUserId}`}>
+                        <Link
+                          href={`/profil/${msg.senderUserId}`}
+                          className="inline-block rounded-full transition-transform duration-100 hover:opacity-80 active:scale-90"
+                        >
                           <AvatarDisplay
                             avatarId={msg.senderAvatarId}
                             avatarConfig={msg.senderAvatarConfig}
