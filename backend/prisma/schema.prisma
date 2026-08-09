@@ -324,6 +324,12 @@ model PoolAttempt {
   // Yanitlarim) herkese acik mi yoksa sadece kendine mi gorunsun.
   profileVisibility String @default("private") @map("profile_visibility")
 
+  // Kullanici istegi: yanit VEREN kisi, bu soru-yanit ciftini KENDI
+  // profil sayfasindan kaldirabilsin - bu, hiddenByOwner'dan (soru
+  // SAHIBININ kendi gelen kutusundan gizlemesi) BAGIMSIZDIR, soru
+  // sahibinin kendi listesini etkilemez.
+  hiddenFromProfile Boolean @default(false) @map("hidden_from_profile")
+
   // Kullanici istegi: her bir iletisim (yanit) kendi icinde
   // silinebilsin - soruyu silmekten bagimsiz olarak.
   hiddenByOwner Boolean @default(false) @map("hidden_by_owner")

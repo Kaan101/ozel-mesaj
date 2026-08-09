@@ -72,7 +72,7 @@ export class ProfileService {
   // - her birinin gorunurlugu (public/private) burada degistirilebilir.
   async getMyPoolAnswers(userId: string) {
     const attempts = await this.prisma.poolAttempt.findMany({
-      where: { attempterUserId: userId, hiddenByOwner: false },
+      where: { attempterUserId: userId, hiddenByOwner: false, hiddenFromProfile: false },
       orderBy: { createdAt: "desc" },
       include: {
         poolEntry: { select: { id: true, title: true, questionText: true } },
@@ -100,6 +100,20 @@ export class ProfileService {
     await this.prisma.poolAttempt.update({
       where: { id: attemptId },
       data: { profileVisibility: visibility === "public" ? "public" : "private" },
+    });
+  }
+
+  // Kullanici istegi: yanit VEREN kisi, bu soru-yanit ciftini KENDI
+  // profil sayfasindan kaldirabilsin - havuzdaki asil yanit/thread
+  // ETKILENMEZ, sadece profil goruntulemesinden kalkar.
+  async removePoolAnswerFromProfile(userId: string, attemptId: string): Promise<void> {
+    const attempt = await this.prisma.poolAttempt.findUnique({ where: { id: attemptId } });
+    if (!attempt || attempt.attempterUserId !== userId) {
+      throw new ForbiddenException("Bu yanıtı profilinden kaldırma yetkin yok.");
+    }
+    await this.prisma.poolAttempt.update({
+      where: { id: attemptId },
+      data: { hiddenFromProfile: true },
     });
   }
 
@@ -142,6 +156,7 @@ export class ProfileService {
         attempterUserId: targetUserId,
         profileVisibility: "public",
         hiddenByOwner: false,
+        hiddenFromProfile: false,
       },
       orderBy: { createdAt: "desc" },
       include: {

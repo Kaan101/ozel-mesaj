@@ -107,6 +107,22 @@ export default function ProfilimPage() {
     }
   }
 
+  // Kullanici istegi: bir havuz soru-yanit ciftini profilimden
+  // kaldirabilme (havuzdaki asil yanit etkilenmez, sadece profilde
+  // artik gorunmez).
+  async function handleRemovePoolAnswer(answerId: string) {
+    if (!confirm("Bu soru-yanıt çiftini profilinden kaldırmak istediğine emin misin?")) return;
+    setSavingPoolAnswerId(answerId);
+    try {
+      await apiFetch(`/profile/me/pool-answers/${answerId}`, { method: "DELETE" });
+      setPoolAnswers((prev) => prev.filter((a) => a.id !== answerId));
+    } catch {
+      setError("Kaldırılamadı. Lütfen tekrar dene.");
+    } finally {
+      setSavingPoolAnswerId(null);
+    }
+  }
+
   async function handleAdd() {
     if (!newLabel.trim() || !newValue.trim()) return;
     setIsAdding(true);
@@ -333,6 +349,16 @@ export default function ProfilimPage() {
                       {a.answerText}
                     </p>
                   </div>
+                  {/* Kullanici istegi: bu soru-yanit ciftini profilden
+                      kaldirabilme. */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePoolAnswer(a.id)}
+                    disabled={savingPoolAnswerId === a.id}
+                    className="w-full rounded-full border-2 border-coral px-3 py-1.5 font-body text-xs font-semibold text-coral hover:bg-coral-light disabled:opacity-50"
+                  >
+                    Kaldır
+                  </button>
                 </Card>
               ))}
             </div>
