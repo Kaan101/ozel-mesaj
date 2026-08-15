@@ -617,11 +617,14 @@ export default function MesajGosterPage() {
     return (
       <main className="min-h-screen bg-mint px-4 pt-8 pb-12">
         <div className="mx-auto max-w-md space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-2xl font-bold text-slate">{pageTitle}</h1>
-              {firstMessageDate && (
-                <div className="mt-0.5 flex items-center gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-slate">{pageTitle}</h1>
+            {/* Kullanici istegi: Engelle/Bildir aksiyonlari, tarih ve
+                hava durumu bilgileriyle AYNI satirda, saga dayali
+                olarak gosterilir. */}
+            <div className="mt-0.5 flex items-center justify-between">
+              {firstMessageDate ? (
+                <div className="flex items-center gap-3">
                   <p className="font-body text-xs text-slate-light">
                     {new Date(firstMessageDate).toLocaleString("tr-TR", {
                       day: "2-digit",
@@ -640,23 +643,25 @@ export default function MesajGosterPage() {
                     </p>
                   )}
                 </div>
+              ) : (
+                <div />
               )}
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleBlock}
-                className="font-body text-xs font-bold text-slate-light"
-              >
-                Engelle
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsReportFormOpen((v) => !v)}
-                className="font-body text-xs font-bold text-coral"
-              >
-                Bildir
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleBlock}
+                  className="font-body text-xs font-bold text-slate-light"
+                >
+                  Engelle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsReportFormOpen((v) => !v)}
+                  className="font-body text-xs font-bold text-coral"
+                >
+                  Bildir
+                </button>
+              </div>
             </div>
           </div>
 
