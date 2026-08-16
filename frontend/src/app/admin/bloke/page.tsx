@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 
 interface ReportedUser {
   userId: string;
@@ -335,11 +336,10 @@ export default function AdminBlokePage() {
             Henüz şikayet edilmemiş, ama kötü niyetli kullandığını düşündüğün bir kişiyi telefon
             numarasıyla doğrudan bloke edebilirsin (hesabı askıya alınır).
           </p>
-          <Input
+          <PhoneInput
             label="Telefon Numarası"
             value={manualBlockPhone}
-            onChange={(e) => setManualBlockPhone(e.target.value)}
-            placeholder="+90 5xx xxx xx xx"
+            onChange={setManualBlockPhone}
           />
           <div>
             <label className="block font-body text-sm font-semibold text-slate mb-1">
