@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -26,9 +26,25 @@ interface ArchivedMessage {
   id: string;
   originalMessageId: string;
   senderUserId: string | null;
+  senderPhone: string | null;
   isAnonymous: boolean;
   body: string;
   createdAt: string;
+}
+
+// Kullanici istegi: "hangi telefon hangi telefona ne zaman mesaj
+// atti" sorusuna TEK ekranda cevap veren liste kaydi.
+interface ThreadWithPhones {
+  threadId: string;
+  createdAt: string;
+  originType: string;
+  initiatorUserId: string;
+  initiatorPhone: string | null;
+  initiatorDisplayName: string | null;
+  recipientUserId: string | null;
+  recipientPhone: string | null;
+  recipientDisplayName: string | null;
+  messageCount: number;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
@@ -56,6 +72,14 @@ export default function AdminGunluklerPage() {
     Record<string, ArchivedMessage[]>
   >({});
 
+  // Kullanici istegi: "hangi telefon hangi telefona ne zaman mesaj
+  // atti" - tum konusmalari telefon numaralariyla listeleyen bolum.
+  const [threadsWithPhones, setThreadsWithPhones] = useState<ThreadWithPhones[]>([]);
+  const [threadsTotal, setThreadsTotal] = useState(0);
+  const [threadsPage, setThreadsPage] = useState(1);
+  const [isThreadsLoading, setIsThreadsLoading] = useState(false);
+  const [expandedThreadId, setExpandedThreadId] = useState<string | null>(null);
+
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_secret");
     if (stored) {
@@ -68,6 +92,32 @@ export default function AdminGunluklerPage() {
     if (isUnlocked) fetchLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked, page]);
+
+  useEffect(() => {
+    if (isUnlocked) fetchThreadsWithPhones();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUnlocked, threadsPage]);
+
+  // Kullanici istegi: "hangi telefon hangi telefona ne zaman mesaj
+  // atti" listesini cekme.
+  async function fetchThreadsWithPhones() {
+    setIsThreadsLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(threadsPage), pageSize: "20" });
+      const res = await fetch(`${API_BASE_URL}/admin/audit/threads?${params}`, {
+        headers: { "x-admin-secret": adminKey },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setThreadsWithPhones(data.items);
+        setThreadsTotal(data.total);
+      }
+    } catch {
+      // Sessizce gec.
+    } finally {
+      setIsThreadsLoading(false);
+    }
+  }
 
   async function fetchLogs() {
     setIsLoading(true);
@@ -166,6 +216,116 @@ export default function AdminGunluklerPage() {
           ID&apos;si veya thread ID&apos;si üzerinden gerçek telefon numarasını / arşivlenmiş
           mesajları açabilirsin.
         </p>
+
+        {/* Kullanici istegi: "hangi telefon hangi telefona ne zaman
+            mesaj atti" sorusuna TEK ekranda cevap veren liste. */}
+        <h2 className="font-display text-lg font-bold text-slate">
+          Tüm Mesajlaşmalar ({threadsTotal})
+        </h2>
+        <p className="font-body text-xs text-slate-light">
+          Her satır bir konuşmayı temsil eder — telefon numaraları çözülmüş halde gösterilir.
+          Bir satıra tıklayınca o konuşmanın tüm mesajları (gönderen telefonuyla birlikte)
+          açılır.
+        </p>
+        {isThreadsLoading && (
+          <p className="font-body text-sm text-slate-light">Yükleniyor...</p>
+        )}
+        <Card className="overflow-x-auto p-0">
+          <table className="w-full border-collapse border border-slate-light/60 text-left">
+            <thead>
+              <tr className="bg-mint">
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate">
+                  Tarih
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate">
+                  Gönderen (Başlatan)
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate">
+                  Alıcı
+                </th>
+                <th className="border border-slate-light/60 px-3 py-2 font-display text-xs font-bold text-slate w-20">
+                  Mesaj
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {threadsWithPhones.map((t) => (
+                <Fragment key={t.threadId}>
+                  <tr
+                    onClick={() => {
+                      setExpandedThreadId(expandedThreadId === t.threadId ? null : t.threadId);
+                      if (!revealedThreadMessages[t.threadId]) {
+                        handleRevealThreadMessages(t.threadId);
+                      }
+                    }}
+                    className="cursor-pointer hover:bg-mint/40"
+                  >
+                    <td className="border border-slate-light/60 px-3 py-2 font-body text-xs text-slate whitespace-nowrap">
+                      {new Date(t.createdAt).toLocaleString("tr-TR")}
+                    </td>
+                    <td className="border border-slate-light/60 px-3 py-2 font-body text-xs text-slate">
+                      {t.initiatorPhone ?? "—"}
+                      {t.initiatorDisplayName && (
+                        <span className="text-slate-light"> ({t.initiatorDisplayName})</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-light/60 px-3 py-2 font-body text-xs text-slate">
+                      {t.recipientPhone ?? "—"}
+                      {t.recipientDisplayName && (
+                        <span className="text-slate-light"> ({t.recipientDisplayName})</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-light/60 px-3 py-2 font-body text-xs text-slate text-center">
+                      {t.messageCount}
+                    </td>
+                  </tr>
+                  {expandedThreadId === t.threadId && (
+                    <tr>
+                      <td colSpan={4} className="border border-slate-light/60 bg-mint/20 px-3 py-2">
+                        {!revealedThreadMessages[t.threadId] ? (
+                          <p className="font-body text-xs text-slate-light">Yükleniyor...</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {revealedThreadMessages[t.threadId].map((m) => (
+                              <div key={m.id} className="font-body text-xs text-slate">
+                                <span className="font-semibold">
+                                  {m.isAnonymous ? "🎭 Anonim" : (m.senderPhone ?? "Bilinmiyor")}
+                                </span>{" "}
+                                <span className="text-slate-light">
+                                  ({new Date(m.createdAt).toLocaleString("tr-TR")})
+                                </span>
+                                : {m.body}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+        {threadsTotal > 20 && (
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setThreadsPage((p) => Math.max(1, p - 1))}
+              disabled={threadsPage === 1}
+              className="font-body text-sm text-sky disabled:opacity-40"
+            >
+              ← Önceki
+            </button>
+            <span className="font-body text-xs text-slate-light">Sayfa {threadsPage}</span>
+            <button
+              onClick={() => setThreadsPage((p) => p + 1)}
+              disabled={threadsPage * 20 >= threadsTotal}
+              className="font-body text-sm text-sky disabled:opacity-40"
+            >
+              Sonraki →
+            </button>
+          </div>
+        )}
 
         {/* Filtreler */}
         <Card className="space-y-2">

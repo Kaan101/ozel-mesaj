@@ -35,6 +35,55 @@ export class AuditViewService {
     return { items, total, page: filters.page, pageSize: filters.pageSize };
   }
 
+  // Kullanici istegi: "hangi telefon hangi telefona ne zaman mesaj
+  // atti" sorusuna TEK ekranda cevap veren bir liste - TUM
+  // konusmalari, HER IKI tarafin telefon numarasiyla (cozulmus),
+  // mesaj sayisiyla ve tarihiyle birlikte gosterir.
+  async listAllThreadsWithPhones(page: number, pageSize: number) {
+    const [threads, total] = await Promise.all([
+      this.prisma.messageThread.findMany({
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          createdAt: true,
+          originType: true,
+          recipientPhoneDisplay: true,
+          initiator: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
+          recipient: { select: { id: true, phoneNumberEncrypted: true, displayName: true } },
+          _count: { select: { messages: true } },
+        },
+      }),
+      this.prisma.messageThread.count(),
+    ]);
+
+    return {
+      items: threads.map((t) => ({
+        threadId: t.id,
+        createdAt: t.createdAt,
+        originType: t.originType,
+        initiatorUserId: t.initiator.id,
+        initiatorPhone: t.initiator.phoneNumberEncrypted
+          ? decryptReversible(t.initiator.phoneNumberEncrypted)
+          : null,
+        initiatorDisplayName: t.initiator.displayName,
+        recipientUserId: t.recipient?.id ?? null,
+        // Kullanici istegi: eger alici kayitli bir kullanicisiysa
+        // ONUN GERCEK telefonu; henuz eslesmemis/kayitsizsa,
+        // GONDERENIN YAZDIGI numara (recipientPhoneDisplay) gosterilir.
+        recipientPhone: t.recipient?.phoneNumberEncrypted
+          ? decryptReversible(t.recipient.phoneNumberEncrypted)
+          : t.recipientPhoneDisplay,
+        recipientDisplayName: t.recipient?.displayName ?? null,
+        messageCount: t._count.messages,
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
   // Kullanici istegi: bir kullanicinin gercek (sifresi cozulmus)
   // telefon numarasini gosterir - sadece bilincli bir yonetim
   // islemiyle, hukuki ispat amaciyla kullanilmalidir.
@@ -57,17 +106,49 @@ export class AuditViewService {
 
   // Kullanici istegi: bir thread'in TUM mesajlarinin arsivlenmis
   // (sifresi cozulmus) halini gosterir - "okunduktan sonra sil" ile
-  // silinmis olsalar bile.
+  // silinmis olsalar bile. Her mesajin yaninda, GONDERENIN telefon
+  // numarasi da (anonim degilse) cozulmus halde gosterilir.
   async revealThreadMessages(threadId: string) {
-    const audits = await this.prisma.messageAudit.findMany({
-      where: { threadId },
-      orderBy: { createdAt: "asc" },
-    });
+    const [audits, thread] = await Promise.all([
+      this.prisma.messageAudit.findMany({
+        where: { threadId },
+        orderBy: { createdAt: "asc" },
+      }),
+      this.prisma.messageThread.findUnique({
+        where: { id: threadId },
+        select: {
+          initiator: { select: { id: true, phoneNumberEncrypted: true } },
+          recipient: { select: { id: true, phoneNumberEncrypted: true } },
+        },
+      }),
+    ]);
+
+    const phoneByUserId = new Map<string, string | null>();
+    if (thread?.initiator) {
+      phoneByUserId.set(
+        thread.initiator.id,
+        thread.initiator.phoneNumberEncrypted
+          ? decryptReversible(thread.initiator.phoneNumberEncrypted)
+          : null
+      );
+    }
+    if (thread?.recipient) {
+      phoneByUserId.set(
+        thread.recipient.id,
+        thread.recipient.phoneNumberEncrypted
+          ? decryptReversible(thread.recipient.phoneNumberEncrypted)
+          : null
+      );
+    }
 
     return audits.map((a) => ({
       id: a.id,
       originalMessageId: a.originalMessageId,
       senderUserId: a.senderUserId,
+      // Kullanici istegi: anonim mesajlarda gonderenin telefonu
+      // GOSTERILMEZ (anonimlik prensibi korunur) - anonim degilse
+      // cozulmus telefon numarasi eklenir.
+      senderPhone: a.isAnonymous ? null : (phoneByUserId.get(a.senderUserId) ?? null),
       isAnonymous: a.isAnonymous,
       body: decryptReversible(a.bodyEncrypted),
       createdAt: a.createdAt,
