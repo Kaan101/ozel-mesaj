@@ -26,6 +26,19 @@ export class AuditViewController {
     });
   }
 
+  // Kullanici istegi: "hangi telefon hangi telefona ne zaman mesaj
+  // atti" sorusuna TEK ekranda cevap veren liste.
+  @Get("threads")
+  async listAllThreadsWithPhones(
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string
+  ) {
+    return this.auditView.listAllThreadsWithPhones(
+      Math.max(1, Number(page) || 1),
+      Math.min(100, Math.max(1, Number(pageSize) || 25))
+    );
+  }
+
   @Get("users/:id/phone")
   async revealPhone(@Param("id") id: string) {
     return this.auditView.revealPhone(id);
