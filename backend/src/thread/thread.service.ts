@@ -1555,7 +1555,7 @@ export class ThreadService implements OnModuleInit {
         where: { threadId: { in: threadIds }, deletedAt: null, moderationStatus: "approved" },
         orderBy: { createdAt: "desc" },
         distinct: ["threadId"],
-        select: { threadId: true, body: true, createdAt: true },
+        select: { threadId: true, body: true, createdAt: true, imageKey: true },
       }),
     ]);
 
@@ -1595,6 +1595,9 @@ export class ThreadService implements OnModuleInit {
         originType: thread.originType,
         messageCount: count,
         lastMessagePreview: lastMessage?.body ?? "",
+        // Kullanici istegi: son mesaj bir resimse, panelde de placeholder
+        // metin ("[Image]") yerine GERCEK resmin kendisi gorunsun.
+        lastMessageImageKey: lastMessage?.imageKey ?? null,
         lastMessageAt: lastMessage?.createdAt ?? null,
       };
     });

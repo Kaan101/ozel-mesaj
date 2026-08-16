@@ -22,6 +22,9 @@ interface TopContact {
   originType: "direct" | "pool";
   messageCount: number;
   lastMessagePreview: string;
+  // Kullanici istegi: son mesaj bir resimse, placeholder metin
+  // ("[Image]") yerine gercek resim gosterilir.
+  lastMessageImageKey?: string | null;
   lastMessageAt: string | null;
 }
 
@@ -118,9 +121,28 @@ export default function PanelPage() {
                         </p>
                       </div>
                     </div>
-                    <p className="line-clamp-2 font-body text-[13px] leading-normal text-slate-light">
-                      &quot;{contact.lastMessagePreview}&quot;
-                    </p>
+                    {/* Kullanici istegi: son mesaj bir resimse,
+                        placeholder metin yerine GERCEK resim
+                        gosterilir. GERIYE UYUMLULUK: eski kayitlarda
+                        imageKey onek icermeyebilir (face/ klasorunden
+                        okunur), yenilerde "kategori/dosya.png"
+                        formatinda olabilir. */}
+                    {contact.lastMessageImageKey ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={
+                          contact.lastMessageImageKey.includes("/")
+                            ? `/images/${contact.lastMessageImageKey}`
+                            : `/images/face/${contact.lastMessageImageKey}`
+                        }
+                        alt=""
+                        className="h-16 w-16 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <p className="line-clamp-2 font-body text-[13px] leading-normal text-slate-light">
+                        &quot;{contact.lastMessagePreview}&quot;
+                      </p>
+                    )}
                     <span className="self-start rounded-full bg-sky-light px-2.5 py-1 font-body text-[11.5px] font-semibold text-sky-hover">
                       {contact.originType === "direct" ? t("panel.direct") : t("panel.pool")}
                     </span>
