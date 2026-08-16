@@ -39,9 +39,42 @@ export class AuditViewService {
   // atti" sorusuna TEK ekranda cevap veren bir liste - TUM
   // konusmalari, HER IKI tarafin telefon numarasiyla (cozulmus),
   // mesaj sayisiyla ve tarihiyle birlikte gosterir.
-  async listAllThreadsWithPhones(page: number, pageSize: number) {
+  async listAllThreadsWithPhones(page: number, pageSize: number, phoneSearch?: string) {
+    // Kullanici istegi: belirli bir telefon numarasinin ("5323770376"
+    // gibi, +90/0 on eki olmadan da) attigi TUM mesajlari bulabilme.
+    // Numara SIFRELI (ama geri dondurulebilir) saklandigi icin, DOGRUDAN
+    // veritabaninda "arama" yapamayiz - bunun yerine, arama terimi
+    // varsa ONCE TUM kullanicilarin telefonlarini cozup, aranani
+    // ICEREN (format farkina duyarli olmadan) kullanicilarin ID'lerini
+    // buluyoruz, SONRA thread'leri bu ID'lere gore filtreliyoruz.
+    let matchingUserIds: string[] | null = null;
+    if (phoneSearch && phoneSearch.trim()) {
+      const digitsOnly = phoneSearch.replace(/\D/g, "");
+      const allUsers = await this.prisma.user.findMany({
+        select: { id: true, phoneNumberEncrypted: true },
+      });
+      matchingUserIds = allUsers
+        .filter((u) => {
+          if (!u.phoneNumberEncrypted) return false;
+          const decrypted = decryptReversible(u.phoneNumberEncrypted).replace(/\D/g, "");
+          return decrypted.includes(digitsOnly);
+        })
+        .map((u) => u.id);
+    }
+
+    const where =
+      matchingUserIds !== null
+        ? {
+            OR: [
+              { initiatorUserId: { in: matchingUserIds } },
+              { recipientUserId: { in: matchingUserIds } },
+            ],
+          }
+        : {};
+
     const [threads, total] = await Promise.all([
       this.prisma.messageThread.findMany({
+        where,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -55,7 +88,7 @@ export class AuditViewService {
           _count: { select: { messages: true } },
         },
       }),
-      this.prisma.messageThread.count(),
+      this.prisma.messageThread.count({ where }),
     ]);
 
     return {

@@ -79,6 +79,9 @@ export default function AdminGunluklerPage() {
   const [threadsPage, setThreadsPage] = useState(1);
   const [isThreadsLoading, setIsThreadsLoading] = useState(false);
   const [expandedThreadId, setExpandedThreadId] = useState<string | null>(null);
+  // Kullanici istegi: belirli bir telefon numarasinin (format
+  // farkina bakilmaksizin) attigi/aldigi TUM mesajlari arayabilme.
+  const [phoneSearch, setPhoneSearch] = useState("");
 
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_secret");
@@ -99,11 +102,15 @@ export default function AdminGunluklerPage() {
   }, [isUnlocked, threadsPage]);
 
   // Kullanici istegi: "hangi telefon hangi telefona ne zaman mesaj
-  // atti" listesini cekme.
-  async function fetchThreadsWithPhones() {
+  // atti" listesini cekme. "overridePhoneSearch" parametresi,
+  // state guncellemesinin ASENKRON olmasi nedeniyle (orn. "Temizle"
+  // butonunda) YANLIS/ESKI degeri kullanma riskini onler.
+  async function fetchThreadsWithPhones(overridePhoneSearch?: string) {
     setIsThreadsLoading(true);
     try {
+      const effectiveSearch = overridePhoneSearch ?? phoneSearch;
       const params = new URLSearchParams({ page: String(threadsPage), pageSize: "20" });
+      if (effectiveSearch.trim()) params.set("phoneSearch", effectiveSearch.trim());
       const res = await fetch(`${API_BASE_URL}/admin/audit/threads?${params}`, {
         headers: { "x-admin-secret": adminKey },
       });
@@ -117,6 +124,13 @@ export default function AdminGunluklerPage() {
     } finally {
       setIsThreadsLoading(false);
     }
+  }
+
+  // Kullanici istegi: arama kutusuna basip Enter'a basinca ya da
+  // "Ara" butonuna tiklayinca, 1. sayfadan itibaren arasin.
+  function handlePhoneSearchSubmit() {
+    setThreadsPage(1);
+    fetchThreadsWithPhones();
   }
 
   async function fetchLogs() {
@@ -227,6 +241,36 @@ export default function AdminGunluklerPage() {
           Bir satıra tıklayınca o konuşmanın tüm mesajları (gönderen telefonuyla birlikte)
           açılır.
         </p>
+        {/* Kullanici istegi: belirli bir telefon numarasinin (orn.
+            "5323770376" - format farki onemli degil) attigi/aldigi
+            TUM mesajlari arayabilme. */}
+        <div className="flex gap-2">
+          <input
+            value={phoneSearch}
+            onChange={(e) => setPhoneSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handlePhoneSearchSubmit()}
+            placeholder="Telefon numarası ile ara (örn. 5323770376)"
+            className="flex-1 rounded-2xl border-2 border-sky-light bg-white px-3 py-2 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+          />
+          <button
+            onClick={handlePhoneSearchSubmit}
+            className="rounded-full bg-sky px-4 py-2 font-body text-sm font-semibold text-white hover:bg-sky-hover"
+          >
+            Ara
+          </button>
+          {phoneSearch && (
+            <button
+              onClick={() => {
+                setPhoneSearch("");
+                setThreadsPage(1);
+                fetchThreadsWithPhones("");
+              }}
+              className="rounded-full border-2 border-slate-light/40 px-4 py-2 font-body text-sm font-semibold text-slate-light hover:bg-mint"
+            >
+              Temizle
+            </button>
+          )}
+        </div>
         {isThreadsLoading && (
           <p className="font-body text-sm text-slate-light">Yükleniyor...</p>
         )}
