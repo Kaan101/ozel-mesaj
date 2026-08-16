@@ -1569,7 +1569,14 @@ export class ThreadService implements OnModuleInit {
         lastMessage: lastMessageByThreadId.get(t.id) ?? null,
       }))
       .filter((x) => x.count > 0)
-      .sort((a, b) => b.count - a.count)
+      // Kullanici istegi: panel "sabit" kalmasin - liste, toplam mesaj
+      // SAYISI yerine EN SON mesajin tarihine gore siralanir, boylece
+      // yeni aktif olan bir konusma listenin basina gelir.
+      .sort((a, b) => {
+        const aTime = a.lastMessage?.createdAt.getTime() ?? 0;
+        const bTime = b.lastMessage?.createdAt.getTime() ?? 0;
+        return bTime - aTime;
+      })
       .slice(0, limit);
 
     return ranked.map(({ thread, count, lastMessage }) => {
