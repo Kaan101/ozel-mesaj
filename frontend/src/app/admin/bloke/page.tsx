@@ -64,6 +64,16 @@ export default function AdminBlokePage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  // Kullanici istegi: admin, sikayet listesinde olmayan bir kisiyi de
+  // telefon numarasini elle girerek dogrudan bloke edebilsin (orn.
+  // "kotu niyetli kullanim" nedeniyle).
+  const [manualBlockPhone, setManualBlockPhone] = useState("");
+  const [manualBlockReason, setManualBlockReason] = useState("8"); // varsayilan: Kotu Niyetli Kullanim
+  const [manualBlockReasonCodes, setManualBlockReasonCodes] = useState<
+    { code: string; description: string }[]
+  >([]);
+  const [isManualBlocking, setIsManualBlocking] = useState(false);
+  const [manualBlockMessage, setManualBlockMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_secret");
@@ -78,6 +88,7 @@ export default function AdminBlokePage() {
       fetchUsers();
       fetchBlocks();
       fetchBlockHistory();
+      fetchManualBlockReasonCodes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked]);
@@ -143,6 +154,45 @@ export default function AdminBlokePage() {
       if (res.ok) setBlockHistory(await res.json());
     } catch {
       // Sessizce gec.
+    }
+  }
+
+  // Kullanici istegi: elle blok eklerken secilebilecek neden kodlari.
+  async function fetchManualBlockReasonCodes() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/system-codes?category=block_reason`, {
+        headers: { "x-admin-secret": adminKey },
+      });
+      if (res.ok) setManualBlockReasonCodes(await res.json());
+    } catch {
+      // Sessizce gec.
+    }
+  }
+
+  // Kullanici istegi: sikayet listesinde olmayan bir kisiyi de,
+  // telefon numarasini elle girerek dogrudan bloke edebilme (orn.
+  // "kotu niyetli kullanim" nedeniyle).
+  async function handleManualBlock() {
+    if (!manualBlockPhone.trim()) return;
+    setIsManualBlocking(true);
+    setManualBlockMessage(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/safety/suspend-by-phone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-secret": adminKey },
+        body: JSON.stringify({
+          phoneNumber: manualBlockPhone.trim(),
+          reasonCode: manualBlockReason,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setManualBlockMessage("Kullanıcı başarıyla bloke edildi.");
+      setManualBlockPhone("");
+      await fetchUsers();
+    } catch {
+      setManualBlockMessage("Bloke edilemedi. Telefon numarasını kontrol edip tekrar dene.");
+    } finally {
+      setIsManualBlocking(false);
     }
   }
 
@@ -273,6 +323,49 @@ export default function AdminBlokePage() {
           Bildirilen (şikayet edilen) kullanıcılar telefon numaralarıyla birlikte listelenir.
           Gerekirse bloke edebilir (hesabını askıya alabilir), istediğin zaman geri alabilirsin.
         </p>
+
+        {/* Kullanici istegi: sikayet listesinde OLMAYAN bir kisiyi de
+            (orn. kotu niyetli kullandigini dusundugun birini) telefon
+            numarasini elle girerek dogrudan bloke edebilme. */}
+        <Card lifted className="space-y-3">
+          <h2 className="font-display text-lg font-bold text-slate">Elle Blok Ekle</h2>
+          <p className="font-body text-xs text-slate-light">
+            Henüz şikayet edilmemiş, ama kötü niyetli kullandığını düşündüğün bir kişiyi telefon
+            numarasıyla doğrudan bloke edebilirsin (hesabı askıya alınır).
+          </p>
+          <Input
+            label="Telefon Numarası"
+            value={manualBlockPhone}
+            onChange={(e) => setManualBlockPhone(e.target.value)}
+            placeholder="+90 5xx xxx xx xx"
+          />
+          <div>
+            <label className="block font-body text-sm font-semibold text-slate mb-1">
+              Blok Nedeni
+            </label>
+            <select
+              value={manualBlockReason}
+              onChange={(e) => setManualBlockReason(e.target.value)}
+              className="w-full rounded-2xl border-2 border-sky-light bg-white px-3 py-2 font-body text-sm text-slate focus:outline-none focus:ring-2 focus:ring-sky/20"
+            >
+              {manualBlockReasonCodes.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.code} — {r.description}
+                </option>
+              ))}
+            </select>
+          </div>
+          {manualBlockMessage && (
+            <p className="font-body text-sm text-meadow-hover">{manualBlockMessage}</p>
+          )}
+          <Button
+            onClick={handleManualBlock}
+            disabled={isManualBlocking || !manualBlockPhone.trim()}
+            className="w-full"
+          >
+            {isManualBlocking ? "Bloke Ediliyor..." : "Bloke Et"}
+          </Button>
+        </Card>
 
         {error && <p className="font-body text-sm text-coral">{error}</p>}
 

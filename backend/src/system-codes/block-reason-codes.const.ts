@@ -11,6 +11,9 @@ export const BLOCK_REASON_CODES = {
   UNWANTED_CONTACT: "5",
   OTHER: "6",
   REPORTED: "7",
+  // Kullanici istegi: admin, kotu niyetli kullandigini dusundugu bir
+  // kisiyi elle bloke/askiya alabilsin - bu kodla isaretlenir.
+  MALICIOUS_USE: "8",
 } as const;
 
 export const DEFAULT_BLOCK_REASONS: { code: string; description: string }[] = [
@@ -24,6 +27,7 @@ export const DEFAULT_BLOCK_REASONS: { code: string; description: string }[] = [
   },
   { code: BLOCK_REASON_CODES.OTHER, description: "Diğer / belirtilmemiş" },
   { code: BLOCK_REASON_CODES.REPORTED, description: "Şikayet edildi" },
+  { code: BLOCK_REASON_CODES.MALICIOUS_USE, description: "Kötü niyetli kullanım (admin kararı)" },
 ];
 
 // Kullanici istegi: onceki bir surumde metin bazli kodlar (SPAM,

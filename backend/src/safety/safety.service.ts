@@ -637,16 +637,49 @@ export class SafetyService {
 
   // Kullanici istegi: gerekirse bloke edilebilsin - kullanicinin
   // hesabi askiya alinir (giris yapamaz, bkz. AuthService.verifyOtp).
-  async suspendUser(userId: string): Promise<void> {
+  async suspendUser(userId: string, reasonCode?: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException("Kullanici bulunamadi.");
 
-    await this.prisma.user.update({ where: { id: userId }, data: { status: "suspended" } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { status: "suspended", ...(reasonCode ? { suspensionReasonCode: reasonCode } : {}) },
+    });
 
     await this.auditLog.log({
       eventType: "user_suspended_by_admin",
       userId,
     });
+  }
+
+  // Kullanici istegi: admin, sikayet listesinde OLMAYAN (henuz hic
+  // raporlanmamis) bir kisiyi de, telefon numarasini elle girerek
+  // dogrudan bloke/askiya alabilsin - orn. "kotu niyetli kullanim"
+  // dusundugu bir kisi icin. Kisi sistemde hic kayitli degilse bile
+  // (henuz uygulamayi hic kullanmamis olsa da), ileride kayit olursa
+  // hesabinin ASKIYA ALINMIS baslamasi icin bir "golge" kullanici
+  // olusturulur (blockThreadCounterpart'taki desenle AYNI).
+  async suspendUserByPhone(
+    phoneNumber: string,
+    reasonCode: string
+  ): Promise<{ userId: string }> {
+    const phoneHash = hashPhoneNumber(phoneNumber);
+    const user = await this.prisma.user.upsert({
+      where: { phoneNumberHash: phoneHash },
+      update: { status: "suspended", suspensionReasonCode: reasonCode },
+      create: {
+        phoneNumberHash: phoneHash,
+        status: "suspended",
+        suspensionReasonCode: reasonCode,
+      },
+    });
+
+    await this.auditLog.log({
+      eventType: "user_suspended_by_admin_via_phone",
+      userId: user.id,
+    });
+
+    return { userId: user.id };
   }
 
   // Kullanici istegi: bloke geri alinabilsin.
