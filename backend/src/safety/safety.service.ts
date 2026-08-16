@@ -323,6 +323,19 @@ export class SafetyService {
     await this.prisma.block.delete({ where: { id: blockId } }).catch(() => {});
     if (block) {
       await this.logBlockRemoved(block.blockerUserId, block.blockedUserId);
+
+      // Kullanici istegi (bug duzeltmesi): "Elle Blok Ekle" ile
+      // ADMIN'IN dogrudan askiya aldigi hesaplarda (admin_manual,
+      // kendi kendine blockerUserId=blockedUserId), sadece blok
+      // KAYDINI silmek YETERLI DEGIL - hesabin status'u da tekrar
+      // "active" yapilmali, aksi halde kisi HALA giris/mesajlasma
+      // yapamaz (suspended kalir).
+      if (block.type === "admin_manual" && block.blockerUserId === block.blockedUserId) {
+        await this.prisma.user.update({
+          where: { id: block.blockedUserId },
+          data: { status: "active" },
+        });
+      }
     }
   }
 
