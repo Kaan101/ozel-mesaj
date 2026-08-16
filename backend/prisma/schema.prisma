@@ -395,6 +395,10 @@ enum BlockType {
   manual
   toxic_pending
   toxic_confirmed
+  // Kullanici istegi: admin, sikayet listesinde olmayan bir kisiyi
+  // telefon numarasiyla elle bloke edebilir - bu blok turu, "Sistem"
+  // yerine "Admin" olarak gosterilir.
+  admin_manual
 }
 
 model Block {

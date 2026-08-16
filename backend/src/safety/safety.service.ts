@@ -204,11 +204,16 @@ export class SafetyService {
 
     return logs.map((log) => {
       const isSystemBlock = log.type === "toxic_pending" || log.type === "toxic_confirmed";
+      const isAdminManualBlock = log.type === "admin_manual";
       return {
         id: log.id,
         type: log.type,
-        blockerDisplayName: isSystemBlock ? "Sistem" : log.blocker.displayName,
-        blockerPhone: isSystemBlock
+        blockerDisplayName: isAdminManualBlock
+          ? "Admin"
+          : isSystemBlock
+            ? "Sistem"
+            : log.blocker.displayName,
+        blockerPhone: isSystemBlock || isAdminManualBlock
           ? null
           : log.blocker.phoneNumberEncrypted
             ? decryptReversible(log.blocker.phoneNumberEncrypted)
@@ -266,18 +271,24 @@ export class SafetyService {
       // Kullanici istegi: sistem tarafindan (toksik icerik nedeniyle)
       // konulan bloklarda, "Bloklayan" olarak GERCEK kisi yerine
       // "Sistem" gosterilir - bu bir KISISEL tercih degil, otomatik
-      // bir guvenlik onlemidir.
+      // bir guvenlik onlemidir. Admin'in telefon numarasiyla ELLE
+      // ekledigi bloklarda ise "Admin" gosterilir.
       const isSystemBlock = b.type === "toxic_pending" || b.type === "toxic_confirmed";
+      const isAdminManualBlock = b.type === "admin_manual";
       return {
         blockId: b.id,
         type: b.type,
         expiresAt: b.expiresAt,
-        blockerPhone: isSystemBlock
+        blockerPhone: isSystemBlock || isAdminManualBlock
           ? null
           : b.blocker.phoneNumberEncrypted
             ? decryptReversible(b.blocker.phoneNumberEncrypted)
             : null,
-        blockerDisplayName: isSystemBlock ? "Sistem" : b.blocker.displayName,
+        blockerDisplayName: isAdminManualBlock
+          ? "Admin"
+          : isSystemBlock
+            ? "Sistem"
+            : b.blocker.displayName,
         blockedPhone: b.blocked.phoneNumberEncrypted
           ? decryptReversible(b.blocked.phoneNumberEncrypted)
           : null,
@@ -673,6 +684,25 @@ export class SafetyService {
         suspensionReasonCode: reasonCode,
       },
     });
+
+    // Kullanici istegi: elle bloke edilen kisi, HEMEN "Tum Bloklar"
+    // listesinde de gorunsun. Gercek bir "bloklayan kisi" olmadigi
+    // icin (bu bir HESAP duzeyinde kisitlama), kendi kendine (blocker
+    // = blocked) bir Block kaydi olusturulur - listede "Admin"
+    // olarak gosterilir (bkz. listAllBlocksForAdmin).
+    await this.prisma.block.upsert({
+      where: {
+        blockerUserId_blockedUserId: { blockerUserId: user.id, blockedUserId: user.id },
+      },
+      update: { type: "admin_manual", reasonCode },
+      create: {
+        blockerUserId: user.id,
+        blockedUserId: user.id,
+        type: "admin_manual",
+        reasonCode,
+      },
+    });
+    await this.logBlockEvent(user.id, user.id, "admin_manual", reasonCode);
 
     await this.auditLog.log({
       eventType: "user_suspended_by_admin_via_phone",

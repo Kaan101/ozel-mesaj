@@ -186,9 +186,11 @@ export default function AdminBlokePage() {
         }),
       });
       if (!res.ok) throw new Error();
-      setManualBlockMessage("Kullanıcı başarıyla bloke edildi.");
+      setManualBlockMessage("Kullanıcı başarıyla bloke edildi. Aşağıdaki listede görünüyor.");
       setManualBlockPhone("");
-      await fetchUsers();
+      // Kullanici istegi: elle eklenen blok, HEMEN altindaki
+      // listelerde (Tum Bloklar + Blok Gecmisi) gorunsun.
+      await Promise.all([fetchUsers(), fetchBlocks(), fetchBlockHistory()]);
     } catch {
       setManualBlockMessage("Bloke edilemedi. Telefon numarasını kontrol edip tekrar dene.");
     } finally {
@@ -501,6 +503,8 @@ export default function AdminBlokePage() {
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-sm text-slate">
                       {b.blockerDisplayName === "Sistem" ? (
                         <span className="font-semibold text-coral">🤖 Sistem</span>
+                      ) : b.blockerDisplayName === "Admin" ? (
+                        <span className="font-semibold text-sky">🛡️ Admin</span>
                       ) : (
                         <>
                           {b.blockerPhone ?? "—"}
@@ -599,6 +603,8 @@ export default function AdminBlokePage() {
                     <td className="border border-slate-light/60 px-4 py-3 font-body text-[10px] text-slate">
                       {h.blockerDisplayName === "Sistem" ? (
                         <span className="font-semibold text-coral">🤖 Sistem</span>
+                      ) : h.blockerDisplayName === "Admin" ? (
+                        <span className="font-semibold text-sky">🛡️ Admin</span>
                       ) : (
                         <>
                           {h.blockerPhone ?? "—"}
