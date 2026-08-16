@@ -671,9 +671,15 @@ export class SafetyService {
   // hesabinin ASKIYA ALINMIS baslamasi icin bir "golge" kullanici
   // olusturulur (blockThreadCounterpart'taki desenle AYNI).
   async suspendUserByPhone(
-    phoneNumber: string,
+    phoneNumberRaw: string,
     reasonCode: string
   ): Promise<{ userId: string }> {
+    // Kullanici istegi (bug duzeltmesi): giris akisindaki numara
+    // formatiyla ("+905321234567", BOSLUKSUZ) TAM ESLESSIN diye,
+    // admin panelinden gelen numara da BOSLUK/TIRE temizlenerek
+    // normalize edilir - aksi halde hash ESLESMEZ ve kisi giris
+    // yapabilmeye devam eder.
+    const phoneNumber = phoneNumberRaw.replace(/[\s-]/g, "");
     const phoneHash = hashPhoneNumber(phoneNumber);
     // Kullanici istegi: admin ekraninda telefon numarasi GORUNTULENEBILSIN
     // diye (sadece arama icin kullanilan hash yeterli degil), sifreli
