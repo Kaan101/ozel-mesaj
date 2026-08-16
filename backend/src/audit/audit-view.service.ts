@@ -181,7 +181,7 @@ export class AuditViewService {
       // Kullanici istegi: anonim mesajlarda gonderenin telefonu
       // GOSTERILMEZ (anonimlik prensibi korunur) - anonim degilse
       // cozulmus telefon numarasi eklenir.
-      senderPhone: a.isAnonymous ? null : (phoneByUserId.get(a.senderUserId) ?? null),
+      senderPhone: a.isAnonymous || !a.senderUserId ? null : (phoneByUserId.get(a.senderUserId) ?? null),
       isAnonymous: a.isAnonymous,
       body: decryptReversible(a.bodyEncrypted),
       createdAt: a.createdAt,
