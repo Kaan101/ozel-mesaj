@@ -102,6 +102,11 @@ model User {
   createdAt       DateTime   @default(now()) @map("created_at")
   lastSeenAt      DateTime?  @map("last_seen_at")
   status          UserStatus @default(active)
+  // Kullanici istegi: admin, bir hesabi elle askiya alirken (orn.
+  // "Kotu Niyetli Kullanim") neden kodunu da kaydeder - denetim/gorunum
+  // amacli. Hesap tekrar aktif edilince bu alan temizlenmez, gecmis
+  // kayit olarak kalir.
+  suspensionReasonCode String? @map("suspension_reason_code")
 
   initiatedThreads MessageThread[] @relation("ThreadInitiator")
   receivedThreads  MessageThread[] @relation("ThreadRecipient")

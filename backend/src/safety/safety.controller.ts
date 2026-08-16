@@ -146,6 +146,16 @@ export class SafetyController {
     return { message: "Kullanıcı bloke edildi." };
   }
 
+  // Kullanici istegi: admin, sikayet listesinde olmayan bir kisiyi de
+  // telefon numarasini elle girerek dogrudan bloke edebilsin (orn.
+  // "kotu niyetli kullanim" nedeniyle).
+  @UseGuards(AdminGuard)
+  @Post("suspend-by-phone")
+  async suspendUserByPhone(@Body() dto: { phoneNumber: string; reasonCode: string }) {
+    const result = await this.safetyService.suspendUserByPhone(dto.phoneNumber, dto.reasonCode);
+    return { message: "Kullanıcı bloke edildi.", userId: result.userId };
+  }
+
   @UseGuards(AdminGuard)
   @Post("users/:id/reactivate")
   async reactivateUser(@Param("id") id: string) {
