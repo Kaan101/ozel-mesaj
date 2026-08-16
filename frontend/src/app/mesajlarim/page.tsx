@@ -184,7 +184,10 @@ export default function MesajlarimPage() {
 
   return (
     <main className="min-h-screen bg-mint px-4 py-12">
-      <div className="mx-auto max-w-md space-y-6">
+      {/* Kullanici istegi: mobilde dar (max-w-md) kalirken, web
+          sayfasinda mesaj kayitlari cok dar/mobil gibi durmasin diye
+          daha genis bir maksimum genislige sahip olsun. */}
+      <div className="mx-auto max-w-md md:max-w-2xl space-y-6">
         {/* Kullanici istegi: Havuz'daki gibi sayfanin en tepesinde her
             zaman gorunsun - sadece bos durumda degil. */}
         <ConnectionIllustration className="mx-auto w-full max-w-[220px] h-auto" />
