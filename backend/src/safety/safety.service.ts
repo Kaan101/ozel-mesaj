@@ -3,7 +3,7 @@ import { PrismaService } from "../common/prisma.service";
 import { SettingsService } from "../settings/settings.service";
 import { AuditLogService } from "../audit/audit-log.service";
 import { hashPhoneNumber } from "../common/hash.util";
-import { decryptReversible } from "../common/encryption.util";
+import { decryptReversible, encryptReversible } from "../common/encryption.util";
 import { BLOCK_REASON_CODES } from "../system-codes/block-reason-codes.const";
 import { NotificationService } from "../notifications/notification.service";
 
@@ -675,11 +675,20 @@ export class SafetyService {
     reasonCode: string
   ): Promise<{ userId: string }> {
     const phoneHash = hashPhoneNumber(phoneNumber);
+    // Kullanici istegi: admin ekraninda telefon numarasi GORUNTULENEBILSIN
+    // diye (sadece arama icin kullanilan hash yeterli degil), sifreli
+    // ama GERI DONDURULEBILIR halde de saklanir.
+    const phoneEncrypted = encryptReversible(phoneNumber);
     const user = await this.prisma.user.upsert({
       where: { phoneNumberHash: phoneHash },
-      update: { status: "suspended", suspensionReasonCode: reasonCode },
+      update: {
+        status: "suspended",
+        suspensionReasonCode: reasonCode,
+        phoneNumberEncrypted: phoneEncrypted,
+      },
       create: {
         phoneNumberHash: phoneHash,
+        phoneNumberEncrypted: phoneEncrypted,
         status: "suspended",
         suspensionReasonCode: reasonCode,
       },
