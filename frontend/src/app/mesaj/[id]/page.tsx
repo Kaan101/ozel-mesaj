@@ -619,7 +619,7 @@ export default function MesajGosterPage() {
         {/* Kullanici istegi: mobilde dar (max-w-md) kalirken, web
             sayfasinda mesajlar cok dar/mobil gibi durmasin diye daha
             genis bir maksimum genislige sahip olsun. */}
-        <div className="mx-auto max-w-md md:max-w-2xl space-y-4">
+        <div className="mx-auto max-w-md space-y-4">
           <div>
             <h1 className="font-display text-2xl font-bold text-slate">{pageTitle}</h1>
             {/* Kullanici istegi: Engelle/Bildir aksiyonlari, tarih ve

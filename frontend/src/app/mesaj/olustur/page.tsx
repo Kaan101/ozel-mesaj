@@ -225,7 +225,7 @@ export default function MesajOlusturPage() {
       {/* Kullanici istegi: mobilde dar (max-w-md) kalirken, web
           sayfasinda mesajlar cok dar/mobil gibi durmasin diye daha
           genis bir maksimum genislige sahip olsun. */}
-      <div className="mx-auto max-w-md md:max-w-2xl space-y-6">
+      <div className="mx-auto max-w-md space-y-6">
         {/* Kullanici istegi: ana sayfa/Havuz/Mesajlarim ile ayni sicak,
             illustrasyonlu his - forma da eklendi. */}
         <ConnectionIllustration className="mx-auto w-full max-w-[220px] h-auto" />
