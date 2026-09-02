@@ -55,7 +55,7 @@ export default function MesajOlusturPage() {
   // Kullanici istegi: dogrudan mesaj gonderildikten sonra, dugmeye
   // basilmazsa belirli bir sure sonra otomatik olarak Mesajlarim'a
   // yonlensin.
-  const redirectSecondsLeft = useAutoRedirect("/mesajlarim", 6, !!sentThreadId);
+  const redirectSecondsLeft = useAutoRedirect("/mesajlarim", 3, !!sentThreadId);
   // Kullanici istegi: e-posta secenegi bir sistem parametresiyle
   // acilip kapatilabilsin - varsayilan olarak acik kabul ediyoruz,
   // backend'den gercek deger gelene kadar (flicker'i onlemek icin).
