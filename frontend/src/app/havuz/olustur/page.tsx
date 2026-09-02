@@ -36,7 +36,7 @@ export default function HavuzOlusturPage() {
 
   // Kullanici istegi: havuz sorusu gonderildikten sonra, dugmeye
   // basilmazsa belirli bir sure sonra otomatik olarak Havuz'a yonlensin.
-  const redirectSecondsLeft = useAutoRedirect("/havuz", 6, !!createdId);
+  const redirectSecondsLeft = useAutoRedirect("/havuz", 2, !!createdId);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
