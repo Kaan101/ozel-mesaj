@@ -109,7 +109,9 @@ export default function HavuzYanitlarimPage() {
               </div>
 
               <div className="flex items-start gap-3 rounded-2xl bg-mint p-3">
-               
+                {attempt.attempterAvatarId && (
+                  <Avatar avatarId={attempt.attempterAvatarId} size={36} />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="font-body text-slate">{attempt.answerText}</p>
                   <p className="mt-1 font-body text-xs text-slate-light">
